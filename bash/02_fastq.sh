@@ -23,7 +23,9 @@
 #     ├── metadata/ # METADATA MUST BE IN THIS FOLDER!
 #     └── process_metadata.sh
 
-num_cores=$(nproc)
+# Define default values
+OSCAR_script_dir=$(dirname "${BASH_SOURCE[0]}")
+prefix="$HOME/scratch/ngs"
 
 # Parse command line arguments using getopts_long function
 while [[ "$#" -gt 0 ]]; do
@@ -32,8 +34,11 @@ while [[ "$#" -gt 0 ]]; do
       project_id="$2"
       shift 2
       ;;
-    *)
-      echo "Invalid option: $1"
+    --prefix)
+      prefix="$2"
+      shift 2
+      ;;
+    *)      echo "Invalid option: $1"
       exit 1
       ;;
   esac

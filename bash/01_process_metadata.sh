@@ -25,7 +25,7 @@
 
 # Define default values
 OSCAR_script_dir=$(dirname "${BASH_SOURCE[0]}")
-prefix="$PWD"
+prefix="$HOME/scratch/ngs"
 
 # Parse command line arguments using getopts_long function
 while [[ "$#" -gt 0 ]]; do
