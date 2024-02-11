@@ -1,4 +1,4 @@
-name: OSCAR_QC
+name: oscar-qc
 channels:
   - nvidia
   - bih-cubi

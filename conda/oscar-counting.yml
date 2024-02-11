@@ -1,4 +1,4 @@
-name: OSCAR_counting
+name: oscar-counting
 channels:
   - bih-cubi
   - conda-forge
