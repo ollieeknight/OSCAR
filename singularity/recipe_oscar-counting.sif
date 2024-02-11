@@ -6,9 +6,9 @@ From: ubuntu:latest
     Email "oliver.knight@charite.de"
 
 %files
-	$HOME/group/work/bin/OSCAR/source/cellranger-7.2.0.tar.gz /opt/
-	$HOME/group/work/bin/OSCAR/source/cellranger-atac-2.1.0.tar.gz /opt/
-	$HOME/group/work/bin/OSCAR/recipes/OSCAR_counting.yml /opt/environment.yml
+	cellranger-7.2.0.tar.gz /opt/
+	cellranger-atac-2.1.0.tar.gz /opt/
+	../conda/oscar-counting.yml /opt/environment.yml
 
 %environment
         export LC_ALL=C
