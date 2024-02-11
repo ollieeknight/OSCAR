@@ -6,12 +6,12 @@ From: ubuntu:latest
     Email "oliver.knight@charite.de"
 
 %files
-        $HOME/group/work/bin/OSCAR/recipes/OSCAR_QC.yml /opt/environment.yml
+        conda/oscar-qc.yml /opt/environment.yml
 
 %environment
         export LC_ALL=C
         export LC_NUMERIC=en_GB.UTF-8
-        export PATH="/opt/miniconda3/bin:/opt/miniconda3/envs/OSCAR_QC/bin:/opt/kallisto/:/opt/AMULET/:$PATH"
+        export PATH="/opt/miniconda3/bin:/opt/miniconda3/envs/oscar-qc/bin:/opt/kallisto/:/opt/AMULET/:$PATH"
 
 %runscript
 	alias AMULET='/opt/AMULET/AMULET.sh'
@@ -23,6 +23,10 @@ From: ubuntu:latest
         apt-get update -qq
         apt-get upgrade -y -qq
         apt-get --allow-releaseinfo-change update && apt-get install -y curl git unzip tar nano
+
+	mkdir -p /opt/SNP/
+	curl -sSL -o /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz https://sourceforge.net/projects/cellsnp/files/SNPlist/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz
+	curl -sSL -o /opt/SNP/genome1K.phase3.SNP_AF5e4.chr1toX.hg38.vcf.gz https://sourceforge.net/projects/cellsnp/files/SNPlist/genome1K.phase3.SNP_AF5e4.chr1toX.hg38.vcf.gz
 
 	mkdir -p /opt/AMULET/
         git clone https://github.com/UcarLab/AMULET /opt/AMULET/
@@ -54,10 +58,10 @@ From: ubuntu:latest
         conda upgrade --all -y
         conda config --set solver libmamba
         conda env create -f /opt/environment.yml
-        conda activate OSCAR_QC
+        conda activate oscar-qc
 
         conda clean -y -a
         pip cache purge
 
         echo ". /opt/miniconda3/etc/profile.d/conda.sh" | tee -a $SINGULARITY_ENVIRONMENT
-        echo "conda activate OSCAR_QC" | tee -a $SINGULARITY_ENVIRONMENT
+        echo "conda activate oscar-qc" | tee -a $SINGULARITY_ENVIRONMENT
