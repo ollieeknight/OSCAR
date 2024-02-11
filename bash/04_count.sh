@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # usage is: bash 04_count.sh -project-id project_id
+# Requirements at the moment for the reference transcriptomes are
+# under here $HOME/group/work/ref/
 
 # make sure your processing folder structure is similar to follows:
 
@@ -28,13 +30,20 @@
 #     ├── libraries/
 #     └── metadata/ # METADATA MUST BE IN THIS FOLDER!
 
+# Define default values
+OSCAR_script_dir=$(dirname "${BASH_SOURCE[0]}")
+prefix="$HOME/scratch/ngs"
+
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
     key="$1"
-
     case $key in
         --project-id)
         output_project_id="$2"
+        shift 2
+        ;;
+        --prefix)
+        prefix="$2"
         shift 2
         ;;
         *)
@@ -51,20 +60,21 @@ if [ -z "$output_project_id" ]; then
     exit 1
 fi
 
-container=$HOME/group/work/bin/OSCAR/OSCAR_counting.sif
+container=$TMPDIR/oscar-counting_v1.sif
 
-if [ ! -f "$container" ]; then
-  echo "OSCAR_counting.sig container file not found, please check path"
-  exit 1
+# Check that the singularity container is available
+if [ ! -f "${container}" ]; then
+    echo "oscar-counting_v1.sif singularity file not found, pulling..."
+    apptainer pull --arch amd64 library://romagnanilab/default/oscar-counting:v1
 fi
 
 # Define the project directory
-outs="$HOME/scratch/ngs/${output_project_id}/${output_project_id}_outs"
+project_dir=$project_dir/$output_project_id
+library_folder=${prefix}/${output_project_id}/${output_project_id}_scripts/libraries
+outs="${prefix}/${output_project_id}/${output_project_id}_outs"
 mkdir -p "$outs"
 
-library_folder=$HOME/scratch/ngs/${output_project_id}/${output_project_id}_scripts/libraries
-
-if [ ! -d "$library_folder" ]; then
+if [ ! -f "$library_folder" ]; then
   echo "Libraries folder not found - did you run the last script (process_libraries.sh)?"
   exit 1
 fi
@@ -105,8 +115,8 @@ for library in "${libraries[@]}"; do
             sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name ${library}
-#SBATCH --output $outs/logs/${library}_SLURM.out
-#SBATCH --error $outs/logs/${library}_SLURM.out
+#SBATCH --output $outs/logs/${library}_counting.out
+#SBATCH --error $outs/logs/${library}_counting.out
 #SBATCH --ntasks=64
 #SBATCH --mem=96000
 #SBATCH --time=24:00:00
@@ -129,8 +139,8 @@ EOF
             sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name ${library}
-#SBATCH --output $outs/logs/${library}_SLURM.out
-#SBATCH --error $outs/logs/${library}_SLURM.out
+#SBATCH --output $outs/logs/${library}_counting.out
+#SBATCH --error $outs/logs/${library}_counting.out
 #SBATCH --ntasks=64
 #SBATCH --mem=96000
 #SBATCH --time=24:00:00

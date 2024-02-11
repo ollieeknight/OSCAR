@@ -1,6 +1,8 @@
 #!/bin/bash
 
-# usage is: bash 01_process_libraries.sh --project-id 'project_id' --gene-expression-options option1,setting1;option2,setting 2 --vdj-options option1,setting1;option2,setting 2 --adt-options option1,setting1;option2,setting 2
+# usage is: bash 03_process_libraries.sh --project-id 'project_id' --gene-expression-options option1,setting1;option2,setting 2 --vdj-options option1,setting1;option2,setting 2 --adt-options option1,setting1;option2,setting 2
+# such as bash 03_process_libraries.sh --project-id K002,K001 --prefix $HOME/scratch/ngs/
+# The output project id should be the first! Above, output libraries will go into K002.
 
 # make sure your processing folder structure is similar to follows:
 
@@ -19,19 +21,27 @@
 # │   └── Thumbnail_Images/
 # |── {project_id}_fastq/
 # │   ├── FASTQ_1/
-# │   ├── FASTQ_2
+# │   ├── FASTQ_2/
 # │   ├── ...
-# │   ├── FASTQ_n
+# │   ├── FASTQ_n/
 # └── {project_id}_scripts/
 #     ├── adt_files/
 #     ├── indices/
-#     └── metadata/ # METADATA MUST BE IN THIS FOLDER!
+#     └── metadata/
+
+# Define default values
+OSCAR_script_dir=$(dirname "${BASH_SOURCE[0]}")
+prefix="$HOME/scratch/ngs"
 
 # Parse command line arguments using getopts_long function
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
     --project-id)
       project_ids_in="$2"
+      shift 2
+      ;;
+    --prefix)
+      prefix="$2"
       shift 2
       ;;
     --gene-expression-options)
@@ -99,7 +109,8 @@ else
     echo "No options set for ADT/HTO"
 fi
 
-output_folder="$HOME/scratch/ngs/${main_project_id}/${main_project_id}_scripts/libraries"
+project_dir=$project_dir/$main_project_id
+output_folder="$project_dir/${main_project_id}_scripts/libraries"
 
 # Check if the libraries folder already exists, and remove it if it does
 if [ -d "$output_folder" ]; then
@@ -113,11 +124,11 @@ for project_id in "${project_ids[@]}"; do
     echo "Processing project_id: $project_id"
     echo ""
 
-    project_dir=$HOME/scratch/ngs/$project_id
+    project_dir=$project_dir/$project_id
     script_dir=${project_dir}/${project_id}_scripts
 
     # Define the metadata file path based on the project_id
-    metadata_file="$HOME/scratch/ngs/${project_id}/${project_id}_scripts/metadata/metadata.csv"
+    metadata_file="$project_dir/${project_id}/${project_id}_scripts/metadata/metadata.csv"
 
     # Check that the singularity container is available
     if [ ! -f "${metadata_file}" ]; then
@@ -296,10 +307,10 @@ read -r choice
 
 # Process choices
 if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-    echo "Submitting: bash ~/work/scripts/oscar/04_count.sh --project-id ${project_id}"
-    bash ~/work/scripts/oscar/04_count.sh --project-id ${project_id}
+    echo "Submitting: bash ${OSCAR_script_dir}/04_count.sh --project-id ${project_id}"
+    bash ${OSCAR_script_dir}/04_count.sh --project-id ${project_id}
 elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
     :
 else
-    echo "Invalid choice. Script finished."
+    echo "Invalid choice. Exiting"
 fi

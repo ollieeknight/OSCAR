@@ -1,27 +1,26 @@
 #!/bin/bash
 
-# usage is: bash 01_process_metadata.sh --project-id 'project_id'
+# usage is: bash 01_process_metadata.sh --project-id project_id --prefix $HOME/path/before/
+# such as bash 01_process_metadata.sh --project-id K001 --prefix $HOME/scratch/ngs/
 
 # make sure your processing folder structure is similar to follows:
 
 # |── {project_id}_bcl/
-# │   ├── Config/
-# │   ├── CopyComplete.txt
-# │   ├── Data/
-# │   ├── InterOp/
-# │   ├── Logs/
-# │   ├── Recipe/
-# │   ├── RTA3.cfg
-# │   ├── RTAComplete.txt
-# │   ├── RunInfo.xml
-# │   ├── RunParameters.xml
-# │   ├── SequenceComplete.txt
-# │   └── Thumbnail_Images/
+# │   ├── Config/
+# │   ├── CopyComplete.txt
+# │   ├── Data/
+# │   ├── InterOp/
+# │   ├── Logs/
+# │   ├── Recipe/
+# │   ├── RTA3.cfg
+# │   ├── RTAComplete.txt
+# │   ├── RunInfo.xml
+# │   ├── RunParameters.xml
+# │   ├── SequenceComplete.txt
+# │   └── Thumbnail_Images/
 # └── {project_id}_scripts/
 #     ├── adt_files/
-#     ├── indices/
-#     ├── metadata/ # METADATA MUST BE IN THIS FOLDER!
-#     └── process_metadata.sh
+#     └── metadata/ # METADATA MUST BE IN THIS FOLDER!
 
 # Define default values
 OSCAR_script_dir=$(dirname "${BASH_SOURCE[0]}")
@@ -36,19 +35,6 @@ while [[ "$#" -gt 0 ]]; do
       ;;
     --prefix)
       prefix="$2"
-      shift 2
-      ;;
-    *)      echo "Invalid option: $1"
-      exit 1
-      ;;
-  esac
-done
-
-# Parse command line arguments using getopts_long function
-while [[ "$#" -gt 0 ]]; do
-  case "$1" in
-    --project-id)
-      project_id="$2"
       shift 2
       ;;
     *)      echo "Invalid option: $1"
@@ -142,5 +128,5 @@ if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
 elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
     :
 else
-    echo "Invalid choice. Script finished."
+    echo "Invalid choice. Exiting"
 fi

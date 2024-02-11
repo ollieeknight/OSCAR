@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # usage is: bash 02_fastq.sh --project-id 'project_id'
+# such as bash 02_fastq.sh --project-id K001 --prefix $HOME/scratch/ngs/
 
 # make sure your processing folder structure is similar to follows:
 
@@ -20,8 +21,7 @@
 # └── {project_id}_scripts/
 #     ├── adt_files/
 #     ├── indices/
-#     ├── metadata/ # METADATA MUST BE IN THIS FOLDER!
-#     └── process_metadata.sh
+#     └── metadata/ # METADATA MUST BE IN THIS FOLDER!
 
 # Define default values
 OSCAR_script_dir=$(dirname "${BASH_SOURCE[0]}")
@@ -50,9 +50,8 @@ if [ -z "$project_id" ]; then
     exit 1
 fi
 
-project_dir=$HOME/scratch/ngs/$project_id
-
-script_dir=${project_dir}/${project_id}_scripts
+project_dir="${prefix}/$project_id"
+script_dir="${project_dir}/${project_id}_scripts"
 fastq_dir=${project_dir}/${project_id}_fastq
 mkdir -p $fastq_dir/logs
 
@@ -64,15 +63,15 @@ fi
 
 # Check the symbolic link for the group folder in the users $HOME
 if [ ! -d "$HOME/group" ]; then
-    ln -sr /fast/work/groups/ag_romagnani/ $HOME/group
+    ln -s /fast/work/groups/ag_romagnani/ $HOME/group
 fi
 
-container=$HOME/group/work/bin/OSCAR/OSCAR_counting.sif
+container=$TMPDIR/oscar-counting_v1.sif
 
 # Check that the singularity container is available
 if [ ! -f "${container}" ]; then
-  echo "OSCAR_counting.sif singularity file not found, please check path"
-  exit 1
+    echo "oscar-counting_v1.sif singularity file not found, pulling..."
+    apptainer pull --arch amd64 library://romagnanilab/default/oscar-counting:v1
 fi
 
 # Define base masks
@@ -196,7 +195,7 @@ for file in "${index_files[@]}"; do
             base_mask=$base_mask_ASAP_ADT
         fi
     else
-        echo "Cannot determined base mask for $index_file"
+        echo "Cannot determined base mask for $index_file"found, please check path"
         exit 1
     fi
 
@@ -205,13 +204,13 @@ for file in "${index_files[@]}"; do
     sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name ${index_file}
-#SBATCH --output $fastq_dir/logs/${index_file}_SLURM.out
-#SBATCH --error $fastq_dir/logs/${index_file}_SLURM.out
+#SBATCH --output $fastq_dir/logs/${index_file}_FASTQ.out
+#SBATCH --error $fastq_dir/logs/${index_file}_FASTQ.out
 #SBATCH --ntasks=32
 #SBATCH --mem=64000
 #SBATCH --time=3:00:00
 cd $fastq_dir
-apptainer exec -B /fast,/data ${container} $cellranger_command --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${script_dir}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}
+apptainer exec -B /fast ${container} $cellranger_command --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${script_dir}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}
 mkdir -p ${fastq_dir}/${index_file}/fastqc
 find "${index_file}/outs/fastq_path/H"* -name "*.fastq.gz" | parallel -j 16 "fastqc {} --outdir ${index_file}/fastqc"
 multiqc "${fastq_dir}/${index_file}" -o "${fastq_dir}/${index_file}/multiqc"
