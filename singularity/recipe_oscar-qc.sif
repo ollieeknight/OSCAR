@@ -6,15 +6,15 @@ From: ubuntu:latest
     Email "oliver.knight@charite.de"
 
 %files
-        conda/oscar-qc.yml /opt/environment.yml
+        conda/oscar_qc.yml /opt/environment.yml
 
 %environment
         export LC_ALL=C
         export LC_NUMERIC=en_GB.UTF-8
-        export PATH="/opt/miniconda3/bin:/opt/miniconda3/envs/oscar-qc/bin:/opt/kallisto/:/opt/AMULET/:$PATH"
+	export PATH="/opt/miniconda3/bin:/opt/miniconda3/envs/oscar_qc/bin:/opt/kallisto/:/opt/AMULET/:$PATH"
 
 %runscript
-	alias AMULET='/opt/AMULET/AMULET.sh'
+        alias AMULET='/opt/AMULET/AMULET.sh'
         alias featuremap='/opt/kite/featuremap/featuremap.py'
         alias ASAP_to_KITE='/opt/asap_to_kite/asap_to_kite_v2.py'
         eval ${@}
@@ -26,7 +26,7 @@ From: ubuntu:latest
 
 	mkdir -p /opt/SNP/
 	curl -sSL -o /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz https://sourceforge.net/projects/cellsnp/files/SNPlist/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz
-	curl -sSL -o /opt/SNP/genome1K.phase3.SNP_AF5e4.chr1toX.hg38.vcf.gz https://sourceforge.net/projects/cellsnp/files/SNPlist/genome1K.phase3.SNP_AF5e4.chr1toX.hg38.vcf.gz
+#	curl -sSL -o /opt/SNP/genome1K.phase3.SNP_AF5e4.chr1toX.hg38.vcf.gz https://sourceforge.net/projects/cellsnp/files/SNPlist/genome1K.phase3.SNP_AF5e4.chr1toX.hg38.vcf.gz
 
 	mkdir -p /opt/AMULET/
         git clone https://github.com/UcarLab/AMULET /opt/AMULET/
@@ -42,14 +42,14 @@ From: ubuntu:latest
 	chmod -R +x /opt/kallisto/
 
         mkdir -p /opt/asap_to_kite/
-	git clone https://github.com/caleblareau/asap_to_kite /opt/asap_to_kite/
-	sed -i '1s|^.*$|#!/opt/miniconda3/envs/OSCAR_QC/bin/python\n&|' /opt/asap_to_kite/asap_to_kite_v2.py
-	chmod -R +x /opt/asap_to_kite
+        git clone https://github.com/caleblareau/asap_to_kite /opt/asap_to_kite/
+        sed -i '1s|^.*$|#!/opt/miniconda3/envs/oscar_qc/bin/python\n&|' /opt/asap_to_kite/asap_to_kite_v2.py
+        chmod -R +x /opt/asap_to_kite
 
         mkdir -p /opt/kite/
-	git clone https://github.com/pachterlab/kite /opt/kite/
-	sed -i '1s|^.*$|#!/opt/miniconda3/envs/OSCAR_QC/bin/python\n&|' /opt/kite/featuremap/featuremap.py
-	chmod -R +x /opt/kite/
+        git clone https://github.com/pachterlab/kite /opt/kite/
+        sed -i '1s|^.*$|#!/opt/miniconda3/envs/oscar_qc/bin/python\n&|' /opt/kite/featuremap/featuremap.py
+        chmod -R +x /opt/kite/
 
         curl -L -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
         bash Miniconda3-latest-Linux-x86_64.sh -b -p "/opt/miniconda3"
@@ -58,10 +58,10 @@ From: ubuntu:latest
         conda upgrade --all -y
         conda config --set solver libmamba
         conda env create -f /opt/environment.yml
-        conda activate oscar-qc
+        conda activate oscar_qc
 
         conda clean -y -a
         pip cache purge
 
         echo ". /opt/miniconda3/etc/profile.d/conda.sh" | tee -a $SINGULARITY_ENVIRONMENT
-        echo "conda activate oscar-qc" | tee -a $SINGULARITY_ENVIRONMENT
+        echo "conda activate oscar_qc" | tee -a $SINGULARITY_ENVIRONMENT

@@ -68,17 +68,23 @@ output_project_dir=${prefix}/$output_project_id
 outs="${prefix}/${output_project_id}/${output_project_id}_outs"
 
 # Check if the output_project_id folder exists
-if [ ! -d "outs" ]; then
+if [ ! -d "$outs" ]; then
     echo "Error: Outs folder ($outs) does not exist. Make sure cellranger has run"
     exit 1
 fi
 
-container=$TMPDIR/oscar-counting_v1.sif
+container=$TMPDIR/oscar-qc_latest.sif
 
 # Check that the singularity container is available
 if [ ! -f "${container}" ]; then
-    echo "oscar-counting_v1.sif singularity file not found, pulling..."
-    apptainer pull --arch amd64 library://romagnanilab/default/oscar-qc:v1
+    echo "oscar-qc_latest.sif singularity file not found, pulling..."
+    apptainer pull --dir $TMPDIR library://romagnanilab/default/oscar-qc:latest
+fi
+
+# Check that the singularity container is available
+if [ ! -f "${container}" ]; then
+    echo "oscar-qc_latest.sif singularity file still not found"
+	exit 1
 fi
 
 SNP_list=$HOME/group/work/ref/vireo/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz
@@ -142,7 +148,7 @@ for library in "${libraries[@]}"; do
 #SBATCH --gres gpu:1
 #SBATCH --cpus-per-task 16
 #SBATCH --mem 64000
-#SBATCH --time 4:00:00
+#SBATCH --time 5:00:00
 cd ${outs}/$library
 apptainer run --nv -B /fast ${container} cellbender remove-background --cuda --input ${feature_matrix_path} --output ${outs}/$library/cellbender/output.h5
 rm ckpt.tar.gz
@@ -211,7 +217,7 @@ EOF
 #SBATCH --output $outs/logs/${library}_genotyping.out
 #SBATCH --error $outs/logs/${library}_genotyping.out
 #SBATCH --ntasks=32
-#SBATCH --mem=66000
+#SBATCH --mem=68000
 #SBATCH --time=8:00:00
 num_cores=\$(nproc)
 cd ${outs}/$library
@@ -240,7 +246,7 @@ EOF
 #SBATCH --output $outs/logs/${library}_genotyping.out
 #SBATCH --error $outs/logs/${library}_genotyping.out
 #SBATCH --ntasks=32
-#SBATCH --mem=66000
+#SBATCH --mem=68000
 #SBATCH --time=8:00:00
 num_cores=\$(nproc)
 cd ${outs}/$library
@@ -334,7 +340,7 @@ EOF
 #SBATCH --output $outs/logs/${library}_ADT.out
 #SBATCH --error $outs/logs/${library}_ADT.out
 #SBATCH --ntasks=32
-#SBATCH --mem=64000
+#SBATCH --mem=96000
 #SBATCH --time=12:00:00
 num_cores=\$(nproc)
 cd ${outs}/$library

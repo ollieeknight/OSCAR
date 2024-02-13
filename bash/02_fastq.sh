@@ -66,12 +66,13 @@ if [ ! -d "$HOME/group" ]; then
     ln -s /fast/work/groups/ag_romagnani/ $HOME/group
 fi
 
-container=$TMPDIR/oscar-counting_v1.sif
+container=$TMPDIR/oscar-counting_latest.sif
 
 # Check that the singularity container is available
 if [ ! -f "${container}" ]; then
-    echo "oscar-counting_v1.sif singularity file not found, pulling..."
-    apptainer pull --arch amd64 library://romagnanilab/default/oscar-counting:v1
+    echo "oscar-counting_latest.sif singularity file not found, pulling..."
+	mkdir -p $TMPDIR
+	apptainer pull --dir $TMPDIR library://romagnanilab/default/oscar-counting:latest
 fi
 
 # Define base masks
@@ -135,8 +136,8 @@ for file in "${index_files[@]}"; do
                 base_mask=$base_mask_SI_3prime_ADT
             fi
         elif [[ $file == *_DI_* ]]; then
-            filter_option='--filter-dual-index'
             index_type='DI'
+            filter_option='--filter-dual-index'
             if [[ $file == *_3prime* ]]; then
                 if [[ $file == *_GEX* ]]; then
                     base_mask=$base_mask_DI_3prime_GEX
@@ -179,8 +180,13 @@ for file in "${index_files[@]}"; do
             cellranger_command='cellranger mkfastq'
             base_mask=$base_mask_DOGMA_GEX
         elif [[ $file == *_ADT* ]] || [[ $file == *_HTO* ]]; then
-            cellranger_command='cellranger mkfastq'
-            base_mask=$base_mask_DOGMA_ADT
+		base_mask=$base_mask_DOGMA_ADT
+		if grep -q "ATAC" <<< "$csv_file"; then
+            		cellranger_command='cellranger-atac mkfastq'
+			break
+		else
+			cellranger_command='cellranger mkfastq'
+		fi
         elif [[ $file == *_ATAC* ]]; then
             cellranger_command='cellranger-atac mkfastq'
             base_mask=$base_mask_DOGMA_ATAC
@@ -195,25 +201,42 @@ for file in "${index_files[@]}"; do
             base_mask=$base_mask_ASAP_ADT
         fi
     else
-        echo "Cannot determined base mask for $index_file"found, please check path"
+        echo "Cannot determine base mask for $index_file, please check path"
         exit 1
     fi
 
     echo "$cellranger_command --id ${index_file} --run $project_dir/${project_id}_bcl --csv $script_dir/indices/$file --use-bases-mask $base_mask --delete-undetermined --barcode-mismatches 1 $filter_option"
     echo ""
+
+# Ask the user if they want to submit the indices for FASTQ generation
+echo "Do you want to submit with these options? (Y/N)"
+read -r choice
+
+# Process choices
+if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
+    :
+elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
+    exit 1
+else
+    echo "Invalid choice. Exiting"
+fi
+
     sbatch <<EOF
 #!/bin/bash
-#SBATCH --job-name ${index_file}
+#SBATCH --job-name ${project_id}
 #SBATCH --output $fastq_dir/logs/${index_file}_FASTQ.out
 #SBATCH --error $fastq_dir/logs/${index_file}_FASTQ.out
 #SBATCH --ntasks=32
 #SBATCH --mem=64000
 #SBATCH --time=3:00:00
 cd $fastq_dir
-apptainer exec -B /fast ${container} $cellranger_command --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${script_dir}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}
+echo ""
+echo "$cellranger_command --id ${index_file} --run $project_dir/${project_id}_bcl --csv $script_dir/indices/$file --use-bases-mask $base_mask --delete-undetermined --barcode-mismatches 1 $filter_option"
+echo ""
+apptainer run -B /fast ${container} $cellranger_command --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${script_dir}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}
 mkdir -p ${fastq_dir}/${index_file}/fastqc
-find "${index_file}/outs/fastq_path/H"* -name "*.fastq.gz" | parallel -j 16 "fastqc {} --outdir ${index_file}/fastqc"
-multiqc "${fastq_dir}/${index_file}" -o "${fastq_dir}/${index_file}/multiqc"
+find "${index_file}/outs/fastq_path/H"* -name "*.fastq.gz" | parallel -j 16 "apptainer run -B /fast ${container} fastqc {} --outdir ${index_file}/fastqc"
+apptainer run -B /fast ${container} multiqc "${fastq_dir}/${index_file}" -o "${fastq_dir}/${index_file}/multiqc"
 rm -r ${fastq_dir}/${index_file}/_* ${fastq_dir}/${index_file}/MAKE*
 EOF
     echo ""

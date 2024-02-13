@@ -8,7 +8,7 @@ From: ubuntu:latest
 %files
 	cellranger-7.2.0.tar.gz /opt/
 	cellranger-atac-2.1.0.tar.gz /opt/
-	conda/oscar-counting.yml /opt/environment.yml
+	conda/oscar_counting.yml /opt/environment.yml
 
 %environment
         export LC_ALL=C
@@ -35,8 +35,8 @@ From: ubuntu:latest
         conda upgrade --all -y
         conda config --set solver libmamba
         conda env create -f /opt/environment.yml
-        conda activate oscar-counting
+        conda activate oscar_counting
 	conda clean -y -a
 
         echo ". /opt/miniconda3/etc/profile.d/conda.sh" | tee -a $SINGULARITY_ENVIRONMENT
-        echo "conda activate oscar-counting" | tee -a $SINGULARITY_ENVIRONMENT
+        echo "conda activate oscar_counting" | tee -a $SINGULARITY_ENVIRONMENT

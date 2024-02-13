@@ -1,4 +1,4 @@
-name: oscar-counting
+name: oscar_counting
 channels:
   - bih-cubi
   - conda-forge
@@ -145,4 +145,4 @@ dependencies:
   - zipp=3.17.0=pyhd8ed1ab_0
   - zlib=1.2.13=hd590300_5
   - zstd=1.5.5=hfc55251_0
-prefix: /data/gpfs-1/users/knighto_c/work/bin/miniconda3/envs/OSCAR_counting
+prefix: /data/gpfs-1/users/knighto_c/work/bin/miniconda3/envs/oscar_counting

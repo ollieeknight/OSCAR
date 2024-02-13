@@ -1,4 +1,4 @@
-name: oscar-qc
+name: oscar_qc
 channels:
   - nvidia
   - bih-cubi
@@ -444,4 +444,4 @@ dependencies:
       - webencodings==0.5.1
       - websocket-client==1.6.1
       - widgetsnbextension==4.0.9
-prefix: /data/gpfs-1/users/knighto_c/work/bin/miniconda3/envs/OSCAR_QC
+prefix: /data/gpfs-1/users/knighto_c/work/bin/miniconda3/envs/oscar_qc

@@ -109,8 +109,7 @@ else
     echo "No options set for ADT/HTO"
 fi
 
-project_dir=$project_dir/$main_project_id
-output_folder="$project_dir/${main_project_id}_scripts/libraries"
+output_folder="${prefix}/${main_project_id}/${main_project_id}_scripts/libraries"
 
 # Check if the libraries folder already exists, and remove it if it does
 if [ -d "$output_folder" ]; then
@@ -124,11 +123,11 @@ for project_id in "${project_ids[@]}"; do
     echo "Processing project_id: $project_id"
     echo ""
 
-    project_dir=$project_dir/$project_id
+	project_dir=$prefix/$project_id
     script_dir=${project_dir}/${project_id}_scripts
 
     # Define the metadata file path based on the project_id
-    metadata_file="$project_dir/${project_id}/${project_id}_scripts/metadata/metadata.csv"
+    metadata_file="$project_dir/${project_id}_scripts/metadata/metadata.csv"
 
     # Check that the singularity container is available
     if [ ! -f "${metadata_file}" ]; then

@@ -77,6 +77,10 @@ while IFS= read -r line; do
     if [[ $line == assay* ]]; then
         continue
     fi
+    # Add some lines for output readability
+    echo ""
+    echo "-------------"
+    echo ""
     # Print the line being processed
     echo "Processing sample sublibrary: $line"
     # Split the line into fields
@@ -93,29 +97,37 @@ while IFS= read -r line; do
     index="${fields[7]}"
     if [ "$chemistry" != "NA" ]; then
         # Create the output file with $chemistry included
-        combination="$output_folder/${assay}_${index_type}_${modality}_${chemistry}"
+        sample="$output_folder/${assay}_${index_type}_${modality}_${chemistry}"
         output_file="${sample}.csv"
     else
         # Create the output file without $chemistry
-        combination="$output_folder/${assay}_${index_type}_${modality}"
+        sample="$output_folder/${assay}_${index_type}_${modality}"
         output_file="${sample}.csv"
     fi
     # Check if the csv file already exists
     if [ ! -f "$output_file" ]; then
         # If the file doesn't exist, create it and add the header and sample
-        echo "Output file $output_file does not exist, creating csv and appending ${sample}"
+        echo "Output file $output_file does not exist, creating csv and appending ${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality}"
         echo "lane,sample,index" > "$output_file"
         echo "*,${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality},${index}" >> "$output_file"
     else
         # If the file exists, just add sample
-        echo "Output file $output_file already exists, appending ${sample}"
+        echo "Output file $output_file already exists, appending appending ${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality}"
         echo "*,${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality},${index}" >> "$output_file"
     fi
-    # Add some lines for output readability
-    echo ""
-    echo "-------------"
-    echo ""
 done < "$metadata_file"
+
+# Iterate over the CSV files in the folder
+for index_file in "$output_folder/"*.csv; do
+    file=$(basename "$index_file" .csv)
+    # Print filename
+	echo ""
+    echo "$file"
+    cat "$index_file"
+	echo ""
+    # Add a separator between files
+    echo "------------------------------------"
+done
 
 # Ask the user if they want to submit the indices for FASTQ generation
 echo "Would you like to submit the next step to generate FASTQ files from this sequencing run? (Y/N)"
