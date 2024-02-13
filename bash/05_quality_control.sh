@@ -210,6 +210,18 @@ EOF
         mkdir -p ${outs}/$library/amulet
         if [[ "$n_donors" != '0' && "$n_donors" != '1' && "$n_donors" != 'NA' ]]; then
             echo "Submitting ATAC QC for $library, genotyping $n_donors donors"
+                echo ""
+                # Ask the user if they want to submit the indices for FASTQ generation
+                echo "Do you want to submit mgatk and donor genotyping, as well as doublet prediction, for $library? (Y/N)"
+                read -r choice
+                # Process choices
+                if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
+                        :
+                elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
+                        exit 1
+                else
+                        echo "Invalid choice. Exiting"
+                fi
             mkdir -p ${outs}/$library/vireo/
             sbatch <<EOF
 #!/bin/bash
@@ -240,6 +252,18 @@ apptainer run -B /fast ${container} vireo -c ${outs}/$library/vireo -o ${outs}/$
 EOF
         elif [[ "$n_donors" == '0' || "$n_donors" == '1' || "$n_donors" == 'NA' ]]; then
             echo "Skipping genotyping for $library, as this is either a mouse run, or only contains 1 donor"
+                echo ""
+                # Ask the user if they want to submit the indices for FASTQ generation
+                echo "Do you want to submit mgatk and doublet prediction for $library? (Y/N)"
+                read -r choice
+                # Process choices
+                if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
+                        :
+                elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
+                        exit 1
+                else
+                        echo "Invalid choice. Exiting"
+                fi
             sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name ${experiment_id}_QC
@@ -268,41 +292,56 @@ EOF
         if [[ "$library" == *ASAP* ]]; then
             echo "Library $library is an ASAP run, performing ADT counting"
             library_csv=${output_project_dir}/${output_project_id}_scripts/libraries/${library}_ADT.csv
-            declare -A unique_entries
 
-            # Loop through project directories
-            for project_id in "${project_ids[@]}"; do
-                project_fastqs="${prefix}/${project_id}/${project_id}_fastq"
+	if [[ -f "$library_csv" ]]; then
+		rm $library_csv
+	fi
 
-                # Loop through matching directories
-                for folder in "${project_fastqs}"/*/outs; do
-                    # Extract the modality from the folder name
-                    if [[ "$folder" == *"ASAP_DI_ADT"* ]]; then
-                        modality="ADT"
-                    elif [[ "$folder" == *"ASAP_DI_HTO"* ]]; then
-                        modality="HTO"
-                    else
-                        continue
-                    fi
 
-                    # Search for matching files
-                    matching_files=($(find "$folder" -type f -name "${library}_*" | grep -E "${library}_(ADT|HTO).*\.fastq\.gz"))
+# Initialize associative array for unique entries
+declare -A unique_entries
 
-                    # Check if matching files are found
-                    if [ ${#matching_files[@]} -gt 0 ]; then
-                        for fastq_file in "${matching_files[@]}"; do
-                            directory=$(dirname "$fastq_file")
-                            identifier="${directory},${library}_${modality}"
-                            if [ ! "${unique_entries["$identifier"]}" ]; then
-                                # Print the identifier to CSV file
-                                echo "$identifier" >> "$library_csv"
-                                # Mark the entry as encountered
-                                unique_entries["$identifier"]=1
-                            fi
-                        done
-                    fi
-                done
+# Loop through project directories
+for project_id in "${project_ids[@]}"; do
+    project_fastqs="${prefix}/${project_id}/${project_id}_fastq"
+
+    # Loop through matching directories
+    for folder in "${project_fastqs}"/*/outs; do
+        # Extract the modality from the folder name
+        if [[ "$folder" == *"ASAP_DI_ADT"* ]]; then
+            modality="ADT"
+        elif [[ "$folder" == *"ASAP_DI_HTO"* ]]; then
+            modality="HTO"
+        else
+            continue
+        fi
+
+        # Search for matching files and remove duplicates
+        matching_files=($(find "$folder" -type f -name "${library}_*" | grep -E "${library}_(ADT|HTO).*\.fastq\.gz"))
+        # Check if matching files are found
+        if [ ${#matching_files[@]} -gt 0 ]; then
+            # Process each matching file
+            for file_path in "${matching_files[@]}"; do
+                # Extract the fastq_name by removing suffix until $modality
+		fastq_name=${library}_${modality}
+# Store the directory name
+                directory=$(dirname "$file_path")
+                # Construct the unique identifier
+                identifier="${directory},${fastq_name}"
+                # Append the identifier to the list of unique entries
+                if [ ! "${unique_entries["$identifier"]}" ]; then
+                    unique_entries["$identifier"]=1
+                fi
             done
+        fi
+    done
+done
+
+# Print the unique entries to CSV file
+for entry in "${!unique_entries[@]}"; do
+    echo "$entry" >> "$library_csv"
+done
+
 
             # Read the input CSV file line by line
             while IFS= read -r line; do
@@ -322,9 +361,24 @@ EOF
             fastq_dirs="${fastq_dirs:1}"
             fastq_librarys="${fastq_librarys:1}"
 
-            # Print the variables
-            echo "Fastq Directories: $fastq_dirs"
-            echo "Fastq librarys: $fastq_librarys"
+                echo ""
+                echo "For $library, the following ASAP FASTQ files will be converted to KITE-compatible FASTQ files "
+		echo $fastq_librarys
+		echo "In the directories"
+		echo $fastq_dirs
+                echo ""
+                # Ask the user if they want to submit the indices for FASTQ generation
+                echo "Do you want to submit with these options? (Y/N)"
+                read -r choice
+                # Process choices
+                if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
+                        :
+                elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
+                        exit 1
+                else
+                        echo "Invalid choice. Exiting"
+                fi
+
 
             whitelist=$HOME/group/work/bin/whitelists/737K-cratac-v1.txt
             adt_outs=${outs}/${library}/ADT
