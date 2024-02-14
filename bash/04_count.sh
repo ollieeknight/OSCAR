@@ -94,17 +94,18 @@ for library in "${libraries[@]}"; do
     if grep -q '.*ATAC.*' "${library_folder}/${library}.csv"; then
         fastq_name="${library}_ATAC"
         # Read each line containing "ATAC" in the CSV file, if sequenced across multiple runs
-while IFS= read -r line; do
-    # Extract the directory part and the fastq_name part
-    directory=$(dirname "$line")
-    fastq_name=$(basename "$line")
+        while IFS= read -r line; do
+            # Extract the directory part and the fastq_name part
+            directory=$(dirname "$line")
+            fastq_name=$(basename "$line")
 
-    # If there are multiple directories, merge them with a comma
-    if [ "${#directories[@]}" -gt 1 ]; then
-        directory=$(IFS=,; echo "${directories[*]}")
-    fi
+            # If there are multiple directories, merge them with a comma
+            if [ "${#directories[@]}" -gt 1 ]; then
+                directory=$(IFS=,; echo "${directories[*]}")
+            fi
 
-done < "${library_folder}/${library}.csv"
+        done < "${library_folder}/${library}.csv"
+
         # If it's a DOGMA-seq run, chemistry needs to be specified
         if grep -q '.*DOGMA.*' "${library_folder}/${library}.csv"; then
             cat ${library_folder}/${library}.csv
@@ -119,7 +120,9 @@ done < "${library_folder}/${library}.csv"
 		echo ""
 		echo "For $library, the counting command will be "
 		num_cores=$(nproc)
+                library="${fastq_name%_ATAC}"
 		echo "cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $directory --sample $fastq_name --localcores $num_cores $extra_arguments"
+		echo "(core number will change with submission)"
 		echo ""
 		echo "Where the FASTQ files to input is/are"
 		echo "$directory"
@@ -134,6 +137,7 @@ done < "${library_folder}/${library}.csv"
 		else
     			echo "Invalid choice. Exiting"
 		fi
+
             mkdir -p $outs/logs
             # Submit the job to slurm for counting
             sbatch <<EOF
@@ -141,14 +145,13 @@ done < "${library_folder}/${library}.csv"
 #SBATCH --job-name ${library}
 #SBATCH --output $outs/logs/${library}_counting.out
 #SBATCH --error $outs/logs/${library}_counting.out
-#SBATCH --ntasks=64
+#SBATCH --ntasks=32
 #SBATCH --mem=96000
 #SBATCH --time=24:00:00
 num_cores=\$(nproc)
 cd $outs
 echo ""
-echo "cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $directory --sample $fastq_name --localcores $num_cores $extra_arguments"
-echo ""
+echo "cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $directory --sample $fastq_name --localcores \$num_cores $extra_arguments"
 apptainer run -B /fast $container cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $directory --sample $fastq_name --localcores \$num_cores $extra_arguments
 rm -r $outs/$library/_* $outs/$library/SC_ATAC_COUNTER_CS
 EOF
@@ -164,6 +167,7 @@ EOF
                 echo "For $library, the counting command will be "
 		num_cores=$(nproc)
                 echo "cellranger multi --id $library --csv ${library_folder}/${library}.csv --localcores $num_cores"
+		echo "(core number will change with submission)"
                 echo ""
                 echo "Where the library csv input is"
                 cat ${library_folder}/${library}.csv
@@ -187,14 +191,13 @@ EOF
 #SBATCH --job-name ${library}
 #SBATCH --output $outs/logs/${library}_counting.out
 #SBATCH --error $outs/logs/${library}_counting.out
-#SBATCH --ntasks=64
+#SBATCH --ntasks=32
 #SBATCH --mem=96000
 #SBATCH --time=24:00:00
 num_cores=\$(nproc)
 cd $outs
 echo ""
-echo "cellranger multi --id $library --csv ${library_folder}/${library}.csv --localcores $num_cores"
-echo ""
+echo "cellranger multi --id $library --csv ${library_folder}/${library}.csv --localcores \$num_cores"
 apptainer run -B /fast $container cellranger multi --id "$library" --csv "${library_folder}/${library}.csv" --localcores \$num_cores
 rm -r $outs/$library/SC_MULTI_CS $outs/$library/_*
 EOF

@@ -32,6 +32,9 @@
 # Define default values
 OSCAR_script_dir=$(dirname "${BASH_SOURCE[0]}")
 prefix="$HOME/scratch/ngs"
+gene_expression_options=""
+vdj_options=""
+adt_options=""
 
 # Parse command line arguments using getopts_long function
 while [[ "$#" -gt 0 ]]; do
@@ -56,7 +59,8 @@ while [[ "$#" -gt 0 ]]; do
       adt_options="$2"
       shift 2
       ;;
-    *)      echo "Invalid option: $1"
+    *)
+      echo "Invalid option: $1"
       exit 1
       ;;
   esac
@@ -109,21 +113,21 @@ else
     echo "No options set for ADT/HTO"
 fi
 
-output_folder="${prefix}/${main_project_id}/${main_project_id}_scripts/libraries"
+library_folder="${prefix}/${main_project_id}/${main_project_id}_scripts/libraries"
 
 # Check if the libraries folder already exists, and remove it if it does
-if [ -d "$output_folder" ]; then
-  rm -r "$output_folder"
+if [ -d "$library_folder" ]; then
+  rm -r "$library_folder"
 fi
 
-mkdir -p "$output_folder"
+mkdir -p "$library_folder"
 
 for project_id in "${project_ids[@]}"; do
     echo ""
     echo "Processing project_id: $project_id"
     echo ""
 
-	project_dir=$prefix/$project_id
+    project_dir=$prefix/$project_id
     script_dir=${project_dir}/${project_id}_scripts
 
     # Define the metadata file path based on the project_id
@@ -135,12 +139,28 @@ for project_id in "${project_ids[@]}"; do
         exit 1
     fi
 
+    read_length=$(awk -F '"' '/<Read Number="1"/ {print $4}' ${prefix}/${project_id}/${project_id}_bcl/RunInfo.xml)
+    if [ "$read_length" -gt 45 ]; then
+        run_type="ATAC"
+    elif [ "$read_length" -lt 45 ]; then
+        run_type="GEX"
+    else
+        echo "Cannot determine run type, please check ${project_dir}/${project_id}_bcl/RunInfo.xml"
+        exit 1
+    fi
+
+    echo "$project_id is an $run_type run, processing appropriately"
+
     # Iterate through each line in metadata.csv
     while IFS= read -r line; do
         # Skip the header line
         if [[ $line == assay* ]]; then
             continue
         fi
+
+        echo ""
+        echo "-------------"
+        echo ""
 
         # Split the line into fields
         IFS=',' read -r -a fields <<< "$line"
@@ -155,11 +175,24 @@ for project_id in "${project_ids[@]}"; do
         species="${fields[8]}"
         adt_file="${fields[10]}"
         library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
+        # Determine the full-length modality name based on its shortened name
+        if [ "$modality" = "GEX" ]; then
+            full_modality='Gene Expression'
+        elif [ "$modality" = "ADT" ] || [ "$modality" = "HTO" ]; then
+            full_modality='Antibody Capture'
+        elif [ "$modality" = "VDJ-T" ]; then
+           full_modality='VDJ-T'
+        elif [ "$modality" = "VDJ-B" ]; then
+            full_modality='VDJ-B'
+        elif [ "$modality" = "CRISPR" ]; then
+            full_modality='CRISPR Guide Capture'
+        fi
 
         # Define the library_output path
-        library_output=${output_folder}/${library}.csv
-        # Check if the assay is not ASAP or ATAC; essentially is it GEX, CITE, or a MULTIOME or DOGMA gene expression run
-        if [[ $assay != 'ASAP' && $modality != 'ATAC' ]]; then
+        library_output=${library_folder}/${library}.csv
+
+        # If this run is of ATAC samples, alongside ADT/HTO
+        if [[ $run_type == 'GEX' ]]; then
             # Check if the sample library already exists
             if [ ! -f "$library_output" ]; then
             # What species is specified in the metadata file?
@@ -168,13 +201,14 @@ for project_id in "${project_ids[@]}"; do
                     echo "Writing human reference files for $library"
                     echo "[gene-expression]" >> "${library_output}"
                     echo "reference,/fast/work/groups/ag_romagnani/ref/hs/GRCh38-hardmasked-optimised-arc" >> "${library_output}"
-                        # Add options if there are gene expression-specific options specified by --gene-expression-options
-                        if [ -n "$gene_expression_options" ] && [ "$gene_expression_options" != "NA" ]; then
-                                IFS=';' read -ra values <<< "$gene_expression_options"
-                                for value in "${values[@]}"; do
-                                        echo "$value" >> "${library_output}"
-                                done
-                        fi
+#                    echo "probe-set,/fast/work/groups/ag_romagnani/ref/hs/frp-probes/Chromium_Human_Transcriptome_Probe_Set_v1.0.1_GRCh38-2020-A.csv" >> "${library_output}"
+                    # Add options if there are gene expression-specific options specified by --gene-expression-options
+                    if [ -n "$gene_expression_options" ] && [ "$gene_expression_options" != "NA" ]; then
+                            IFS=';' read -ra values <<< "$gene_expression_options"
+                            for value in "${values[@]}"; do
+                                echo "$value" >> "${library_output}"
+                            done
+                    fi
                     # If this is a DOGMA-seq or MULTIOME run, to specify chemistry
                     if [ "$assay" == "DOGMA" ] || [ "$assay" == "MULTIOME" ]; then
                         echo "chemistry,ARC-v1" >> "${library_output}"
@@ -193,12 +227,13 @@ for project_id in "${project_ids[@]}"; do
                 elif [[ "$species" =~ ^(Mouse|mouse|Mm|mm)$ ]]; then
                     echo "[gene-expression]" >> "${library_output}"
                     echo "reference,/fast/work/groups/ag_romagnani/ref/mm/mouse_mm10_optimized_reference_v2" >> "${library_output}"
+#                    echo "probe-set,/fast/work/groups/ag_romagnani/ref/mm/frp-probes/Chromium_Mouse_Transcriptome_Probe_Set_v1.0.1_mm10-2020-A.csv" >> "${library_output}"
                     # Add options if there are gene expression-specific options specified by --gene-expression-options
                         if [ -n "$gene_expression_options" ] && [ "$gene_expression_options" != "NA" ]; then
-                                IFS=';' read -ra values <<< "$gene_expression_options"
-                                for value in "${values[@]}"; do
-                                        echo "$value" >> "${library_output}"
-                                done
+                            IFS=';' read -ra values <<< "$gene_expression_options"
+                            for value in "${values[@]}"; do
+                                echo "$value" >> "${library_output}"
+                            done
                         fi
                     # If this is a DOGMA-seq or MULTIOME run, to specify chemistry
                     if [ "$assay" == "DOGMA" ] || [ "$assay" == "MULTIOME" ]; then
@@ -227,25 +262,11 @@ for project_id in "${project_ids[@]}"; do
                             echo "$value" >> "${library_output}"
                         done
                     fi
-                else
-                    :
                 fi
                 echo "Writing ${modality} for ${library}"
                 echo "" >> "${library_output}"
                 echo "[libraries]" >> "${library_output}"
                 echo "fastq_id,fastqs,feature_types" >> "${library_output}"
-            fi
-            # Determine the full-length modality name based on its shortened name
-            if [ "$modality" = "GEX" ]; then
-                full_modality='Gene Expression'
-            elif [ "$modality" = "ADT" ] || [ "$modality" = "HTO" ]; then
-                full_modality='Antibody Capture'
-            elif [ "$modality" = "VDJ-T" ]; then
-               full_modality='VDJ-T'
-            elif [ "$modality" = "VDJ-B" ]; then
-                full_modality='VDJ-B'
-            elif [ "$modality" = "CRISPR" ]; then
-                full_modality='CRISPR Guide Capture'
             fi
             # Initialize an associative array, as the script works by checking for wildcard sample name of FASTQ files and only one sample will be added per FASTQ group
             declare -A unique_lines
@@ -267,47 +288,78 @@ for project_id in "${project_ids[@]}"; do
                     fi
                 done
             done
-        # Check if the assay is an ATAC (ASAP) or DOGMA ATAC run
-        elif [[ $modality == 'ATAC' ]] || [[ $assay == 'DOGMA' ]]; then
-            # Initialize an associative array, as the script works by checking for wildcard sample name of FASTQ files and only one sample will be added per FASTQ group
-            declare -A unique_lines
-            # Recursively search for files in the FASTQ folder
-            for folder in "$project_dir/${project_id}_fastq"/*/outs; do
-                matching_fastq_files=($(find "$folder" -type f -name "${library}*${modality}*" | sort -u))
-                for fastq_file in "${matching_fastq_files[@]}"; do
-                    # Extract the directory containing the fastq file
-                    directory=$(dirname "$fastq_file")
-                    # Extract the modified name from the fastq file
-                    fastq_name=$(basename "$fastq_file" | sed -E 's/\.fastq\.gz$//' | sed -E 's/(_S[0-9]+)?(_[SL][0-9]+_[IR][0-9]+_[0-9]+)*$//')
-                    # Create a unique identifier for FASTQ file
-                    line_identifier="{$library}_${modality}"
-                    # Check if the line has already been added
-                    if [ ! -v unique_lines["$line_identifier"] ]; then
-                        unique_lines["$line_identifier"]=1
-                        echo "Adding $directory for ${library}_${modality}"
-                        echo "$directory" >> "${library_output}"
-                        echo "Writing $directory to $library"
-                    fi
+        # If this run is of ATAC samples, alongside ADT/HTO
+        elif [[ $run_type == 'ATAC' ]]; then
+            if [[ ($modality == 'ADT' || $modality == 'HTO') && $assay != 'ASAP' ]]; then
+	        # Initialize an associative array, as the script works by checking for wildcard sample name of FASTQ files and only one sample will be added per FASTQ group
+                declare -A unique_lines
+                # Recursively search for FASTQ files in the project_id FASTQ folder
+                for folder in "$project_dir/${project_id}_fastq"/*/outs; do
+                    matching_fastq_files=($(find "$folder" -type f -name "${library}*${modality}*" | sort -u))
+                    for fastq_file in "${matching_fastq_files[@]}"; do
+                        # Extract the directory containing the FASTQ file
+                        directory=$(dirname "$fastq_file")
+                        # Extract the modified name from the FASTQ file
+                        fastq_name=$(basename "$fastq_file" | sed -E 's/\.fastq\.gz$//' | sed -E 's/(_S[0-9]+)?(_[SL][0-9]+_[IR][0-9]+_[0-9]+)*$//')
+                        # Create a unique identifier the FASTQ file
+                        line_identifier="$fastq_name,$directory,$full_modality"
+                        # Check if the line has already been added
+                        if [ ! -v unique_lines["$line_identifier"] ]; then
+                            unique_lines["$line_identifier"]=1
+                            echo "$fastq_name,$directory,$full_modality" >> "${library_output}"
+                            echo "Writing $fastq_name,$directory,$full_modality to $library"
+                        fi
+                    done
                 done
-            done
-        # By process of exclusion, only remaining sample lines should be the ADT or HTO from an ASAP-seq run
-        elif [[ $modality == 'ADT' ]] || [[ $modality == 'HTO' ]]; then
-            echo "This should be an ASAP ADT file and will be processed later"
+            elif [[ $modality == 'ATAC' ]]; then
+		library_output=${library_folder}/${library}_ATAC.csv
+                # Initialize an associative array, as the script works by checking for wildcard sample name of FASTQ files and only one sample will be added per FASTQ group
+                declare -A unique_lines
+                # Recursively search for files in the FASTQ folder
+                for folder in "$project_dir/${project_id}_fastq"/*/outs; do
+                    matching_fastq_files=($(find "$folder" -type f -name "${library}*${modality}*" | sort -u))
+                    for fastq_file in "${matching_fastq_files[@]}"; do
+                        # Extract the directory containing the fastq file
+                        directory=$(dirname "$fastq_file")
+                        # Extract the modified name from the fastq file
+                        fastq_name=$(basename "$fastq_file" | sed -E 's/\.fastq\.gz$//' | sed -E 's/(_S[0-9]+)?(_[SL][0-9]+_[IR][0-9]+_[0-9]+)*$//')
+                        # Create a unique identifier for FASTQ file
+                        line_identifier="{$library}_${modality}"
+                        # Check if the line has already been added
+                        if [ ! -v unique_lines["$line_identifier"] ]; then
+                            unique_lines["$line_identifier"]=1
+                            echo "$directory" >> "${library_output}"
+                            echo "Writing $directory to ${library}.csv"
+                        fi
+                    done
+                done
+            else
+                echo "Cannot determine modality for this ATAC run. Are you sure the only modalities are either ATAC, ADT, or HTO?"
+                exit 1
+            fi
         fi
-    echo ""
-    echo "-------------"
-    echo ""
     done < "$metadata_file"
+
+done
+
+# Iterate over the CSV files in the folder
+for library in "$library_folder/"*.csv; do
+    echo ""
+    echo "CSV File: ${library}"  # Print the name of the CSV file
+    cat "${library}"             # Print the contents of the CSV file
+    echo ""                      # Add an empty line after the file contents
+    # Add a separator between files
+    echo "------------------------------------"
 done
 
 # Ask the user if they want to submit the indices for FASTQ generation
-echo "Would you like to submit the next step to perform read counting? (Y/N)"
+echo "Would you like to proceed to the next step of counting? (Y/N)"
 read -r choice
 
 # Process choices
 if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-    echo "Submitting: bash ${OSCAR_script_dir}/04_count.sh --project-id ${project_id}"
-    bash ${OSCAR_script_dir}/04_count.sh --project-id ${project_id}
+    echo "Submitting: bash ${OSCAR_script_dir}/04_count.sh --project-id ${main_project_id}"
+    bash ${OSCAR_script_dir}/04_count.sh --project-id ${main_project_id}
 elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
     :
 else
