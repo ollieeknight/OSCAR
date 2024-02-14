@@ -56,33 +56,27 @@ done
 
 # Check if project_id is empty
 if [ -z "$output_project_id" ]; then
-    echo "Please provide a project_id using the --project-id option."
+    echo -e "\033[0;31mERROR:\033[0m Please provide a project_id using the --project-id option."
     exit 1
 fi
 
-container=$TMPDIR/oscar-counting_latest.sif
+container=$TMPDIR/oscar-counting_v1.sif
 
 # Check that the singularity container is available
 if [ ! -f "${container}" ]; then
-    echo "oscar-counting_latest.sif singularity file not found, pulling..."
-    apptainer pull --dir $TMPDIR library://romagnanilab/default/oscar-counting:latest
-fi
-
-# Check that the singularity container is available
-if [ ! -f "${container}" ]; then
-    echo "oscar-counting_latest.sif singularity file still not found"
-        exit 1
+    echo "oscar-counting_v1.sif singularity file not found, pulling..."
+    apptainer pull --arch amd64 library://romagnanilab/default/oscar-counting:v1
 fi
 
 # Define the project directory
-project_dir=${prefix}/${output_project_id}
-library_folder=${project_dir}/${output_project_id}_scripts/libraries
+project_dir=$project_dir/$output_project_id
+library_folder=${prefix}/${output_project_id}/${output_project_id}_scripts/libraries
 outs="${prefix}/${output_project_id}/${output_project_id}_outs"
 mkdir -p "$outs"
 
-if [ ! -d "$library_folder" ]; then
-  echo "Libraries folder not found - did you run the last script (process_libraries.sh)?"
-  exit 1
+if [ ! -f "$library_folder" ]; then
+    echo -e "\033[0;31mERROR:\033[0m Libraries folder not found - did you run the last script (process_libraries.sh)?"
+    exit 1
 fi
 
 # Take the csv files into a list and remove the .csv suffix
@@ -92,20 +86,18 @@ libraries=($(ls "$library_folder" | awk -F/ '{print $NF}' | awk -F. '{print $1}'
 for library in "${libraries[@]}"; do
     # If the library file contains the string 'ATAC', it will be counted using cellranger-atac
     if grep -q '.*ATAC.*' "${library_folder}/${library}.csv"; then
-        fastq_name="${library}_ATAC"
+        fastq="${library}_ATAC"
         # Read each line containing "ATAC" in the CSV file, if sequenced across multiple runs
         while IFS= read -r line; do
-            # Extract the directory part and the fastq_name part
-            directory=$(dirname "$line")
-            fastq_name=$(basename "$line")
-
-            # If there are multiple directories, merge them with a comma
-            if [ "${#directories[@]}" -gt 1 ]; then
-                directory=$(IFS=,; echo "${directories[*]}")
+            if [[ $line == *ATAC* ]]; then
+                # Concatenate the line with the result, separated by a comma
+                if [ -n "$fastq" ]; then
+                    fastqs="${fastq},${line}"
+                else
+                    fastqs="$line"
+                fi
             fi
-
         done < "${library_folder}/${library}.csv"
-
         # If it's a DOGMA-seq run, chemistry needs to be specified
         if grep -q '.*DOGMA.*' "${library_folder}/${library}.csv"; then
             cat ${library_folder}/${library}.csv
@@ -117,27 +109,7 @@ for library in "${libraries[@]}"; do
         if [ -d "$library/outs" ]; then
             echo "Cellranger looks to have completed for $library, skipping. Check if you do not believe this is the case"
         else
-		echo ""
-		echo "For $library, the counting command will be "
-		num_cores=$(nproc)
-                library="${fastq_name%_ATAC}"
-		echo "cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $directory --sample $fastq_name --localcores $num_cores $extra_arguments"
-		echo "(core number will change with submission)"
-		echo ""
-		echo "Where the FASTQ files to input is/are"
-		echo "$directory"
-		# Ask the user if they want to submit the indices for FASTQ generation
-		echo "Do you want to submit with these options? (Y/N)"
-		read -r choice
-		# Process choices
-		if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-			:
-		elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
-			exit 1
-		else
-    			echo "Invalid choice. Exiting"
-		fi
-
+            echo "cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $fastqs --sample $fastq_name --localcores $num_cores $extra_arguments"
             mkdir -p $outs/logs
             # Submit the job to slurm for counting
             sbatch <<EOF
@@ -145,14 +117,12 @@ for library in "${libraries[@]}"; do
 #SBATCH --job-name ${library}
 #SBATCH --output $outs/logs/${library}_counting.out
 #SBATCH --error $outs/logs/${library}_counting.out
-#SBATCH --ntasks=32
+#SBATCH --ntasks=64
 #SBATCH --mem=96000
 #SBATCH --time=24:00:00
 num_cores=\$(nproc)
 cd $outs
-echo ""
-echo "cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $directory --sample $fastq_name --localcores \$num_cores $extra_arguments"
-apptainer run -B /fast $container cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $directory --sample $fastq_name --localcores \$num_cores $extra_arguments
+apptainer run -B /fast $container cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $fastqs --sample $fastq --localcores \$num_cores $extra_arguments
 rm -r $outs/$library/_* $outs/$library/SC_ATAC_COUNTER_CS
 EOF
         # Reset the fastqs variable
@@ -163,27 +133,7 @@ EOF
         if [ -d "$library/outs" ]; then
             echo "Cellranger looks to have completed for $library, skipping. Check if you do not believe this is the case"
         else
-                echo ""
-                echo "For $library, the counting command will be "
-		num_cores=$(nproc)
-                echo "cellranger multi --id $library --csv ${library_folder}/${library}.csv --localcores $num_cores"
-		echo "(core number will change with submission)"
-                echo ""
-                echo "Where the library csv input is"
-                cat ${library_folder}/${library}.csv
-		echo ""
-                # Ask the user if they want to submit the indices for FASTQ generation
-                echo "Do you want to submit with these options? (Y/N)"
-                read -r choice
-                # Process choices
-                if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-                        :
-                elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
-                        exit 1
-                else
-                        echo "Invalid choice. Exiting"
-                fi
-
+            echo "cellranger multi --id $library --csv ${library_folder}/${library}.csv"
             mkdir -p $outs/logs/
             # Submit the job to slurm for counting
             sbatch <<EOF
@@ -191,13 +141,11 @@ EOF
 #SBATCH --job-name ${library}
 #SBATCH --output $outs/logs/${library}_counting.out
 #SBATCH --error $outs/logs/${library}_counting.out
-#SBATCH --ntasks=32
+#SBATCH --ntasks=64
 #SBATCH --mem=96000
 #SBATCH --time=24:00:00
 num_cores=\$(nproc)
 cd $outs
-echo ""
-echo "cellranger multi --id $library --csv ${library_folder}/${library}.csv --localcores \$num_cores"
 apptainer run -B /fast $container cellranger multi --id "$library" --csv "${library_folder}/${library}.csv" --localcores \$num_cores
 rm -r $outs/$library/SC_MULTI_CS $outs/$library/_*
 EOF

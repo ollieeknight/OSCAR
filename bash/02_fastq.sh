@@ -46,9 +46,22 @@ done
 
 # Check if project_id is empty
 if [ -z "$project_id" ]; then
-    echo "Please provide a project_id using the --project-id option."
+    echo -e "\033[0;31mERROR:\033[0m Please provide a project_id using the --project-id option."
     exit 1
 fi
+
+read_length=$(awk -F '"' '/<Read Number="1"/ {print $4}' ${prefix}/${project_id}/${project_id}_bcl/RunInfo.xml)
+if [ "$read_length" -gt 45 ]; then
+    run_type="ATAC"
+elif [ "$read_length" -lt 45 ]; then
+    run_type="GEX"
+else
+    echo -e "\033[0;31mERROR:\033[0m Cannot determine run type, please check ${project_dir}/${project_id}_bcl/RunInfo.xml"
+    exit 1
+fi
+
+echo ""
+echo -e "\033[34mINFO:\033[0m $project_id is an $run_type run, processing appropriately"
 
 project_dir="${prefix}/$project_id"
 script_dir="${project_dir}/${project_id}_scripts"
@@ -57,7 +70,7 @@ mkdir -p $fastq_dir/logs
 
 # Check if indices folder does not exist, and exit if it's not present
 if [ ! -d "$script_dir/indices" ]; then
-    echo "Indices folder does not exist, please run the process_metadata script"
+    echo -e "\033[0;31mERROR:\033[0m Indices folder does not exist, please run the process_metadata script"
     exit 1
 fi
 
@@ -71,8 +84,8 @@ container=$TMPDIR/oscar-counting_latest.sif
 # Check that the singularity container is available
 if [ ! -f "${container}" ]; then
     echo "oscar-counting_latest.sif singularity file not found, pulling..."
-	mkdir -p $TMPDIR
-	apptainer pull --dir $TMPDIR library://romagnanilab/default/oscar-counting:latest
+    mkdir -p $TMPDIR
+    apptainer pull --dir $TMPDIR library://romagnanilab/default/oscar-counting:latest
 fi
 
 # Define base masks
@@ -82,17 +95,17 @@ if [ ! -f "${xml_file}" ]; then
   exit 1
 fi
 if [[ -f "$xml_file" ]]; then
-        if grep -q '<Reads>' "$xml_file" && grep -q '</Reads>' "$xml_file"; then
-                num_reads=$(grep -o '<Read Number="' "$xml_file" | wc -l)
-                if [ "$num_reads" -eq 3 ]; then
-                        reads=3
-                elif [ "$num_reads" -eq 4 ]; then
-                        reads=4
-                fi
-        fi
+    if grep -q '<Reads>' "$xml_file" && grep -q '</Reads>' "$xml_file"; then
+        num_reads=$(grep -o '<Read Number="' "$xml_file" | wc -l)
+        if [ "$num_reads" -eq 3 ]; then
+            reads=3
+            elif [ "$num_reads" -eq 4 ]; then
+                reads=4
+            fi
+    fi
 else
-        echo "RunInfo.xml contains unexpected reads, please check the file"
-        exit 1
+    echo -e "\033[0;31mERROR:\033[0m RunInfo.xml contains unexpected reads, please check the file"
+    exit 1
 fi
 
 # Define base reads, essentially for whether it is a single or dual index sequencing run
@@ -114,7 +127,7 @@ elif [[ $reads == 4 ]]; then
         base_mask_ASAP_ATAC='Y100n*,I8n*,Y16n*,Y100n*'
         base_mask_ASAP_ADT='Y100n*,I8n*,Y16n*,Y100n*'
 else
-        echo "Cannot determine number of reads, check RunInfo.xml file"
+    echo -e "\033[0;31mERROR:\033[0m Cannot determine number of reads, check RunInfo.xml file"
         exit 1
 fi
 
@@ -123,6 +136,9 @@ index_files=($(ls "$project_dir/${project_id}_scripts/indices"))
 
 # Iterate over the index files
 for file in "${index_files[@]}"; do
+    echo ""
+    echo "-------------"
+    echo ""
     # Extract the file name without extension
     index_file="${file%.*}"
     if [[ $file == CITE* ]]; then
@@ -180,13 +196,13 @@ for file in "${index_files[@]}"; do
             cellranger_command='cellranger mkfastq'
             base_mask=$base_mask_DOGMA_GEX
         elif [[ $file == *_ADT* ]] || [[ $file == *_HTO* ]]; then
-		base_mask=$base_mask_DOGMA_ADT
-		if grep -q "ATAC" <<< "$csv_file"; then
-            		cellranger_command='cellranger-atac mkfastq'
-			break
-		else
-			cellranger_command='cellranger mkfastq'
-		fi
+                base_mask=$base_mask_DOGMA_ADT
+                if grep -q "ATAC" <<< "$csv_file"; then
+                        cellranger_command='cellranger-atac mkfastq'
+                        break
+                else
+                        cellranger_command='cellranger mkfastq'
+                fi
         elif [[ $file == *_ATAC* ]]; then
             cellranger_command='cellranger-atac mkfastq'
             base_mask=$base_mask_DOGMA_ATAC
@@ -201,27 +217,22 @@ for file in "${index_files[@]}"; do
             base_mask=$base_mask_ASAP_ADT
         fi
     else
-        echo "Cannot determine base mask for $index_file, please check path"
+        echo -e "\033[0;31mERROR:\033[0m Cannot determine base mask for $index_file, please check path"
         exit 1
     fi
 
+    echo "For index file ${index_file}, the following FASTQ demultiplexing script will be run:"
+    echo ""
     echo "$cellranger_command --id ${index_file} --run $project_dir/${project_id}_bcl --csv $script_dir/indices/$file --use-bases-mask $base_mask --delete-undetermined --barcode-mismatches 1 $filter_option"
     echo ""
 
-# Ask the user if they want to submit the indices for FASTQ generation
-echo "Do you want to submit with these options? (Y/N)"
-read -r choice
+    # Ask the user if they want to submit the indices for FASTQ generation
+    echo -e "\033[0;33mINPUT REQUIRED:\033[0m Is this alright? (Y/N)"
+    read -r choice
 
-# Process choices
-if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-    :
-elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
-    exit 1
-else
-    echo "Invalid choice. Exiting"
-fi
-
-    sbatch <<EOF
+    # Process choices
+    if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
+        sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name ${project_id}
 #SBATCH --output $fastq_dir/logs/${index_file}_FASTQ.out
@@ -239,7 +250,9 @@ find "${index_file}/outs/fastq_path/H"* -name "*.fastq.gz" | parallel -j 16 "app
 apptainer run -B /fast ${container} multiqc "${fastq_dir}/${index_file}" -o "${fastq_dir}/${index_file}/multiqc"
 rm -r ${fastq_dir}/${index_file}/_* ${fastq_dir}/${index_file}/MAKE*
 EOF
-    echo ""
-    echo "-------------"
-    echo ""
+    elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
+        :
+    else
+        echo -e "\033[0;31mERROR:\033[0m Invalid choice. Exiting"
+    fi
 done
