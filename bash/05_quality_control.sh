@@ -55,7 +55,7 @@ output_project_id=${project_ids[0]}
 
 # Check if project_id is empty
 if [ -z "$output_project_id" ]; then
-    echo "Please provide a project_id using the --project-id option."
+    echo -e "\033[0;31mERROR:\033[0m Please provide a project_id using the --project-id option."
     exit 1
 fi
 
@@ -65,7 +65,7 @@ outs="${prefix}/${output_project_id}/${output_project_id}_outs"
 
 # Check if the output_project_id folder exists
 if [ ! -d "$outs" ]; then
-    echo "Error: Outs folder ($outs) does not exist. Make sure cellranger has run"
+    echo -e "\033[0;31mERROR:\033[0m Outs folder ($outs) does not exist. Make sure cellranger has run"
     exit 1
 fi
 container="$TMPDIR/oscar-qc_latest.sif"
@@ -122,7 +122,7 @@ for library in "${libraries[@]}"; do
                 fi
             done < "$metadata_file"
         else
-            echo "Error: Metadata file not found for project_id: $project_id"
+            echo -e "\033[0;31mERROR:\033[0m Metadata file not found for project_id: $project_id"
             exit 1
         fi
     done
@@ -211,7 +211,7 @@ EOF
                 job_id=""
             fi
         else
-            echo "Cannot determine the number of donors for ${library}"
+            echo -e "\033[0;31mERROR:\033[0m Cannot determine the number of donors for ${library}"
             exit 1
         fi
     elif [ -n "$peak_matrix_path" ]; then
@@ -357,20 +357,14 @@ EOF
                 read -r choice
                 # Process choices
                 if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-                        :
-                elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
-                        exit 1
-                else
-                        echo "Invalid choice. Exiting"
-                fi
-                ATAC_whitelist=$HOME/group/work/bin/whitelists/737K-cratac-v1.txt
-                ADT_outs=${outs}/${library}/ADT
-                mkdir -p ${ADT_outs}
-                ADT_index_folder=${outs}/${library}/ADT_index
-                mkdir -p ${ADT_index_folder}/temp
-                corrected_fastq=${output_project_dir}/${output_project_id}_fastq/ASAP_DI_ADT_corrected
-                mkdir -p $corrected_fastq
-                ADT_file=${output_project_dir}/${output_project_id}_scripts/ADT_files/${ADT_file}
+                    ATAC_whitelist=${OSCAR_script_dir}/whitelists/737K-cratac-v1.txt
+                    ADT_outs=${outs}/${library}/ADT
+                    mkdir -p ${ADT_outs}
+                    ADT_index_folder=${outs}/${library}/ADT_index
+                    mkdir -p ${ADT_index_folder}/temp
+                    corrected_fastq=${output_project_dir}/${output_project_id}_fastq/ASAP_DI_ADT_corrected
+                    mkdir -p $corrected_fastq
+                    ADT_file=${output_project_dir}/${output_project_id}_scripts/ADT_files/${ADT_file}
 sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name ${library}_ADT
@@ -384,31 +378,39 @@ cd ${outs}/${library}
 echo "Running featuremap"
 echo ""
 apptainer run -B /fast ${container} featuremap ${ADT_file} --t2g ${ADT_index_folder}/FeaturesMismatch.t2g --fa ${ADT_index_folder}/FeaturesMismatch.fa --header --quiet
+echo ""
 echo "Running kallisto index"
 echo ""
 apptainer run -B /fast ${container} kallisto index -i ${ADT_index_folder}/FeaturesMismatch.idx -k 15 ${ADT_index_folder}/FeaturesMismatch.fa
+echo ""
 echo "Running asap_to_kite"
 echo ""
 apptainer run -B /fast ${container} ASAP_to_KITE -f $fastq_dirs -s $fastq_librarys -o ${corrected_fastq}/${library} -c \$num_cores
+echo ""
 echo "Running kallisto bus"
 echo ""
 apptainer run -B /fast ${container} kallisto bus -i ${ADT_index_folder}/FeaturesMismatch.idx -o ${ADT_index_folder}/temp -x 0,0,16:0,16,26:1,0,0 -t \$num_cores ${corrected_fastq}/${library}*
+echo ""
 echo "Running bustools correct"
 echo ""
 apptainer run -B /fast ${container} bustools correct -w ${whitelist} ${ADT_index_folder}/temp/output.bus -o ${ADT_index_folder}/temp/output_corrected.bus
+echo ""
 echo "Running bustools sort"
 echo ""
 apptainer run -B /fast ${container} bustools sort -t \$num_cores -o ${ADT_index_folder}/temp/output_sorted.bus ${ADT_index_folder}/temp/output_corrected.bus
+echo ""
 echo "Running bustools count"
 echo ""
 apptainer run -B /fast ${container} bustools count -o ${outs}/${library}/ADT/ --genecounts -g ${ADT_index_folder}/FeaturesMismatch.t2g -e ${ADT_index_folder}/temp/matrix.ec -t ${ADT_index_folder}/temp/transcripts.txt ${ADT_index_folder}/temp/output_sorted.bus
 rm -r ${ADT_index_folder}
 EOF
+                elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
+                    :
+                fi
         fi
-        
     else
         # Action when neither file is found
-        echo "Neither feature matrix nor peak matrix was found for ${library}"
+        echo -e "\033[0;31mERROR:\033[0m Neither feature matrix nor peak matrix was found for ${library}"
         exit 1
     fi
 done
