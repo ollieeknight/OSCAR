@@ -130,22 +130,14 @@ else
     echo "No options set for ADT/HTO"
 fi
 
-scripts_folder="${prefix}/${main_project_id}/${main_project_id}_scripts/"
-
-# Check if the libraries folder already exists, and remove it if it does
-if [ -d "${scripts}_folder" ]; then
-    echo -e "\033[0;31mERROR:\033[0m Scripts folder does not exist, did you enter a wrong project ID?"
-    exit 1
-fi
-
 library_folder="${prefix}/${main_project_id}/${main_project_id}_scripts/libraries"
 
 # Check if the libraries folder already exists, and remove it if it does
-if [ -d "${library}_folder" ]; then
-  rm -r "${library}_folder"
+if [ -d "${library_folder}" ]; then
+  rm -r "${library_folder}"
 fi
 
-mkdir -p "${library}_folder"
+mkdir -p "${library_folder}"
 
 for project_id in "${project_ids[@]}"; do
     echo ""
@@ -218,7 +210,7 @@ for project_id in "${project_ids[@]}"; do
         if [[ $run_type == 'GEX' && $mode == "GEX" ]]; then
             if [[ "$modality" == 'GEX' ]]; then
                 # Check if the sample library already exists
-                if [ ! -f "${library}_output" ]; then
+                if [ ! -f "${library_output}" ]; then
                     # What species is specified in the metadata file?
                     # Is it a human run?
                     if [[ "$species" =~ ^(Human|human|Hs|hs)$ ]]; then
@@ -293,7 +285,7 @@ for project_id in "${project_ids[@]}"; do
                     echo "fastq_id,fastqs,feature_types" >> "${library_output}"
                 fi
             elif [[ "$modality" == 'HTO' || "$modality" == 'ADT' || "$modality" == 'VDJ-T' || "$modality" == 'VDJ-B' || "$modality" == 'CRISPR' ]]; then
-                if [[ -f ${library}_output ]]; then
+                if [[ -f ${library_output} ]]; then
                     :
                 else
                     echo -e "\033[0;31mERROR:\033[0m Please ensure that in the metadata file, GEX libraries for all samples are first, before ADT/HTO/VDJ-T/CRISPR"
@@ -324,7 +316,7 @@ for project_id in "${project_ids[@]}"; do
         # If this run is of ATAC samples, alongside ADT/HTO
         elif [[ $run_type == 'ATAC' && $mode == "GEX" ]]; then
             if [[ ($modality == 'ADT' || $modality == 'HTO') && $assay != 'ASAP' ]]; then
-                if [[ -f ${library}_output ]]; then
+                if [[ -f ${library_output} ]]; then
                     :
                 else
                     echo -e "\033[0;31mERROR:\033[0m If you're trying to combine DOGMA ADT/HTO to a DOGMA GEX, please make sure the output directory is of the run containing the GEX FASTQ files"

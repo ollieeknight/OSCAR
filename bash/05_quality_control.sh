@@ -141,7 +141,7 @@ for library in "${libraries[@]}"; do
 job_id=$(sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name ${experiment_id}_cellbender
-#SBATCH --output --output $outs/logs/${library}_cellbender.out
+#SBATCH --output $outs/logs/${library}_cellbender.out
 #SBATCH --error $outs/logs/${library}_cellbender.out
 #SBATCH --ntasks 1
 #SBATCH --partition "gpu"
@@ -181,7 +181,7 @@ sbatch --dependency=afterok:$job_id <<EOF
 #SBATCH --dependency=afterok:$job_id
 num_cores=\$(nproc)
 cd ${outs}/${library}
-apptainer run -B /fast ${container} cellsnp-lite -s ${outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam -b ${outs}/${library}/cellbender/output_cell_barcodes.csv -O ${outs}/${library}/vireo -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores
+apptainer exec -B /fast ${container} cellsnp-lite -s ${outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam -b ${outs}/${library}/cellbender/output_cell_barcodes.csv -O ${outs}/${library}/vireo -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores
 apptainer run -B /fast ${container} vireo -c ${outs}/${library}/vireo -o ${outs}/${library}/vireo -N $n_donors -p \$num_cores
 EOF
                 job_id=""
@@ -205,7 +205,7 @@ sbatch <<EOF
 #SBATCH --time=6:00:00
 num_cores=\$(nproc)
 cd ${outs}/${library}
-apptainer run -B /fast ${container} cellsnp-lite -s ${outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam -b ${outs}/${library}/cellbender/output_cell_barcodes.csv -O ${outs}/${library}/vireo -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores
+apptainer exec -B /fast ${container} cellsnp-lite -s ${outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam -b ${outs}/${library}/cellbender/output_cell_barcodes.csv -O ${outs}/${library}/vireo -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores
 apptainer run -B /fast ${container} vireo -c ${outs}/${library}/vireo -o ${outs}/${library}/vireo -N $n_donors -p \$num_cores
 EOF
                 job_id=""
@@ -233,7 +233,7 @@ sbatch <<EOF
 #SBATCH --error $outs/logs/${library}_genotyping.out
 #SBATCH --ntasks=32
 #SBATCH --mem=68000
-#SBATCH --time=8:00:00
+#SBATCH --time=12:00:00
 num_cores=\$(nproc)
 cd ${outs}/${library}
 echo "Starting mgatk mtDNA genotyping"
@@ -247,7 +247,7 @@ apptainer run -B /fast ${container} AMULET ${outs}/${library}/outs/fragments.tsv
 echo ""
 echo "Starting donor SNP genotyping"
 echo ""
-apptainer run -B /fast ${container} cellsnp-lite -s ${outs}/${library}/outs/possorted_bam.bam -b ${outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv -O ${outs}/${library}/vireo -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores --UMItag None
+apptainer exec -B /fast ${container} cellsnp-lite -s ${outs}/${library}/outs/possorted_bam.bam -b ${outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv -O ${outs}/${library}/vireo -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores --UMItag None
 echo ""
 echo "Demultiplexing donors with vireo"
 echo ""
@@ -271,7 +271,7 @@ sbatch <<EOF
 #SBATCH --error $outs/logs/${library}_genotyping.out
 #SBATCH --ntasks=32
 #SBATCH --mem=68000
-#SBATCH --time=8:00:00
+#SBATCH --time=12:00:00
 num_cores=\$(nproc)
 cd ${outs}/${library}
 echo "Starting mgatk mtDNA genotyping"
@@ -289,66 +289,24 @@ EOF
         if [[ "${library}" == *ASAP* ]]; then
             echo "Library ${library} is an ASAP run, performing ADT counting"
             library_csv=${output_project_dir}/${output_project_id}_scripts/libraries/${library}_ADT.csv
-            if [[ -f "${library}_csv" ]]; then
-                rm ${library}_csv
-            fi
-            # Initialize associative array for unique entries
-            declare -A unique_entries
-            # Loop through project directories
-            for project_id in "${project_ids[@]}"; do
-                project_fastqs="${prefix}/${project_id}/${project_id}_fastq"
-                # Loop through matching directories
-                for folder in "${project_fastqs}"/*/outs; do
-                    # Extract the modality from the folder name
-                    if [[ "$folder" == *"ASAP_DI_ADT"* ]]; then
-                        modality="ADT"
-                    elif [[ "$folder" == *"ASAP_DI_HTO"* ]]; then
-                        modality="HTO"
-                    else
-                        continue
-                    fi
-
-                    # Search for matching files and remove duplicates
-                    matching_files=($(find "$folder" -type f -name "${library}_*" | grep -E "${library}_(ADT|HTO).*\.fastq\.gz"))
-                    # Check if matching files are found
-                    if [ ${#matching_files[@]} -gt 0 ]; then
-                        # Process each matching file
-                        for file_path in "${matching_files[@]}"; do
-                            # Extract the fastq_name by removing suffix until $modality
-                            fastq_name=${library}_${modality}
-                            # Store the directory name
-                            directory=$(dirname "$file_path")
-                            # Construct the unique identifier
-                            identifier="${directory},${fastq_name}"
-                            # Append the identifier to the list of unique entries
-                            if [ ! "${unique_entries["$identifier"]}" ]; then
-                                unique_entries["$identifier"]=1
-                            fi
-                        done
-                    fi
-                done
-            done
-            # Print the unique entries to CSV file
-            for entry in "${!unique_entries[@]}"; do
-                echo "$entry" >> "${library}_csv"
-            done
-            # Read the input CSV file line by line
+            fastq_dirs=''
+            fastq_libraries=''
             while IFS= read -r line; do
                 # Split the line by comma
                 IFS=',' read -r -a parts <<< "$line"
                 # Extract fastq_dir and fastq_library
-                fastq_dir="${parts[0]}"
-                fastq_library="${parts[1]}"
+                fastq_library="${parts[0]}"
+                fastq_dir="${parts[1]}"
                 # Append to the respective variables
+                fastq_libraries="$fastq_libraries,$fastq_library"
                 fastq_dirs="$fastq_dirs,$fastq_dir"
-                fastq_librarys="$fastq_librarys,$fastq_library"
-            done < "${library}_csv"
+            done < "${library_csv}"
             # Remove leading comma
-            fastq_dirs="${fastq_dirs:1}"
-            fastq_librarys="${fastq_librarys:1}"
+                fastq_dirs="${fastq_dirs:1}"
+                fastq_libraries="${fastq_libraries:1}"
                 echo ""
                 echo "For ${library}, the following ASAP FASTQ files will be converted to KITE-compatible FASTQ files "
-                echo $fastq_librarys
+                echo $fastq_libraries
                 echo "In the directories"
                 echo $fastq_dirs
                 echo ""
@@ -359,11 +317,8 @@ EOF
                 if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
                     ATAC_whitelist=${OSCAR_script_dir}/whitelists/737K-cratac-v1.txt
                     ADT_outs=${outs}/${library}/ADT
-                    mkdir -p ${ADT_outs}
                     ADT_index_folder=${outs}/${library}/ADT_index
-                    mkdir -p ${ADT_index_folder}/temp
                     corrected_fastq=${output_project_dir}/${output_project_id}_fastq/ASAP_DI_ADT_corrected
-                    mkdir -p $corrected_fastq
                     ADT_file=${output_project_dir}/${output_project_id}_scripts/ADT_files/${ADT_file}
 sbatch <<EOF
 #!/bin/bash
@@ -377,6 +332,7 @@ num_cores=\$(nproc)
 cd ${outs}/${library}
 echo "Running featuremap"
 echo ""
+mkdir -p ${ADT_index_folder}/temp
 apptainer run -B /fast ${container} featuremap ${ADT_file} --t2g ${ADT_index_folder}/FeaturesMismatch.t2g --fa ${ADT_index_folder}/FeaturesMismatch.fa --header --quiet
 echo ""
 echo "Running kallisto index"
@@ -385,7 +341,8 @@ apptainer run -B /fast ${container} kallisto index -i ${ADT_index_folder}/Featur
 echo ""
 echo "Running asap_to_kite"
 echo ""
-apptainer run -B /fast ${container} ASAP_to_KITE -f $fastq_dirs -s $fastq_librarys -o ${corrected_fastq}/${library} -c \$num_cores
+mkdir -p $corrected_fastq
+apptainer run -B /fast ${container} ASAP_to_KITE -f $fastq_dirs -s $fastq_libraries -o ${corrected_fastq}/${library} -c \$num_cores
 echo ""
 echo "Running kallisto bus"
 echo ""
@@ -401,6 +358,7 @@ apptainer run -B /fast ${container} bustools sort -t \$num_cores -o ${ADT_index_
 echo ""
 echo "Running bustools count"
 echo ""
+mkdir -p ${ADT_outs}
 apptainer run -B /fast ${container} bustools count -o ${outs}/${library}/ADT/ --genecounts -g ${ADT_index_folder}/FeaturesMismatch.t2g -e ${ADT_index_folder}/temp/matrix.ec -t ${ADT_index_folder}/temp/transcripts.txt ${ADT_index_folder}/temp/output_sorted.bus
 rm -r ${ADT_index_folder}
 EOF
