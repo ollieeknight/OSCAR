@@ -16,6 +16,6 @@ conda deactivate
 
 conda create -y -n oscar_qc -c nvidia python=3.7 cellsnp-lite numpy=1.19 pandas scipy statsmodels openjdk r-base=4.2.3 r-data.table r-matrix bioconductor-genomicranges bioconductor-summarizedexperiment cuda-toolkit cuda-nvcc
 conda activate oscar_qc
-pip install vireoSNP cellbender
+pip install vireoSNP cellbender mgatk
 conda env export > conda/oscar_qc.yml
 conda deactivate
