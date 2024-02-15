@@ -250,7 +250,7 @@ for project_id in "${project_ids[@]}"; do
                     # Is it a mouse run?
                     elif [[ "$species" =~ ^(Mouse|mouse|Mm|mm)$ ]]; then
                         echo "[gene-expression]" >> "${library_output}"
-                        echo "reference,/fast/work/groups/ag_romagnani/ref/mm/mouse_mm10_optimized_reference_v2" >> "${library_output}"
+                        echo "reference,/fast/work/groups/ag_romagnani/ref/mm/GRCm38-hardmasked-optimised-arc" >> "${library_output}"
 #                       echo "probe-set,/fast/work/groups/ag_romagnani/ref/mm/frp-probes/Chromium_Mouse_Transcriptome_Probe_Set_v1.0.1_mm10-2020-A.csv" >> "${library_output}"
                         # Add options if there are gene expression-specific options specified by --gene-expression-options
                             if [ -n "$gene_expression_options" ] && [ "$gene_expression_options" != "NA" ]; then
