@@ -131,13 +131,15 @@ done < "$metadata_file"
 echo ""
 echo -e "\033[0;33mINPUT REQUIRED:\033[0m Would you like to proceed to FASTQ demultiplexing? (Y/N)"
 read -r choice
+while [[ ! $choice =~ ^[YyNn]$ ]]; do
+    echo "Invalid input. Please enter Y or N."
+    read -r choice
+done
 
 # Process choices
 if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
     echo "Submitting: bash ${OSCAR_script_dir}/02_fastq.sh --project-id ${project_id}"
     bash ${OSCAR_script_dir}/02_fastq.sh --project-id ${project_id}
-elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
-    :
 else
-    echo -e "\033[0;31mERROR:\033[0m Invalid choice. Exiting"
+    :
 fi
