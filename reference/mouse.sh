@@ -1,12 +1,7 @@
 #!/bin/bash
 
-# Check if a conda env to create the reference exists
 if [ ! -d "$HOME/work/bin/miniconda3/envs/genome_processing/" ]; then
     conda create -y -n genome_processing bcftools samtools bedtools bwa
-fi
-
-if [ ! -d "$HOME/work/bin/miniconda3/envs/genome_processing/" ]; then
-    echo -e "Error: conda env 'genome_processing' still does not exist"
 fi
 
 conda activate genome_processing
@@ -24,8 +19,8 @@ mkdir -p "${build}"
 
 source=${genome}-source
 mkdir -p ${source}
-fasta_name="Mus_musculus.GRCm39.dna_sm.primary_assembly"
-fasta_url="https://ftp.ensembl.org/pub/release-110/fasta/mus_musculus/dna/${fasta_name}.fa.gz"
+fasta_name="Mus_musculus.GRCm38.dna_sm.primary_assembly"
+fasta_url="https://ftp.ensembl.org/pub/release-98/fasta/mus_musculus/dna/${fasta_name}.fa.gz"
 fasta_in="${source}/${fasta_name}.fa"
 gtf_url="https://storage.googleapis.com/generecovery/mouse_mm10_optimized_annotation_v2.gtf.gz"
 gtf_in="${source}/mouse_mm10_optimized_annotation_v2.gtf"
