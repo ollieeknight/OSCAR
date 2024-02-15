@@ -5,7 +5,6 @@ if ! command -v conda &> /dev/null; then
     exit 1
 fi
 
-
 conda create -y -n oscar_count -c bih-cubi bcl2fastq2 fastqc multiqc bustools
 conda activate oscar_count
 pip install bio
