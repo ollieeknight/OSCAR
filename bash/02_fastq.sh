@@ -229,7 +229,10 @@ for file in "${index_files[@]}"; do
     # Ask the user if they want to submit the indices for FASTQ generation
     echo -e "\033[0;33mINPUT REQUIRED:\033[0m Is this alright? (Y/N)"
     read -r choice
-
+    while [[ ! $choice =~ ^[YyNn]$ ]]; do
+        echo "Invalid input. Please enter Y or N."
+        read -r choice
+    done
     # Process choices
     if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
         sbatch <<EOF
