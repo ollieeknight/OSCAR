@@ -13,8 +13,8 @@ if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
 
 	cd ..
 
-	echo "apptainer build oscar-counting.sif singularity/recipe_oscar-counting.sif"
-	apptainer build oscar-counting.sif singularity/recipe_oscar-counting.sif
+	echo "apptainer build oscar-count.sif singularity/recipe_oscar-count.sif"
+	apptainer build oscar-count.sif singularity/recipe_oscar-count.sif
 	echo ""
 
         echo "apptainer build oscar-qc.sif singularity/recipe_oscar-qc.sif"

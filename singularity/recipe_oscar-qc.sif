@@ -11,12 +11,10 @@ From: ubuntu:latest
 %environment
         export LC_ALL=C
         export LC_NUMERIC=en_GB.UTF-8
-	export PATH="/opt/miniconda3/bin:/opt/miniconda3/envs/oscar_qc/bin:/opt/kallisto/:/opt/AMULET/:$PATH"
+	export PATH="/opt/miniconda3/bin:/opt/miniconda3/envs/oscar_qc/bin:/opt/AMULET/:$PATH"
 
 %runscript
         alias AMULET='/opt/AMULET/AMULET.sh'
-        alias featuremap='/opt/kite/featuremap/featuremap.py'
-        alias ASAP_to_KITE='/opt/asap_to_kite/asap_to_kite_v2.py'
         eval ${@}
 
 %post
@@ -34,22 +32,6 @@ From: ubuntu:latest
         unzip -q /opt/AMULET/RestrictionRepeatLists.zip -d /opt/AMULET/
 	rm /opt/AMULET/RestrictionRepeatLists.zip
 	chmod -R +x /opt/AMULET/
-
-        mkdir -p /opt/kallisto/
-	curl -sSL -o /opt/kallisto_linux-v0.46.1.tar.gz https://github.com/pachterlab/kallisto/releases/download/v0.46.1/kallisto_linux-v0.46.1.tar.gz
-	tar -xf /opt/kallisto_linux-v0.46.1.tar.gz -C /opt/
-	rm /opt/kallisto_linux-v0.46.1.tar.gz
-	chmod -R +x /opt/kallisto/
-
-        mkdir -p /opt/asap_to_kite/
-        git clone https://github.com/caleblareau/asap_to_kite /opt/asap_to_kite/
-        sed -i '1s|^.*$|#!/opt/miniconda3/envs/oscar_qc/bin/python\n&|' /opt/asap_to_kite/asap_to_kite_v2.py
-        chmod -R +x /opt/asap_to_kite
-
-        mkdir -p /opt/kite/
-        git clone https://github.com/pachterlab/kite /opt/kite/
-        sed -i '1s|^.*$|#!/opt/miniconda3/envs/oscar_qc/bin/python\n&|' /opt/kite/featuremap/featuremap.py
-        chmod -R +x /opt/kite/
 
         curl -L -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
         bash Miniconda3-latest-Linux-x86_64.sh -b -p "/opt/miniconda3"
