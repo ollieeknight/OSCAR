@@ -1,4 +1,4 @@
-  GNU nano 7.2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       bash/05_quality_control.sh                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 #!/bin/bash
+#!/bin/bash
 
 # usage is: bash 05_quality_control.sh -project-id project_ids
 
@@ -286,8 +286,7 @@ echo ""
 EOF
             fi
         fi
-        if [[ "${library}" == *ASAP* ]]; then
- else
+	else
         # Action when neither file is found
         echo -e "\033[0;31mERROR:\033[0m Neither feature matrix nor peak matrix was found for ${library}"
         exit 1
