@@ -45,12 +45,22 @@ done
 
 # Check if project_id is empty
 if [ -z "$project_id" ]; then
-    echo "Please provide a project_id using the --project-id option."
+    echo -e "\033[0;31mERROR:\033[0m Please provide a project_id using the --project-id option."
     exit 1
 fi
 
-# Your script logic here
-echo "Processing metadata for $project_id"
+read_length=$(awk -F '"' '/<Read Number="1"/ {print $4}' ${prefix}/${project_id}/${project_id}_bcl/RunInfo.xml)
+if [ "$read_length" -gt 45 ]; then
+    run_type="ATAC"
+elif [ "$read_length" -lt 45 ]; then
+    run_type="GEX"
+else
+    echo -e "\033[0;31mERROR:\033[0m Cannot determine run type, please check ${project_dir}/${project_id}_bcl/RunInfo.xml"
+    exit 1
+fi
+
+echo ""
+echo -e "\033[34mINFO:\033[0m $project_id is an $run_type run, processing appropriately"
 
 # Define project directory using the prefix
 project_dir="${prefix}/$project_id"
@@ -62,12 +72,12 @@ if [ -d "$script_dir/indices" ]; then
 fi
 
 mkdir -p $script_dir/indices
-output_folder=$script_dir/indices
+indices_folder=$script_dir/indices
 
 metadata_file=$script_dir/metadata/metadata.csv
 
 if [[ ! -f "$metadata_file" ]]; then
-    echo "Metadata file not found for $project_id"
+    echo -e "\033[0;31mERROR:\033[0m Metadata file not found for $project_id"
     exit 1
 fi
 
@@ -77,8 +87,12 @@ while IFS= read -r line; do
     if [[ $line == assay* ]]; then
         continue
     fi
+    # Add some lines for output readability
+    echo ""
+    echo "-------------"
+    echo ""
     # Print the line being processed
-    echo "Processing sample sublibrary: $line"
+    echo "Processing metadata line: $line"
     # Split the line into fields
     IFS=',' read -r -a fields <<< "$line"
 
@@ -93,40 +107,39 @@ while IFS= read -r line; do
     index="${fields[7]}"
     if [ "$chemistry" != "NA" ]; then
         # Create the output file with $chemistry included
-        combination="$output_folder/${assay}_${index_type}_${modality}_${chemistry}"
+        sample="$indices_folder/${assay}_${index_type}_${modality}_${chemistry}"
         output_file="${sample}.csv"
     else
         # Create the output file without $chemistry
-        combination="$output_folder/${assay}_${index_type}_${modality}"
+        sample="$indices_folder/${assay}_${index_type}_${modality}"
         output_file="${sample}.csv"
     fi
     # Check if the csv file already exists
     if [ ! -f "$output_file" ]; then
         # If the file doesn't exist, create it and add the header and sample
-        echo "Output file $output_file does not exist, creating csv and appending ${sample}"
+        echo "Output file $output_file does not exist, creating csv and appending ${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality}"
         echo "lane,sample,index" > "$output_file"
         echo "*,${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality},${index}" >> "$output_file"
     else
         # If the file exists, just add sample
-        echo "Output file $output_file already exists, appending ${sample}"
+        echo "Output file $output_file already exists, appending appending ${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality}"
         echo "*,${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality},${index}" >> "$output_file"
     fi
-    # Add some lines for output readability
-    echo ""
-    echo "-------------"
-    echo ""
 done < "$metadata_file"
 
 # Ask the user if they want to submit the indices for FASTQ generation
-echo "Would you like to submit the next step to generate FASTQ files from this sequencing run? (Y/N)"
+echo ""
+echo -e "\033[0;33mINPUT REQUIRED:\033[0m Would you like to proceed to FASTQ demultiplexing? (Y/N)"
 read -r choice
+while [[ ! $choice =~ ^[YyNn]$ ]]; do
+    echo "Invalid input. Please enter Y or N."
+    read -r choice
+done
 
 # Process choices
 if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
     echo "Submitting: bash ${OSCAR_script_dir}/02_fastq.sh --project-id ${project_id}"
     bash ${OSCAR_script_dir}/02_fastq.sh --project-id ${project_id}
-elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
-    :
 else
-    echo "Invalid choice. Exiting"
+    :
 fi
