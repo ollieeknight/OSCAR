@@ -1,30 +1,8 @@
-#!/bin/bash
-
-# usage is: bash 01_process_metadata.sh --project-id project_id --prefix $HOME/path/before/
-# such as bash 01_process_metadata.sh --project-id K001 --prefix $HOME/scratch/ngs/
-
-# make sure your processing folder structure is similar to follows:
-
-# |── {project_id}_bcl/
-# │   ├── Config/
-# │   ├── CopyComplete.txt
-# │   ├── Data/
-# │   ├── InterOp/
-# │   ├── Logs/
-# │   ├── Recipe/
-# │   ├── RTA3.cfg
-# │   ├── RTAComplete.txt
-# │   ├── RunInfo.xml
-# │   ├── RunParameters.xml
-# │   ├── SequenceComplete.txt
-# │   └── Thumbnail_Images/
-# └── {project_id}_scripts/
-#     ├── adt_files/
-#     └── metadata/ # METADATA MUST BE IN THIS FOLDER!
+#/bin/bash
 
 # Define default values
-OSCAR_script_dir=$(dirname "${BASH_SOURCE[0]}")
-prefix="$HOME/scratch/ngs"
+oscar_dir=$(dirname "${BASH_SOURCE[0]}")
+dir_prefix="$HOME/scratch/ngs"
 
 # Parse command line arguments using getopts_long function
 while [[ "$#" -gt 0 ]]; do
@@ -33,8 +11,8 @@ while [[ "$#" -gt 0 ]]; do
       project_id="$2"
       shift 2
       ;;
-    --prefix)
-      prefix="$2"
+    --dir_prefix)
+      dir_prefix="$2"
       shift 2
       ;;
     *)      echo "Invalid option: $1"
@@ -49,10 +27,10 @@ if [ -z "$project_id" ]; then
     exit 1
 fi
 
-read_length=$(awk -F '"' '/<Read Number="1"/ {print $4}' ${prefix}/${project_id}/${project_id}_bcl/RunInfo.xml)
-if [ "$read_length" -gt 45 ]; then
+read_length=$(awk -F '"' '/<Read Number="1"/ {print $4}' ${dir_prefix}/${project_id}/${project_id}_bcl/RunInfo.xml)
+if [ "${read_length}" -gt 45 ]; then
     run_type="ATAC"
-elif [ "$read_length" -lt 45 ]; then
+elif [ "${read_length}" -lt 45 ]; then
     run_type="GEX"
 else
     echo -e "\033[0;31mERROR:\033[0m Cannot determine run type, please check ${project_dir}/${project_id}_bcl/RunInfo.xml"
@@ -60,31 +38,31 @@ else
 fi
 
 echo ""
-echo -e "\033[34mINFO:\033[0m $project_id is an $run_type run, processing appropriately"
+echo -e "\033[34mINFO:\033[0m ${project_id} is an ${run_type} run, processing appropriately"
 
-# Define project directory using the prefix
-project_dir="${prefix}/$project_id"
-script_dir="${project_dir}/${project_id}_scripts"
+# Define project directory using the dir_prefix
+project_dir="${dir_prefix}/${project_id}"
+project_scripts="${project_dir}/${project_id}_scripts"
 
 # In case indices folder is present, remove indices folder to start fresh
-if [ -d "$script_dir/indices" ]; then
-    rm -r "$script_dir/indices"
+if [ -d "${project_scripts}/indices" ]; then
+    rm -r "${project_scripts}/indices"
 fi
 
-mkdir -p $script_dir/indices
-indices_folder=$script_dir/indices
+mkdir -p ${project_scripts}/indices
+project_indices=${project_scripts}/indices
 
-metadata_file=$script_dir/metadata/metadata.csv
+metadata_file=${project_scripts}/metadata/metadata.csv
 
-if [[ ! -f "$metadata_file" ]]; then
-    echo -e "\033[0;31mERROR:\033[0m Metadata file not found for $project_id"
+if [[ ! -f "${metadata_file}" ]]; then
+    echo -e "\033[0;31mERROR:\033[0m Metadata file not found for ${project_id}"
     exit 1
 fi
 
 # Iterate through each sample sub-library in metadata.csv
 while IFS= read -r line; do
     # Skip the first header line
-    if [[ $line == assay* ]]; then
+    if [[ ${line} == assay* ]]; then
         continue
     fi
     # Add some lines for output readability
@@ -92,9 +70,9 @@ while IFS= read -r line; do
     echo "-------------"
     echo ""
     # Print the line being processed
-    echo "Processing metadata line: $line"
+    echo "Processing metadata line: ${line}"
     # Split the line into fields
-    IFS=',' read -r -a fields <<< "$line"
+    IFS=',' read -r -a fields <<< "${line}"
 
     # Debug prints
     assay="${fields[0]}"
@@ -105,41 +83,41 @@ while IFS= read -r line; do
     chemistry="${fields[5]}"
     index_type="${fields[6]}"
     index="${fields[7]}"
-    if [ "$chemistry" != "NA" ]; then
-        # Create the output file with $chemistry included
-        sample="$indices_folder/${assay}_${index_type}_${modality}_${chemistry}"
+    if [ "${chemistry}" != "NA" ]; then
+        # Create the output file with ${chemistry} included
+        sample="${project_indices}/${assay}_${index_type}_${modality}_${chemistry}"
         output_file="${sample}.csv"
     else
         # Create the output file without $chemistry
-        sample="$indices_folder/${assay}_${index_type}_${modality}"
+        sample="${project_indices}/${assay}_${index_type}_${modality}"
         output_file="${sample}.csv"
     fi
     # Check if the csv file already exists
-    if [ ! -f "$output_file" ]; then
+    if [ ! -f "${output_file}" ]; then
         # If the file doesn't exist, create it and add the header and sample
-        echo "Output file $output_file does not exist, creating csv and appending ${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality}"
-        echo "lane,sample,index" > "$output_file"
-        echo "*,${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality},${index}" >> "$output_file"
+        echo "Output file ${output_file} does not exist, creating csv and appending ${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality}"
+        echo "lane,sample,index" > "${output_file}"
+        echo "*,${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality},${index}" >> "${output_file}"
     else
         # If the file exists, just add sample
-        echo "Output file $output_file already exists, appending appending ${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality}"
+        echo "Output file ${output_file} already exists, appending appending ${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality}"
         echo "*,${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality},${index}" >> "$output_file"
     fi
-done < "$metadata_file"
+done < "${metadata_file}"
 
 # Ask the user if they want to submit the indices for FASTQ generation
 echo ""
 echo -e "\033[0;33mINPUT REQUIRED:\033[0m Would you like to proceed to FASTQ demultiplexing? (Y/N)"
 read -r choice
-while [[ ! $choice =~ ^[YyNn]$ ]]; do
-    echo "Invalid input. Please enter Y or N."
+while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
+    echo "Invalid input. Please enter y or n"
     read -r choice
 done
 
 # Process choices
 if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-    echo "Submitting: bash ${OSCAR_script_dir}/02_fastq.sh --project-id ${project_id}"
-    bash ${OSCAR_script_dir}/02_fastq.sh --project-id ${project_id}
+    echo "Submitting: bash ${oscar_dir}/02_fastq.sh --project-id ${project_id}"
+    bash ${oscar_dir}/02_fastq.sh --project-id ${project_id}
 else
     :
 fi
