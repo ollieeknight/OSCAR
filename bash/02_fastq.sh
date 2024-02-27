@@ -173,9 +173,8 @@ for file in "${index_files[@]}"; do
             base_mask=$base_mask_DOGMA_GEX
         elif [[ ${file} == *_ADT* ]] || [[ ${file} == *_HTO* ]]; then
                 base_mask=$base_mask_DOGMA_ADT
-                if grep -q "ATAC" <<< "$csv_file"; then
+                if [[ ${run_type} == 'ATAC' ]]; then
                         cellranger_command='cellranger-atac mkfastq'
-                        break
                 else
                         cellranger_command='cellranger mkfastq'
                 fi
