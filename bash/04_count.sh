@@ -269,6 +269,10 @@ EOF
     elif grep -q '.*GEX.*' "${library_folder}/${library}.csv"; then
 
         echo ""
+	echo "For library $library"
+	echo ""
+	cat ${library_folder}/${library}.csv
+	echo ""
         echo "cellranger multi --id $library --csv ${library_folder}/${library}.csv --localcores $num_cores"
         echo "(number of cores will change upon submission)"
 

@@ -51,17 +51,17 @@ if [ ! -d "${project_scripts}/indices" ]; then
     exit 1
 fi
 
-# Check the symbolic link for the group folder in the users $HOMEno 7.2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          02_fastq.sh                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            if [ ! -d "$HOME/group" ]; then                Modified
+if [ ! -d "$HOME/group" ]; then
     ln -s /fast/work/groups/ag_romagnani/ $HOME/group
 fi
 
-container=${TMPDIR}/oscar-counting_latest.sif
+container=${TMPDIR}/oscar-count_latest.sif
 
 # Check that the singularity container is available
 if [ ! -f "${container}" ]; then
-    echo "oscar-counting_latest.sif singularity file not found, pulling..."
+    echo "oscar-count_latest.sif singularity file not found, pulling..."
     mkdir -p ${TMPDIR}
-    apptainer pull --dir ${TMPDIR} library://romagnanilab/default/oscar-counting:latest
+    apptainer pull --dir ${TMPDIR} library://romagnanilab/default/oscar-count:latest
 fi
 
 # Define base masks

@@ -12,10 +12,10 @@ mode=""
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
     --project-id)
-      project_ids_in="$2"
+      project_ids="$2"
       shift 2
       ;;
-    --dir_prefix)
+    --dir-prefix)
       dir_prefix="$2"
       shift 2
       ;;
@@ -42,7 +42,7 @@ while [[ "$#" -gt 0 ]]; do
   esac
 done
 
-IFS=',' read -r -a project_ids <<< "${project_ids_in}"
+IFS=',' read -r -a project_ids <<< "${project_ids}"
 IFS=';' read -r -a gene_expression_options <<< "${gene_expression_options}"
 IFS=';' read -r -a vdj_options <<< "${vdj_options}"
 IFS=';' read -r -a adt_options <<< "${adt_options}"
@@ -106,12 +106,12 @@ fi
 output_project_scripts="${dir_prefix}/${output_project_id}/${output_project_id}_scripts/"
 
 # Check if the libraries folder already exists, and remove it if it does
-if [ -d "${output_project_scripts}" ]; then
+if [ ! -d "${output_project_scripts}" ]; then
     echo -e "\033[0;31mERROR:\033[0m Scripts folder does not exist, did you enter a wrong project ID?"
     exit 1
 fi
 
-output_project_libraries=${project_scripts}/libraries
+output_project_libraries=${output_project_scripts}/libraries
 
 # Check if the libraries folder already exists, and remove it if it does
 if [ -d "${output_project_libraries}" ]; then
