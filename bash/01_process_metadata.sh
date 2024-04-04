@@ -86,10 +86,12 @@ while IFS= read -r line; do
     if [ "${chemistry}" != "NA" ]; then
         # Create the output file with ${chemistry} included
         sample="${project_indices}/${assay}_${index_type}_${modality}_${chemistry}"
+	echo $sample
         output_file="${sample}.csv"
     else
         # Create the output file without $chemistry
         sample="${project_indices}/${assay}_${index_type}_${modality}"
+	echo $sample
         output_file="${sample}.csv"
     fi
     # Check if the csv file already exists

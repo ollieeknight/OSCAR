@@ -251,7 +251,7 @@ for project_id in "${project_ids[@]}"; do
                     if [ "${adt_file}" != "NA" ]; then
                         echo "" >> "${library_output}"
                         echo "[feature]" >> "${library_output}"
-                        echo "reference,$project_scripts/adt_files/${adt_file}.csv" >> "${library_output}"
+                        echo "reference,$project_scripts/ADT_files/${adt_file}.csv" >> "${library_output}"
                         # Add options if there are ADT/HTO-specific options specified by --adt-options
                         if [ "${adt_options}" != "" ]; then
                             IFS=',' read -ra values <<< "${adt_options}"
