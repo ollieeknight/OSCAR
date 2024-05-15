@@ -6,14 +6,14 @@ From: ubuntu:latest
     Email "oliver.knight@charite.de"
 
 %files
-	cellranger-7.2.0.tar.gz /opt/
+	cellranger-8.0.0.tar.gz /opt/
 	cellranger-atac-2.1.0.tar.gz /opt/
 	conda/oscar_count.yml /opt/environment.yml
 
 %environment
         export LC_ALL=C
         export LC_NUMERIC=en_GB.UTF-8
-	export PATH="/opt/cellranger-atac-2.1.0:/opt/cellranger-7.2.0:/opt/kallisto/:$PATH"
+	export PATH="/opt/cellranger-atac-2.1.0:/opt/cellranger-8.0.0:/opt/kallisto/:$PATH"
 
 %runscript
         alias featuremap='/opt/kite/featuremap/featuremap.py'
@@ -25,16 +25,16 @@ From: ubuntu:latest
         apt-get upgrade -y -qq
         apt-get --allow-releaseinfo-change update && apt-get install -y curl git unzip tar nano
 
-        tar -xf /opt/cellranger-7.2.0.tar.gz -C /opt/
+        tar -xf /opt/cellranger-8.0.0.tar.gz -C /opt/
         tar -xf /opt/cellranger-atac-2.1.0.tar.gz -C /opt/
-        rm /opt/cellranger-7.2.0.tar.gz /opt/cellranger-atac-2.1.0.tar.gz
+        rm /opt/cellranger-8.0.0.tar.gz /opt/cellranger-atac-2.1.0.tar.gz
 
         mkdir -p /opt/kallisto/
         curl -sSL -o /opt/kallisto_linux-v0.46.1.tar.gz https://github.com/pachterlab/kallisto/releases/download/v0.46.1/kallisto_linux-v0.46.1.tar.gz
         tar -xf /opt/kallisto_linux-v0.46.1.tar.gz -C /opt/
         rm /opt/kallisto_linux-v0.46.1.tar.gz
         chmod -R +x /opt/kallisto/
-	echo "export PATH=/opt/cellranger-atac-2.1.0:/opt/cellranger-7.2.0:/opt/kallisto/:$PATH" | tee -a $SINGULARITY_ENVIRONMENT
+	echo "export PATH=/opt/cellranger-atac-2.1.0:/opt/cellranger-8.0.0:/opt/kallisto/:$PATH" | tee -a $SINGULARITY_ENVIRONMENT
 
         mkdir -p /opt/asap_to_kite/
         git clone https://github.com/caleblareau/asap_to_kite /opt/asap_to_kite/
