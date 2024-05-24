@@ -23,7 +23,7 @@ From: ubuntu:latest
         apt-get --allow-releaseinfo-change update && apt-get install -y curl git unzip tar nano
 
 	mkdir -p /opt/SNP/
-	curl -sSL -o /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz https://sourceforge.net/projects/cellsnp/files/SNPlist/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz
+	curl -sSL -o /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz https://downloads.sourceforge.net/project/cellsnp/SNPlist/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz?ts=gAAAAABmULHFNXioWPOX9K-_BzcAiDIh2ZJMwPSU0aYjNnmej_bE1byA2yaoIfIE__NHCK6eP-UQidMZjX9q1zQatVKuqNgjWA%3D%3D&r=https%3A%2F%2Fsourceforge.net%2Fprojects%2Fcellsnp%2Ffiles%2FSNPlist%2Fgenome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz%2Fdownload
 #	curl -sSL -o /opt/SNP/genome1K.phase3.SNP_AF5e4.chr1toX.hg38.vcf.gz https://sourceforge.net/projects/cellsnp/files/SNPlist/genome1K.phase3.SNP_AF5e4.chr1toX.hg38.vcf.gz
 
 	mkdir -p /opt/AMULET/
