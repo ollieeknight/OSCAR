@@ -1,7 +1,12 @@
 #!/bin/bash
 
+# Check if a conda env to create the reference exists
 if [ ! -d "$HOME/work/bin/miniconda3/envs/genome_processing/" ]; then
     conda create -y -n genome_processing bcftools samtools bedtools bwa
+fi
+
+if [ ! -d "$HOME/work/bin/miniconda3/envs/genome_processing/" ]; then
+    echo -e "Error: conda env 'genome_processing' still does not exist"
 fi
 
 conda activate genome_processing
