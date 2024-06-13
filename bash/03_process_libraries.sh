@@ -158,18 +158,7 @@ for project_id in "${project_ids[@]}"; do
         echo ""
 
         # Split the line into fields
-        IFS=',' read -r -a fields <<< "${line}"
-
-        # Assign field values to variables
-        assay="${fields[0]}"
-        experiment_id="${fields[1]}"
-        historical_number="${fields[2]}"
-        replicate="${fields[3]}"
-        modality="${fields[4]}"
-        chemistry="${fields[5]}"
-        species="${fields[8]}"
-        adt_file="${fields[10]}"
-        library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
+        while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file; do
 
         # Determine the full-length modality name based on its shortened name
         if [ "${modality}" = "GEX" ]; then

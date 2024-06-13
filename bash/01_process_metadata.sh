@@ -2,7 +2,7 @@
 
 # Define default values
 oscar_dir=$(dirname "${BASH_SOURCE[0]}")
-dir_prefix="$HOME/scratch/ngs"
+dir_prefix="${HOME}/scratch/ngs"
 
 # Parse command line arguments using getopts_long function
 while [[ "$#" -gt 0 ]]; do
@@ -38,7 +38,7 @@ else
 fi
 
 echo ""
-echo -e "\033[34mINFO:\033[0m ${project_id} is an ${run_type} run, processing appropriately"
+echo -e "\033[34mINFO:\033[0m ${project_id} is an ${run_type} run with an R1 read length of ${read_length}"
 
 # Define project directory using the dir_prefix
 project_dir="${dir_prefix}/${project_id}"
@@ -59,30 +59,19 @@ if [[ ! -f "${metadata_file}" ]]; then
     exit 1
 fi
 
-# Iterate through each sample sub-library in metadata.csv
-while IFS= read -r line; do
+while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file; do
     # Skip the first header line
-    if [[ ${line} == assay* ]]; then
+    if [[ ${assay} == assay ]]; then
         continue
     fi
+
     # Add some lines for output readability
     echo ""
     echo "-------------"
     echo ""
     # Print the line being processed
     echo "Processing metadata line: ${line}"
-    # Split the line into fields
-    IFS=',' read -r -a fields <<< "${line}"
 
-    # Debug prints
-    assay="${fields[0]}"
-    experimental_id="${fields[1]}"
-    historical_id="${fields[2]}"
-    replicate="${fields[3]}"
-    modality="${fields[4]}"
-    chemistry="${fields[5]}"
-    index_type="${fields[6]}"
-    index="${fields[7]}"
     if [ "${chemistry}" != "NA" ]; then
         # Create the output file with ${chemistry} included
         sample="${project_indices}/${assay}_${index_type}_${modality}_${chemistry}"
@@ -94,22 +83,23 @@ while IFS= read -r line; do
 	echo $sample
         output_file="${sample}.csv"
     fi
+
     # Check if the csv file already exists
     if [ ! -f "${output_file}" ]; then
         # If the file doesn't exist, create it and add the header and sample
-        echo "Output file ${output_file} does not exist, creating csv and appending ${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality}"
+        echo "Output file ${output_file} does not exist, creating csv and appending ${assay}_${experimental_id}_exp${historical_number}_lib${replicate}_${modality}"
         echo "lane,sample,index" > "${output_file}"
-        echo "*,${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality},${index}" >> "${output_file}"
+        echo "*,${assay}_${experimental_id}_exp${historical_number}_lib${replicate}_${modality},${index}" >> "${output_file}"
     else
         # If the file exists, just add sample
-        echo "Output file ${output_file} already exists, appending appending ${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality}"
-        echo "*,${assay}_${experimental_id}_exp${historical_id}_lib${replicate}_${modality},${index}" >> "$output_file"
+        echo "Output file ${output_file} already exists, appending appending ${assay}_${experimental_id}_exp${historical_number}_lib${replicate}_${modality}"
+        echo "*,${assay}_${experimental_id}_exp${historical_number}_lib${replicate}_${modality},${index}" >> "$output_file"
     fi
 done < "${metadata_file}"
 
 # Ask the user if they want to submit the indices for FASTQ generation
 echo ""
-echo -e "\033[0;33mINPUT REQUIRED:\033[0m Would you like to proceed to FASTQ demultiplexing? (Y/N)"
+echo -e "\033[0;33mINPUT REQUIRED:\033[0m Would you like to proceed to FASTQ demultiplexing? (y/n)"
 read -r choice
 while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
     echo "Invalid input. Please enter y or n"
@@ -121,5 +111,5 @@ if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
     echo "Submitting: bash ${oscar_dir}/02_fastq.sh --project-id ${project_id}"
     bash ${oscar_dir}/02_fastq.sh --project-id ${project_id}
 else
-    :
+    continue
 fi
