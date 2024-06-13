@@ -1,0 +1,5 @@
+id,name,read,pattern,sequence,feature_type
+CD16,CD16,R2,5PNNNNNNNNNN(BC),AAGTTCACTCTTTGC,Antibody Capture
+CD56,CD56,R2,5PNNNNNNNNNN(BC),TTCGCCGCATTGAGT,Antibody Capture
+Hashtag1,Hashtag1,R2,5PNNNNNNNNNN(BC),GTCAACTCTTTAGCG,Antibody Capture
+Hashtag2,Hashtag2,R2,5PNNNNNNNNNN(BC),TGATGGCCTATTGGG,Antibody Capture
