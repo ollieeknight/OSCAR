@@ -222,10 +222,10 @@ cd ${project_fastq}
 echo ""
 echo "${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}"
 echo ""
-apptainer run -B /fast ${container} ${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}
+apptainer run -B /data ${container} ${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}
 mkdir -p ${project_fastq}/${index_file}/fastqc
 find "${index_file}/outs/fastq_path/H"* -name "*.fastq.gz" | parallel -j 16 "apptainer run -B /fast ${container} fastqc {} --outdir ${index_file}/fastqc"
-apptainer run -B /fast ${container} multiqc "${project_fastq}/${index_file}" -o "${project_fastq}/${index_file}/multiqc"
+apptainer run -B /data ${container} multiqc "${project_fastq}/${index_file}" -o "${project_fastq}/${index_file}/multiqc"
 rm -r ${project_fastq}/${index_file}/_* ${project_fastq}/${index_file}/MAKE*
 EOF
     elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then

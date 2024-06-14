@@ -151,7 +151,7 @@ job_id=$(sbatch <<EOF
 #SBATCH --time 5:00:00
 cd ${outs}/${library}
 mkdir -p ${outs}/${library}/cellbender
-apptainer run --nv -B /fast ${container} cellbender remove-background --cuda --input ${feature_matrix_path} --output ${outs}/${library}/cellbender/output.h5
+apptainer run --nv -B /data ${container} cellbender remove-background --cuda --input ${feature_matrix_path} --output ${outs}/${library}/cellbender/output.h5
 rm ckpt.tar.gz
 EOF
         )
@@ -182,8 +182,8 @@ sbatch --dependency=afterok:$job_id <<EOF
 num_cores=\$(nproc)
 cd ${outs}/${library}
 mkdir -p ${outs}/${library}/vireo
-apptainer exec -B /fast ${container} cellsnp-lite -s ${outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam -b ${outs}/${library}/cellbender/output_cell_barcodes.csv -O ${outs}/${library}/vireo -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores
-apptainer run -B /fast ${container} vireo -c ${outs}/${library}/vireo -o ${outs}/${library}/vireo -N $n_donors -p \$num_cores
+apptainer exec -B /data ${container} cellsnp-lite -s ${outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam -b ${outs}/${library}/cellbender/output_cell_barcodes.csv -O ${outs}/${library}/vireo -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores
+apptainer run -B /data ${container} vireo -c ${outs}/${library}/vireo -o ${outs}/${library}/vireo -N $n_donors -p \$num_cores
 EOF
                 job_id=""
             fi
@@ -206,8 +206,8 @@ sbatch <<EOF
 num_cores=\$(nproc)
 cd ${outs}/${library}
 mkdir -p ${outs}/${library}/vireo
-apptainer exec -B /fast ${container} cellsnp-lite -s ${outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam -b ${outs}/${library}/cellbender/output_cell_barcodes.csv -O ${outs}/${library}/vireo -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores
-apptainer run -B /fast ${container} vireo -c ${outs}/${library}/vireo -o ${outs}/${library}/vireo -N $n_donors -p \$num_cores
+apptainer exec -B /data ${container} cellsnp-lite -s ${outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam -b ${outs}/${library}/cellbender/output_cell_barcodes.csv -O ${outs}/${library}/vireo -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores
+apptainer run -B /data ${container} vireo -c ${outs}/${library}/vireo -o ${outs}/${library}/vireo -N $n_donors -p \$num_cores
 EOF
                 job_id=""
             fi
@@ -231,14 +231,14 @@ sbatch <<EOF
 #SBATCH --job-name ${experiment_id}_QC
 #SBATCH --output $outs/logs/${library}_genotyping.out
 #SBATCH --error $outs/logs/${library}_genotyping.out
-#SBATCH --ntasks=32
+#SBATCH --ntasks=16
 #SBATCH --mem=96000
-#SBATCH --time=12:00:00
+#SBATCH --time=48:00:00
 num_cores=\$(nproc)
 cd ${outs}/${library}
 echo "Starting mgatk mtDNA genotyping"
 echo ""
-apptainer exec -B /fast,/usr ${container} mgatk tenx -i ${outs}/${library}/outs/possorted_bam.bam -n output -o ${outs}/${library}/mgatk -c 8 -bt CB -b ${outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv
+apptainer exec -B /data,/usr ${container} mgatk tenx -i ${outs}/${library}/outs/possorted_bam.bam -n output -o ${outs}/${library}/mgatk -c 1 -bt CB -b ${outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv
 rm -r ${outs}/${library}/.snakemake
 echo ""
 echo "Starting AMULET doublet detection"
@@ -270,20 +270,20 @@ sbatch <<EOF
 #SBATCH --job-name ${experiment_id}_QC
 #SBATCH --output $outs/logs/${library}_genotyping.out
 #SBATCH --error $outs/logs/${library}_genotyping.out
-#SBATCH --ntasks=32
+#SBATCH --ntasks=16
 #SBATCH --mem=96000
-#SBATCH --time=12:00:00
+#SBATCH --time=48:00:00
 num_cores=\$(nproc)
 cd ${outs}/${library}
 echo "Starting mgatk mtDNA genotyping"
 echo ""
-apptainer exec -B /fast,/usr ${container} mgatk tenx -i ${outs}/${library}/outs/possorted_bam.bam -n output -o ${outs}/${library}/mgatk -c 8 -bt CB -b ${outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv
+apptainer exec -B /data,/usr ${container} mgatk tenx -i ${outs}/${library}/outs/possorted_bam.bam -n output -o ${outs}/${library}/mgatk -c 1 -bt CB -b ${outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv
 rm -r ${outs}/${library}/.snakemake
 echo ""
 echo "Starting AMULET doublet detection"
 echo ""
 mkdir -p ${outs}/${library}/AMULET
-apptainer run -B /fast ${container} AMULET ${outs}/${library}/outs/fragments.tsv.gz ${outs}/${library}/outs/singlecell.csv /opt/AMULET/human_autosomes.txt /opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed ${outs}/${library}/AMULET /opt/AMULET/
+apptainer run -B /data ${container} AMULET ${outs}/${library}/outs/fragments.tsv.gz ${outs}/${library}/outs/singlecell.csv /opt/AMULET/human_autosomes.txt /opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed ${outs}/${library}/AMULET /opt/AMULET/
 echo ""
 EOF
             fi
