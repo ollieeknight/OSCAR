@@ -147,9 +147,9 @@ for project_id in "${project_ids[@]}"; do
     echo -e "\033[34mINFO:\033[0m ${project_id} is an ${run_type} run, processing appropriately"
 
     # Iterate through each line in metadata.csv
-    while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file; do
+    while IFS= read -r line; do
         # Skip the header line
-        if [[ ${assay} == "assay" ]]; then
+        if [[ ${line} == assay* ]]; then
             continue
         fi
 
@@ -157,6 +157,18 @@ for project_id in "${project_ids[@]}"; do
         echo "-------------"
         echo ""
 
+        # Split the line into fields
+        IFS=',' read -r -a fields <<< "${line}"
+
+        # Assign field values to variables
+        assay="${fields[0]}"
+        experiment_id="${fields[1]}"
+        historical_number="${fields[2]}"
+        replicate="${fields[3]}"
+        modality="${fields[4]}"
+        chemistry="${fields[5]}"
+        species="${fields[8]}"
+        adt_file="${fields[10]}"
         library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
 
         # Determine the full-length modality name based on its shortened name
@@ -171,8 +183,6 @@ for project_id in "${project_ids[@]}"; do
         elif [ "${modality}" = "CRISPR" ]; then
             full_modality='CRISPR Guide Capture'
         fi
-
-        echo "Adding ${full_modality} for ${library}"
 
         # Define the library_output path
         library_output=${output_project_libraries}/${library}.csv
@@ -189,7 +199,6 @@ for project_id in "${project_ids[@]}"; do
                         echo "[gene-expression]" >> "${library_output}"
                         echo "reference,/fast/work/groups/ag_romagnani/ref/hs/GRCh38-hardmasked-optimised-arc" >> "${library_output}"
 #                       echo "probe-set,/fast/work/groups/ag_romagnani/ref/hs/frp-probes/Chromium_Human_Transcriptome_Probe_Set_v1.0.1_GRCh38-2020-A.csv" >> "${library_output}"
-                        echo "create-bam,true" >> "${library_output}"
                         # Add options if there are gene expression-specific options specified by --gene-expression-options
                         if [ -n "${gene_expression_options}" ] && [ "${gene_expression_options}" != "NA" ]; then
                                 IFS=';' read -ra values <<< "${gene_expression_options}"
@@ -216,7 +225,6 @@ for project_id in "${project_ids[@]}"; do
                         echo "[gene-expression]" >> "${library_output}"
                         echo "reference,/fast/work/groups/ag_romagnani/ref/mm/GRCm38-hardmasked-optimised-arc" >> "${library_output}"
 #                       echo "probe-set,/fast/work/groups/ag_romagnani/ref/mm/frp-probes/Chromium_Mouse_Transcriptome_Probe_Set_v1.0.1_mm10-2020-A.csv" >> "${library_output}"
-                        echo "create-bam,true" >> "${library_output}"
                         # Add options if there are gene expression-specific options specified by --gene-expression-options
                             if [ -n "${gene_expression_options}" ] && [ "${gene_expression_options}" != "NA" ]; then
                                 IFS=';' read -ra values <<< "${gene_expression_options}"
@@ -230,7 +238,7 @@ for project_id in "${project_ids[@]}"; do
                         fi
                         echo "" >> "${library_output}"
                         echo "[vdj]" >> "${library_output}"
-                        echo "reference,/fast/work/groups/ag_romagnani/ref/mm/GRCm38-IMGT-VDJ-2024" >> "${library_output}"
+                        echo "reference,/fast/work/groups/ag_romagnani/ref/mm/refdata-cellranger-vdj-GRCm38-alts-ensembl-7.0.0" >> "${library_output}"
                         # Add options if there are VDJ-specific options specified by --vdj-options
                         if [ -n "${vdj_options}" ] && [ "${vdj_options}" != "NA" ]; then
                             IFS=',' read -ra values <<< "${vdj_options}"
@@ -270,7 +278,6 @@ for project_id in "${project_ids[@]}"; do
             # Recursively search for FASTQ files in the project_id FASTQ folder
             for folder in "${project_dir}/${project_id}_fastq"/*/outs; do
                 matching_fastq_files=($(find "${folder}" -type f -name "${library}*${modality}*" | sort -u))
-                echo $matching_fastq_files
                 for fastq_file in "${matching_fastq_files[@]}"; do
                     # Extract the directory containing the FASTQ file
                     directory=$(dirname "${fastq_file}")

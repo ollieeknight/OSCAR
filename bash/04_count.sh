@@ -383,12 +383,12 @@ EOF
 #SBATCH --job-name ${library}
 #SBATCH --output $outs/logs/${library}_counting.out
 #SBATCH --error $outs/logs/${library}_counting.out
-#SBATCH --ntasks=32
+#SBATCH --ntasks=64
 #SBATCH --mem=96000
-#SBATCH --time=48:00:00
+#SBATCH --time=96:00:00
 num_cores=\$(nproc)
 cd $outs
-apptainer run -B /data $container cellranger multi --id "$library" --csv "${library_folder}/${library}.csv" --localcores \$num_cores
+apptainer run -B /fast,/data "$container" cellranger multi --id "${library}" --csv "${library_folder}/${library}.csv" --localcores "\$num_cores"
 rm -r $outs/$library/SC_MULTI_CS $outs/$library/_*
 EOF
         fi
