@@ -187,8 +187,8 @@ for project_id in "${project_ids[@]}"; do
                     if [[ "${species}" =~ ^(Human|human|Hs|hs)$ ]]; then
                         echo "Writing human reference files for ${library}"
                         echo "[gene-expression]" >> "${library_output}"
-                        echo "reference,/fast/work/groups/ag_romagnani/ref/hs/GRCh38-hardmasked-optimised-arc" >> "${library_output}"
-#                       echo "probe-set,/fast/work/groups/ag_romagnani/ref/hs/frp-probes/Chromium_Human_Transcriptome_Probe_Set_v1.0.1_GRCh38-2020-A.csv" >> "${library_output}"
+                        echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/hs/GRCh38-hardmasked-optimised-arc" >> "${library_output}"
+#                       echo "probe-set,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/hs/frp-probes/Chromium_Human_Transcriptome_Probe_Set_v1.0.1_GRCh38-2020-A.csv" >> "${library_output}"
                         echo "create-bam,true" >> "${library_output}"
                         # Add options if there are gene expression-specific options specified by --gene-expression-options
                         if [ -n "${gene_expression_options}" ] && [ "${gene_expression_options}" != "NA" ]; then
@@ -203,7 +203,7 @@ for project_id in "${project_ids[@]}"; do
                         fi
                         echo "" >> "${library_output}"
                         echo "[vdj]" >> "${library_output}"
-                        echo "reference,/fast/work/groups/ag_romagnani/ref/hs/refdata-cellranger-vdj-GRCh38-alts-ensembl-7.1.0" >> "${library_output}"
+                        echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/hs/GRCh38-IMGT-VDJ-2024" >> "${library_output}"
                         # Add options if there are VDJ-specific options specified by --vdj-options
                         if [ "${vdj_options}" != "NA" ]; then
                             IFS=',' read -ra values <<< "${vdj_options}"
@@ -214,8 +214,8 @@ for project_id in "${project_ids[@]}"; do
                     # Is it a mouse run?
                     elif [[ "${species}" =~ ^(Mouse|mouse|Mm|mm)$ ]]; then
                         echo "[gene-expression]" >> "${library_output}"
-                        echo "reference,/fast/work/groups/ag_romagnani/ref/mm/GRCm38-hardmasked-optimised-arc" >> "${library_output}"
-#                       echo "probe-set,/fast/work/groups/ag_romagnani/ref/mm/frp-probes/Chromium_Mouse_Transcriptome_Probe_Set_v1.0.1_mm10-2020-A.csv" >> "${library_output}"
+                        echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/mm/GRCm38-hardmasked-optimised-arc" >> "${library_output}"
+#                       echo "probe-set,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/mm/frp-probes/Chromium_Mouse_Transcriptome_Probe_Set_v1.0.1_mm10-2020-A.csv" >> "${library_output}"
                         echo "create-bam,true" >> "${library_output}"
                         # Add options if there are gene expression-specific options specified by --gene-expression-options
                             if [ -n "${gene_expression_options}" ] && [ "${gene_expression_options}" != "NA" ]; then
@@ -230,7 +230,7 @@ for project_id in "${project_ids[@]}"; do
                         fi
                         echo "" >> "${library_output}"
                         echo "[vdj]" >> "${library_output}"
-                        echo "reference,/fast/work/groups/ag_romagnani/ref/mm/GRCm38-IMGT-VDJ-2024" >> "${library_output}"
+                        echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/mm/GRCm38-IMGT-VDJ-2024" >> "${library_output}"
                         # Add options if there are VDJ-specific options specified by --vdj-options
                         if [ -n "${vdj_options}" ] && [ "${vdj_options}" != "NA" ]; then
                             IFS=',' read -ra values <<< "${vdj_options}"

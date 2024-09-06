@@ -182,7 +182,7 @@ sbatch --dependency=afterok:$job_id <<EOF
 num_cores=\$(nproc)
 cd ${outs}/${library}
 mkdir -p ${outs}/${library}/vireo
-apptainer run -B /data,/fast ${container} cellsnp-lite -s ${outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam -b ${outs}/${library}/cellbender/output_cell_barcodes.csv -O ${outs}/${library}/vireo -R /fast/work/groups/ag_romagnani/ref/vireo/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores
+apptainer run -B /data,/fast ${container} cellsnp-lite -s ${outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam -b ${outs}/${library}/cellbender/output_cell_barcodes.csv -O ${outs}/${library}/vireo -R /data/cephfs-2/unmirrored/groups/romagnani/work/ref/vireo/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores
 apptainer run -B /data,/fast ${container} vireo -c ${outs}/${library}/vireo -o ${outs}/${library}/vireo -N $n_donors -p \$num_cores
 EOF
                 job_id=""
@@ -206,7 +206,7 @@ sbatch <<EOF
 num_cores=\$(nproc)
 cd ${outs}/${library}
 mkdir -p ${outs}/${library}/vireo
-apptainer run -B /data,/fast ${container} cellsnp-lite -s ${outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam -b ${outs}/${library}/cellbender/output_cell_barcodes.csv -O ${outs}/${library}/vireo -R /fast/work/groups/ag_romagnani/ref/vireo/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores
+apptainer run -B /data,/fast ${container} cellsnp-lite -s ${outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam -b ${outs}/${library}/cellbender/output_cell_barcodes.csv -O ${outs}/${library}/vireo -R /data/cephfs-2/unmirrored/groups/romagnani/work/ref/vireo/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores
 apptainer run -B /data,/fast ${container} vireo -c ${outs}/${library}/vireo -o ${outs}/${library}/vireo -N $n_donors -p \$num_cores
 EOF
                 job_id=""
@@ -249,7 +249,7 @@ echo ""
 echo "Starting donor SNP genotyping"
 echo ""
 mkdir -p ${outs}/${library}/vireo
-apptainer run -B /fast,/data ${container} cellsnp-lite -s ${outs}/${library}/outs/possorted_bam.bam -b ${outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv -O ${outs}/${library}/vireo -R /fast/work/groups/ag_romagnani/ref/vireo/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores --UMItag None
+apptainer run -B /fast,/data ${container} cellsnp-lite -s ${outs}/${library}/outs/possorted_bam.bam -b ${outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv -O ${outs}/${library}/vireo -R /data/cephfs-2/unmirrored/groups/romagnani/work/ref/vireo/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores --UMItag None
 echo ""
 echo "Demultiplexing donors with vireo"
 echo ""
