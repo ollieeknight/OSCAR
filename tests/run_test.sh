@@ -44,10 +44,10 @@ fi
 cd test_run
 echo "Running cellranger mkfastq"
 echo ""
-apptainer run -B /fast ../oscar-count_latest.sif cellranger mkfastq --id test_run_fastq --run test_run_bcl/ --csv test_run_scripts/indices/test_run.csv &> mkfastq.log
+apptainer run -B /data ../oscar-count_latest.sif cellranger mkfastq --id test_run_fastq --run test_run_bcl/ --csv test_run_scripts/indices/test_run.csv &> mkfastq.log
 echo "Running cellranger count"
 echo ""
-apptainer run -B /fast ../oscar-count_latest.sif cellranger count --id test_run_sample --fastqs test_run_fastq/outs/fastq_path/H35KCBCXY/ --sample test_sample --localcores $num_cores --transcriptome $reference --chemistry SC3Pv3 --no-bam &> count.log
+apptainer run -B /data ../oscar-count_latest.sif cellranger count --id test_run_sample --fastqs test_run_fastq/outs/fastq_path/H35KCBCXY/ --sample test_sample --localcores $num_cores --transcriptome $reference --chemistry SC3Pv3 --no-bam &> count.log
 
 if [ ! -f "test_run_sample/outs/" ]; then
 	echo "Sucess! Shutting down"
