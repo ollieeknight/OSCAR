@@ -147,9 +147,9 @@ for project_id in "${project_ids[@]}"; do
     echo -e "\033[34mINFO:\033[0m ${project_id} is an ${run_type} run, processing appropriately"
 
     # Iterate through each line in metadata.csv
-    while IFS= read -r line; do
+    while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file; do
         # Skip the header line
-        if [[ ${line} == assay* ]]; then
+        if [[ ${assay} == "assay" ]]; then
             continue
         fi
 
@@ -157,8 +157,7 @@ for project_id in "${project_ids[@]}"; do
         echo "-------------"
         echo ""
 
-        # Split the line into fields
-        while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file; do
+        library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
 
         # Determine the full-length modality name based on its shortened name
         if [ "${modality}" = "GEX" ]; then
@@ -171,7 +170,11 @@ for project_id in "${project_ids[@]}"; do
             full_modality='VDJ-B'
         elif [ "${modality}" = "CRISPR" ]; then
             full_modality='CRISPR Guide Capture'
+        elif [ "${modality}" = "GENO" ]; then
+            continue
         fi
+
+        echo "Adding ${full_modality} for ${library}"
 
         # Define the library_output path
         library_output=${output_project_libraries}/${library}.csv
@@ -186,8 +189,9 @@ for project_id in "${project_ids[@]}"; do
                     if [[ "${species}" =~ ^(Human|human|Hs|hs)$ ]]; then
                         echo "Writing human reference files for ${library}"
                         echo "[gene-expression]" >> "${library_output}"
-                        echo "reference,/fast/work/groups/ag_romagnani/ref/hs/GRCh38-hardmasked-optimised-arc" >> "${library_output}"
-#                       echo "probe-set,/fast/work/groups/ag_romagnani/ref/hs/frp-probes/Chromium_Human_Transcriptome_Probe_Set_v1.0.1_GRCh38-2020-A.csv" >> "${library_output}"
+                        echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/hs/GRCh38-hardmasked-optimised-arc" >> "${library_output}"
+#                       echo "probe-set,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/hs/frp-probes/Chromium_Human_Transcriptome_Probe_Set_v1.0.1_GRCh38-2020-A.csv" >> "${library_output}"
+                        echo "create-bam,true" >> "${library_output}"
                         # Add options if there are gene expression-specific options specified by --gene-expression-options
                         if [ -n "${gene_expression_options}" ] && [ "${gene_expression_options}" != "NA" ]; then
                                 IFS=';' read -ra values <<< "${gene_expression_options}"
@@ -201,7 +205,7 @@ for project_id in "${project_ids[@]}"; do
                         fi
                         echo "" >> "${library_output}"
                         echo "[vdj]" >> "${library_output}"
-                        echo "reference,/fast/work/groups/ag_romagnani/ref/hs/refdata-cellranger-vdj-GRCh38-alts-ensembl-7.1.0" >> "${library_output}"
+                        echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/hs/GRCh38-IMGT-VDJ-2024" >> "${library_output}"
                         # Add options if there are VDJ-specific options specified by --vdj-options
                         if [ "${vdj_options}" != "NA" ]; then
                             IFS=',' read -ra values <<< "${vdj_options}"
@@ -212,8 +216,9 @@ for project_id in "${project_ids[@]}"; do
                     # Is it a mouse run?
                     elif [[ "${species}" =~ ^(Mouse|mouse|Mm|mm)$ ]]; then
                         echo "[gene-expression]" >> "${library_output}"
-                        echo "reference,/fast/work/groups/ag_romagnani/ref/mm/GRCm38-hardmasked-optimised-arc" >> "${library_output}"
-#                       echo "probe-set,/fast/work/groups/ag_romagnani/ref/mm/frp-probes/Chromium_Mouse_Transcriptome_Probe_Set_v1.0.1_mm10-2020-A.csv" >> "${library_output}"
+                        echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/mm/GRCm38-hardmasked-optimised-arc" >> "${library_output}"
+#                       echo "probe-set,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/mm/frp-probes/Chromium_Mouse_Transcriptome_Probe_Set_v1.0.1_mm10-2020-A.csv" >> "${library_output}"
+                        echo "create-bam,true" >> "${library_output}"
                         # Add options if there are gene expression-specific options specified by --gene-expression-options
                             if [ -n "${gene_expression_options}" ] && [ "${gene_expression_options}" != "NA" ]; then
                                 IFS=';' read -ra values <<< "${gene_expression_options}"
@@ -227,7 +232,7 @@ for project_id in "${project_ids[@]}"; do
                         fi
                         echo "" >> "${library_output}"
                         echo "[vdj]" >> "${library_output}"
-                        echo "reference,/fast/work/groups/ag_romagnani/ref/mm/refdata-cellranger-vdj-GRCm38-alts-ensembl-7.0.0" >> "${library_output}"
+                        echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/mm/GRCm38-IMGT-VDJ-2024" >> "${library_output}"
                         # Add options if there are VDJ-specific options specified by --vdj-options
                         if [ -n "${vdj_options}" ] && [ "${vdj_options}" != "NA" ]; then
                             IFS=',' read -ra values <<< "${vdj_options}"
@@ -267,6 +272,7 @@ for project_id in "${project_ids[@]}"; do
             # Recursively search for FASTQ files in the project_id FASTQ folder
             for folder in "${project_dir}/${project_id}_fastq"/*/outs; do
                 matching_fastq_files=($(find "${folder}" -type f -name "${library}*${modality}*" | sort -u))
+                echo $matching_fastq_files
                 for fastq_file in "${matching_fastq_files[@]}"; do
                     # Extract the directory containing the FASTQ file
                     directory=$(dirname "${fastq_file}")

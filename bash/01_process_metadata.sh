@@ -87,13 +87,13 @@ while IFS=',' read -r assay experiment_id historical_number replicate modality c
     # Check if the csv file already exists
     if [ ! -f "${output_file}" ]; then
         # If the file doesn't exist, create it and add the header and sample
-        echo "Output file ${output_file} does not exist, creating csv and appending ${assay}_${experimental_id}_exp${historical_number}_lib${replicate}_${modality}"
+        echo "Output file ${output_file} does not exist, creating csv and appending ${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${modality}"
         echo "lane,sample,index" > "${output_file}"
-        echo "*,${assay}_${experimental_id}_exp${historical_number}_lib${replicate}_${modality},${index}" >> "${output_file}"
+        echo "*,${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${modality},${index}" >> "${output_file}"
     else
         # If the file exists, just add sample
-        echo "Output file ${output_file} already exists, appending appending ${assay}_${experimental_id}_exp${historical_number}_lib${replicate}_${modality}"
-        echo "*,${assay}_${experimental_id}_exp${historical_number}_lib${replicate}_${modality},${index}" >> "$output_file"
+        echo "Output file ${output_file} already exists, appending appending ${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${modality}"
+        echo "*,${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${modality},${index}" >> "$output_file"
     fi
 done < "${metadata_file}"
 

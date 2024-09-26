@@ -100,8 +100,10 @@ elif [[ ${reads} == 4 ]]; then
         base_mask_DOGMA_GEX='Y28n*,I10n*,I10n*,Y90n*'
         base_mask_DOGMA_ATAC='Y100n*,I8n*,Y24n*,Y100n*'
         base_mask_DOGMA_ADT='Y28n*,I8n*,N*,Y90n*'
+        base_mask_ATAC_ATAC='Y100n*,I8n*,Y16n*,Y100n*'
         base_mask_ASAP_ATAC='Y100n*,I8n*,Y16n*,Y100n*'
         base_mask_ASAP_ADT='Y100n*,I8n*,Y16n*,Y100n*'
+        base_mask_ASAP_GENO='Y100n*,I8n*,Y16n*,Y100n*'
 else
     echo -e "\033[0;31mERROR:\033[0m Cannot determine number of reads, check RunInfo.xml file"
         exit 1
@@ -190,6 +192,14 @@ for file in "${index_files[@]}"; do
             base_mask=$base_mask_ASAP_ATAC
         elif [[ ${file} == *_ADT* ]] || [[ ${file} == *_HTO* ]]; then
             base_mask=$base_mask_ASAP_ADT
+        elif [[ ${file} == *_GENO* ]]; then
+            base_mask=$base_mask_ASAP_GENO
+        fi
+    elif [[ ${file} == ATAC* ]]; then                                                                                           cellranger_command='cellranger-atac mkfastq'
+        index_type='DI'
+        filter_option='--filter-dual-index'
+        if [[ ${file} == *_ATAC ]]; then
+            base_mask=$base_mask_ASAP_ATAC
         fi
     else
         echo -e "\033[0;31mERROR:\033[0m Cannot determine base mask for ${index_file}, please check path"
@@ -222,10 +232,10 @@ cd ${project_fastq}
 echo ""
 echo "${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}"
 echo ""
-apptainer run -B /data ${container} ${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}
+apptainer run -B /data,/fast ${container} ${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}
 mkdir -p ${project_fastq}/${index_file}/fastqc
-find "${index_file}/outs/fastq_path/H"* -name "*.fastq.gz" | parallel -j 16 "apptainer run -B /fast ${container} fastqc {} --outdir ${index_file}/fastqc"
-apptainer run -B /data ${container} multiqc "${project_fastq}/${index_file}" -o "${project_fastq}/${index_file}/multiqc"
+find "${index_file}/outs/fastq_path/H"* -name "*.fastq.gz" | parallel -j 16 "apptainer run -B /fast,/data ${container} fastqc {} --outdir ${index_file}/fastqc"
+apptainer run -B /data,/fastq ${container} multiqc "${project_fastq}/${index_file}" -o "${project_fastq}/${index_file}/multiqc"
 rm -r ${project_fastq}/${index_file}/_* ${project_fastq}/${index_file}/MAKE*
 EOF
     elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then

@@ -20,9 +20,9 @@ if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
 
     cd ..
 
-    echo "apptainer build oscar-count.sif apptainer/recipe_oscar-count.sif"
+    echo "apptainer build oscar-count.sif apptainer/recipe_oscar_count.sif"
 
-    apptainer build apptainer/oscar-count.sif apptainer/recipe_oscar-count.sif
+    apptainer build apptainer/oscar-count.sif apptainer/recipe_oscar_count.sif
 
     echo ""
 
@@ -47,9 +47,9 @@ if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
 
     echo ""
 
-    echo "apptainer build oscar-qc.sif apptainer/recipe_oscar-qc.sif"
+    echo "apptainer build oscar-qc.sif apptainer/recipe_oscar_qc.sif"
 
-    apptainer build apptainer/oscar-qc.sif apptainer/recipe_oscar-qc.sif
+    apptainer build apptainer/oscar-qc.sif apptainer/recipe_oscar_qc.sif
 
     cd apptainer
 
