@@ -100,8 +100,10 @@ elif [[ ${reads} == 4 ]]; then
         base_mask_DOGMA_GEX='Y28n*,I10n*,I10n*,Y90n*'
         base_mask_DOGMA_ATAC='Y100n*,I8n*,Y24n*,Y100n*'
         base_mask_DOGMA_ADT='Y28n*,I8n*,N*,Y90n*'
+        base_mask_ATAC_ATAC='Y100n*,I8n*,Y16n*,Y100n*'
         base_mask_ASAP_ATAC='Y100n*,I8n*,Y16n*,Y100n*'
         base_mask_ASAP_ADT='Y100n*,I8n*,Y16n*,Y100n*'
+        base_mask_ASAP_GENO='Y100n*,I8n*,Y16n*,Y100n*'
 else
     echo -e "\033[0;31mERROR:\033[0m Cannot determine number of reads, check RunInfo.xml file"
         exit 1
@@ -190,6 +192,14 @@ for file in "${index_files[@]}"; do
             base_mask=$base_mask_ASAP_ATAC
         elif [[ ${file} == *_ADT* ]] || [[ ${file} == *_HTO* ]]; then
             base_mask=$base_mask_ASAP_ADT
+        elif [[ ${file} == *_GENO* ]]; then
+            base_mask=$base_mask_ASAP_GENO
+        fi
+    elif [[ ${file} == ATAC* ]]; then                                                                                           cellranger_command='cellranger-atac mkfastq'
+        index_type='DI'
+        filter_option='--filter-dual-index'
+        if [[ ${file} == *_ATAC ]]; then
+            base_mask=$base_mask_ASAP_ATAC
         fi
     else
         echo -e "\033[0;31mERROR:\033[0m Cannot determine base mask for ${index_file}, please check path"

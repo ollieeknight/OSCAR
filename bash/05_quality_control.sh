@@ -182,8 +182,8 @@ sbatch --dependency=afterok:$job_id <<EOF
 num_cores=\$(nproc)
 cd ${outs}/${library}
 mkdir -p ${outs}/${library}/vireo
-apptainer run -B /data,/fast ${container} cellsnp-lite -s ${outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam -b ${outs}/${library}/cellbender/output_cell_barcodes.csv -O ${outs}/${library}/vireo -R /data/cephfs-2/unmirrored/groups/romagnani/work/ref/vireo/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores
-apptainer run -B /data,/fast ${container} vireo -c ${outs}/${library}/vireo -o ${outs}/${library}/vireo -N $n_donors -p \$num_cores
+apptainer run -B /data ${container} cellsnp-lite -s ${outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam -b ${outs}/${library}/cellbender/output_cell_barcodes.csv -O ${outs}/${library}/vireo -R /data/cephfs-2/unmirrored/groups/romagnani/work/ref/vireo/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores
+apptainer run -B /data ${container} vireo -c ${outs}/${library}/vireo -o ${outs}/${library}/vireo -N $n_donors -p \$num_cores
 EOF
                 job_id=""
             fi
@@ -206,8 +206,8 @@ sbatch <<EOF
 num_cores=\$(nproc)
 cd ${outs}/${library}
 mkdir -p ${outs}/${library}/vireo
-apptainer run -B /data,/fast ${container} cellsnp-lite -s ${outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam -b ${outs}/${library}/cellbender/output_cell_barcodes.csv -O ${outs}/${library}/vireo -R /data/cephfs-2/unmirrored/groups/romagnani/work/ref/vireo/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores
-apptainer run -B /data,/fast ${container} vireo -c ${outs}/${library}/vireo -o ${outs}/${library}/vireo -N $n_donors -p \$num_cores
+apptainer run -B /data ${container} cellsnp-lite -s ${outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam -b ${outs}/${library}/cellbender/output_cell_barcodes.csv -O ${outs}/${library}/vireo -R /data/cephfs-2/unmirrored/groups/romagnani/work/ref/vireo/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores
+apptainer run -B /data ${container} vireo -c ${outs}/${library}/vireo -o ${outs}/${library}/vireo -N $n_donors -p \$num_cores
 EOF
                 job_id=""
             fi
@@ -232,28 +232,28 @@ sbatch <<EOF
 #SBATCH --output $outs/logs/${library}_genotyping.out
 #SBATCH --error $outs/logs/${library}_genotyping.out
 #SBATCH --ntasks=16
-#SBATCH --mem=32000
+#SBATCH --mem=128000
 #SBATCH --time=96:00:00
 num_cores=\$(nproc)
 cd ${outs}/${library}
 echo "Starting mgatk mtDNA genotyping"
 echo ""
-apptainer exec -B /fast,/data,/usr ${container} mgatk tenx -i ${outs}/${library}/outs/possorted_bam.bam -n output -o ${outs}/${library}/mgatk -c 1 -bt CB -b ${outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv
+apptainer exec -B /data,/usr ${container} mgatk tenx -i ${outs}/${library}/outs/possorted_bam.bam -n output -o ${outs}/${library}/mgatk -c 8 -bt CB -b ${outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv --skip-R
 rm -r ${outs}/${library}/.snakemake
 echo ""
 echo "Starting AMULET doublet detection"
 echo ""
 mkdir -p ${outs}/${library}/AMULET
-apptainer run -B /fast,/data ${container} AMULET ${outs}/${library}/outs/fragments.tsv.gz ${outs}/${library}/outs/singlecell.csv /opt/AMULET/human_autosomes.txt /opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed ${outs}/${library}/AMULET /opt/AMULET/
+apptainer run -B /data ${container} AMULET ${outs}/${library}/outs/fragments.tsv.gz ${outs}/${library}/outs/singlecell.csv /opt/AMULET/human_autosomes.txt /opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed ${outs}/${library}/AMULET /opt/AMULET/
 echo ""
 echo "Starting donor SNP genotyping"
 echo ""
 mkdir -p ${outs}/${library}/vireo
-apptainer run -B /fast,/data ${container} cellsnp-lite -s ${outs}/${library}/outs/possorted_bam.bam -b ${outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv -O ${outs}/${library}/vireo -R /data/cephfs-2/unmirrored/groups/romagnani/work/ref/vireo/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores --UMItag None
+apptainer run -B /data ${container} cellsnp-lite -s ${outs}/${library}/outs/possorted_bam.bam -b ${outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv -O ${outs}/${library}/vireo -R /data/cephfs-2/unmirrored/groups/romagnani/work/ref/vireo/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz --minMAF 0.1 --minCOUNT 20 --gzip -p \$num_cores --UMItag None
 echo ""
 echo "Demultiplexing donors with vireo"
 echo ""
-apptainer run -B /fast ${container} vireo -c ${outs}/${library}/vireo -o ${outs}/${library}/vireo -N $n_donors -p \$num_cores
+apptainer run -B /data ${container} vireo -c ${outs}/${library}/vireo -o ${outs}/${library}/vireo -N $n_donors -p \$num_cores
 EOF
             fi
         elif [[ "$n_donors" == '0' || "$n_donors" == '1' || "$n_donors" == 'NA' ]]; then
@@ -277,7 +277,7 @@ num_cores=\$(nproc)
 cd ${outs}/${library}
 echo "Starting mgatk mtDNA genotyping"
 echo ""
-apptainer exec -B /data,/usr ${container} mgatk tenx -i ${outs}/${library}/outs/possorted_bam.bam -n output -o ${outs}/${library}/mgatk -c 1 -bt CB -b ${outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv
+apptainer exec -B /data,/usr ${container} mgatk tenx -i ${outs}/${library}/outs/possorted_bam.bam -n output -o ${outs}/${library}/mgatk -c 8 -bt CB -b ${outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv --skip-R
 rm -r ${outs}/${library}/.snakemake
 echo ""
 echo "Starting AMULET doublet detection"

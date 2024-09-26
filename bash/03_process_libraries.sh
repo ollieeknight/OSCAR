@@ -170,6 +170,8 @@ for project_id in "${project_ids[@]}"; do
             full_modality='VDJ-B'
         elif [ "${modality}" = "CRISPR" ]; then
             full_modality='CRISPR Guide Capture'
+        elif [ "${modality}" = "GENO" ]; then
+            continue
         fi
 
         echo "Adding ${full_modality} for ${library}"
