@@ -1,7 +1,7 @@
 #!/bin/bash/
 
 if [[ ! -f ../cellranger-8.0.0.tar.gz && ! -f ../cellranger-atac-2.1.0.tar.gz ]]; then
-    echo "First, you need to download cellranger-8.0.0.tar.gz AND cellranger-atac-2.1.0.tar.gz ABOVE this folder, then come back."
+    echo "First, you need to download cellranger-8.0.0.tar.gz, cellranger-atac-2.1.0.tar.gz into this folder, then come back."
     echo "You can download them from here:"
     echo "https://www.10xgenomics.com/support/software/cell-ranger/downloads"
     echo "https://support.10xgenomics.com/single-cell-atac/software/downloads/latest"
@@ -18,15 +18,11 @@ done
 # Process choices
 if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
 
-    cd ..
+    echo "apptainer build oscar-count.sif recipe_oscar_count.sif"
 
-    echo "apptainer build oscar-count.sif apptainer/recipe_oscar_count.sif"
-
-    apptainer build apptainer/oscar-count.sif apptainer/recipe_oscar_count.sif
+    apptainer build oscar-count.sif recipe_oscar_count.sif
 
     echo ""
-
-    cd apptainer
 
 elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
     :
@@ -43,15 +39,11 @@ done
 # Process choices
 if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
 
-    cd ..
-
     echo ""
 
-    echo "apptainer build oscar-qc.sif apptainer/recipe_oscar_qc.sif"
+    echo "apptainer build oscar-qc.sif recipe_oscar_qc.sif"
 
-    apptainer build apptainer/oscar-qc.sif apptainer/recipe_oscar_qc.sif
-
-    cd apptainer
+    apptainer build oscar-qc.sif recipe_oscar_qc.sif
 
 elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
     :
