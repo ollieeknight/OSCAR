@@ -7,31 +7,60 @@
     <style>
         body { font-family: Arial, sans-serif; }
         input { margin: 5px; }
+        .row { margin-bottom: 10px; }
     </style>
 </head>
 <body>
     <h1>CSV Generator</h1>
     <form id="csvForm">
-        <input type="text" placeholder="Header 1" name="header1" required>
-        <input type="text" placeholder="Header 2" name="header2" required>
-        <input type="text" placeholder="Header 3" name="header3" required>
-        <input type="text" placeholder="Header 4" name="header4" required>
-        <input type="text" placeholder="Header 5" name="header5" required>
-        <input type="text" placeholder="Header 6" name="header6" required>
-        <input type="text" placeholder="Header 7" name="header7" required>
-        <input type="text" placeholder="Header 8" name="header8" required>
-        <input type="text" placeholder="Header 9" name="header9" required>
+        <div id="rowsContainer">
+            <div class="row">
+                <input type="text" placeholder="Assay" name="assay" required>
+                <input type="text" placeholder="Experiment ID" name="experiment_id" required>
+                <input type="text" placeholder="Historical Number" name="historical_number" required>
+                <input type="text" placeholder="Replicate" name="replicate" required>
+                <input type="text" placeholder="Modality" name="modality" required>
+                <input type="text" placeholder="Chemistry" name="chemistry" required>
+                <input type="text" placeholder="Index Type" name="index_type" required>
+                <input type="text" placeholder="Index" name="index" required>
+                <input type="text" placeholder="Species" name="species" required>
+                <input type="text" placeholder="Number of Donors" name="n_donors" required>
+                <input type="text" placeholder="ADT File" name="adt_file" required>
+            </div>
+        </div>
+        <button type="button" onclick="addRow()">Add Row</button>
         <button type="button" onclick="generateCSV()">Generate CSV</button>
     </form>
     
     <script>
+        function addRow() {
+            const container = document.getElementById('rowsContainer');
+            const newRow = document.createElement('div');
+            newRow.className = 'row';
+            newRow.innerHTML = `
+                <input type="text" placeholder="Assay" name="assay" required>
+                <input type="text" placeholder="Experiment ID" name="experiment_id" required>
+                <input type="text" placeholder="Historical Number" name="historical_number" required>
+                <input type="text" placeholder="Replicate" name="replicate" required>
+                <input type="text" placeholder="Modality" name="modality" required>
+                <input type="text" placeholder="Chemistry" name="chemistry" required>
+                <input type="text" placeholder="Index Type" name="index_type" required>
+                <input type="text" placeholder="Index" name="index" required>
+                <input type="text" placeholder="Species" name="species" required>
+                <input type="text" placeholder="Number of Donors" name="n_donors" required>
+                <input type="text" placeholder="ADT File" name="adt_file" required>
+            `;
+            container.appendChild(newRow);
+        }
+
         function generateCSV() {
-            const form = document.getElementById('csvForm');
-            const headers = Array.from(form.elements)
-                .filter(input => input.name.startsWith('header'))
-                .map(input => input.value);
-            const csvContent = headers.join(',') + '\n'; // Add your row logic here
-            
+            const rows = document.querySelectorAll('.row');
+            let csvContent = 'assay,experiment_id,historical_number,replicate,modality,chemistry,index_type,index,species,n_donors,adt_file\n';
+            rows.forEach(row => {
+                const values = Array.from(row.querySelectorAll('input')).map(input => input.value);
+                csvContent += values.join(',') + '\n';
+            });
+
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
