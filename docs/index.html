@@ -8,7 +8,7 @@
     <style>
         body { font-family: 'Roboto', sans-serif; }
         .container { max-width: 100%; margin: 0 auto; padding: 10px; box-sizing: border-box; position: relative; }
-        h1 { text-align: left; } /* Changed to left align */
+        h1 { text-align: left; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-family: 'Roboto', sans-serif; }
         th { background-color: #f2f2f2; }
@@ -17,7 +17,7 @@
         input, select { width: 100%; box-sizing: border-box; }
         button { padding: 5px 10px; margin-top: 10px; }
         select {
-            width: 100px; /* Fixed width for the select box */
+            width: 100%; /* Consistent width with input elements */
         }
         select option {
             width: auto; /* Allow the dropdown menu to scale to the content */
@@ -29,7 +29,18 @@
 <body>
     <div class="container">
         <h1>OSCAR Metadata Generator</h1>
-        <button type="button" class="generate-csv-btn" onclick="generateCSV()">Generate and download .csv</button>
+        <button type="button" class="generate-csv-btn">Generate and download .csv</button>
+        
+        <section>
+            <h2>Introduction</h2>
+            <p>This page allows you to generate metadata for the OSCAR project. Fill in the required fields and generate a CSV file for your records.</p>
+        </section>
+        
+        <section>
+            <h2>Background</h2>
+            <p>The OSCAR project aims to streamline the process of metadata generation for various assays. This tool helps in organizing and exporting the necessary information in a structured format.</p>
+        </section>
+        
         <form id="csvForm">
             <table>
                 <thead>
@@ -51,7 +62,7 @@
                     <!-- Rows will be dynamically added here -->
                 </tbody>
             </table>
-            <button type="button" class="add-row-btn" onclick="addRow()">Add row</button>
+            <button type="button" class="add-row-btn">Add row</button>
         </form>
     </div>
 
@@ -71,6 +82,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
+            document.querySelector('.add-row-btn').addEventListener('click', addRow);
+            document.querySelector('.generate-csv-btn').addEventListener('click', generateCSV);
             const container = document.getElementById('rowsContainer');
             const template = await fetchRowTemplate();
             const firstRow = document.createElement('tr');
@@ -114,7 +127,7 @@
                 a.click();
                 document.body.removeChild(a);
             } else {
-                alert('Please fill in all fields. Empty entries are not allowed.');
+                alert('Please complete all fields before generating the CSV.');
             }
         }
     </script>
