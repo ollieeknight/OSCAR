@@ -1,4 +1,4 @@
-<img align="right" width="150" src="docs/image.png" alt="OSCAR Logo">
+<img align="right" width="150" src="docs/image.jpg" alt="OSCAR Logo">
 
 # OSCAR
 
