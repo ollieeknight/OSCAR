@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSCAR ADT List Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Roboto', sans-serif; }
+        .container { max-width: 100%; margin: 0 auto; padding: 10px; box-sizing: border-box; position: relative; }
+        h1 { text-align: left; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-family: 'Roboto', sans-serif; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:hover { background-color: #f1f1f1; }
+        input, select { width: 100%; box-sizing: border-box; }
+        button { padding: 5px 10px; margin-top: 10px; }
+        select {
+            width: 100%; /* Consistent width with input elements */
+        }
+        select option {
+            width: auto; /* Allow the dropdown menu to scale to the content */
+        }
+        .error { border: 2px solid red; }
+        .generate-csv-btn { position: absolute; top: 10px; right: 10px; }
+        .top-bar {
+            background-color: #333;
+            overflow: hidden;
+        }
+        .top-bar a {
+            float: left;
+            display: block;
+            color: white;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+        }
+        .top-bar a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <a href="index.html">Home</a>
+        <a href="metadata_generator.html">Metadata Generator</a>
+        <a href="adt_list_generator.html">ADT List Generator</a>
+        <a href="references.html">References</a>
+    </div>
+    <div class="container">
+        <h1>OSCAR ADT List Generator</h1>
+        <button type="button" class="generate-csv-btn">Generate and download .csv</button>
+        
+        <section>
+            <p>
+                This page allows you to generate an ADT list file for use with the <a href="https://github.com/ollieeknight/OSCAR" target="_blank">Romagnani lab OSCAR pipeline</a>.<br>
+                This pipeline takes raw sequencing data and performs cellranger counting, as well as quality control, doublet detection, and donor genotype deconvolution, as detailed <a href="https://github.com/ollieeknight/OSCAR" target="_blank">here</a>.
+            </p>
+        </section>        
+        
+        <section>
+            <p>Several input variables are required to make the ADT list file. These are detailed below:</p>
+            <ul>
+                <li>ADT Name: The name of the ADT</li>
+                <li>ADT Sequence: The sequence of the ADT</li>
+                <li>ADT Barcode: The barcode of the ADT</li>
+            </ul>
+        </section>        
+        
+        <form id="csvForm">
+            <label for="format">Select Format:</label>
+            <select id="format">
+                <option value="totalseq_a.csv">TotalSeq-A</option>
+                <option value="totalseq_b.csv">TotalSeq-B</option>
+                <option value="totalseq_c.csv">TotalSeq-C</option>
+                <option value="totalseq_d.csv">TotalSeq-D</option>
+            </select>
+            <br><br>
+            <label for="search">Search Marker:</label>
+            <input type="text" id="search" placeholder="Enter marker name">
+            <button type="button" onclick="searchMarker()">Search</button>
+            <br><br>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ADT Name</th>
+                        <th>ADT Sequence</th>
+                        <th>ADT Barcode</th>
+                    </tr>
+                </thead>
+                <tbody id="rowsContainer">
+                    <!-- Rows will be dynamically added here -->
+                </tbody>
+            </table>
+            <button type="button" class="add-row-btn">Add row</button>
+        </form>
+    </div>
+
+    <script>
+        async function fetchCSV(file) {
+            const response = await fetch(file);
+            const data = await response.text();
+            return data;
+        }
+
+        function parseCSV(data) {
+            const rows = data.split('\n').slice(1); // Remove header
+            return rows.map(row => {
+                const [name, sequence, barcode] = row.split(',');
+                return { name, sequence, barcode };
+            });
+        }
+
+        async function searchMarker() {
+            const format = document.getElementById('format').value;
+            const search = document.getElementById('search').value.toLowerCase();
+            const data = await fetchCSV(format);
+            const markers = parseCSV(data);
+            const result = markers.find(marker => marker.name.toLowerCase() === search);
+
+            if (result) {
+                addRow(result.name, result.sequence, result.barcode);
+            } else {
+                alert('Marker not found');
+            }
+        }
+
+        function addRow(name, sequence, barcode) {
+            const container = document.getElementById('rowsContainer');
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `<td>${name}</td><td>${sequence}</td><td>${barcode}</td>`;
+            container.appendChild(newRow);
+        }
+
+        document.querySelector('.generate-csv-btn').addEventListener('click', generateCSV);
+
+        function generateCSV() {
+            const rows = document.querySelectorAll('#rowsContainer tr');
+            let csvContent = 'adt_name,adt_sequence,adt_barcode\n';
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const values = Array.from(cells).map(cell => cell.textContent);
+                csvContent += values.join(',') + '\n';
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'adt_list.csv'; // Output file name
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
