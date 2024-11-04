@@ -10,8 +10,8 @@
         </select>
     </td>
     <td><input type="text" class="experiment_id" name="experiment_id" required></td>
-    <td><input type="text" class="historical_number" name="historical_number" required></td>
-    <td><input type="text" class="replicate" name="replicate" required></td>
+    <td><input type="number" class="historical_number" name="historical_number" required></td>
+    <td><input type="text" class="replicate" name="replicate" required pattern="[A-Z]" title="Please enter a single letter (A-Z)"></td>
     <td>
         <select class="modality" name="modality" required>
             <option value="">Select Modality</option>
@@ -25,16 +25,19 @@
     <td>
         <select class="chemistry" name="chemistry" required>
             <option value="">Select Chemistry</option>
-            <option value="SC3Pv1">Single Cell 3' v1</option>
-            <option value="SC3Pv2">Single Cell 3' v2</option>
-            <option value="SC3Pv3">Single Cell 3' v3</option>
-            <option value="SC3Pv4">Single Cell 3' v4</option>
-            <option value="SC3Pv3LT">Single Cell 3' v3 LT</option>
-            <option value="SC3Pv3HT">Single Cell 3' v3 HT</option>
-            <option value="SC5P-PE">Single Cell 5' paired-end</option>
-            <option value="SC5P-R2">Single Cell 5' R2-only</option>
-            <option value="SC5P-PE-v3">Single Cell 5' paired-end v3</option>
-            <option value="SC5P-R2-v3">Single Cell 5' R2-only GEM-X</option>
+            <option value="SC3Pv1">Gene expression: Single Cell 3' v1</option>
+            <option value="SC3Pv2">Gene expression: Single Cell 3' v2</option>
+            <option value="SC3Pv3">Gene expression: Single Cell 3' v3</option>
+            <option value="SC3Pv4">Gene expression: Single Cell 3' v4</option>
+            <option value="ARC-v1">Gene expression: Multiome</option>
+            <option value="SC3Pv3LT">Gene expression: Single Cell 3' v3 LT</option>
+            <option value="SC3Pv3HT">Gene expression: Single Cell 3' v3 HT</option>
+            <option value="SC5P-PE">Gene expression: Single Cell 5' paired-end</option>
+            <option value="SC5P-R2">Gene expression: Single Cell 5' R2-only</option>
+            <option value="SC5P-PE-v3">Gene expression: Single Cell 5' paired-end v3</option>
+            <option value="SC5P-R2-v3">Gene expression: Single Cell 5' R2-only GEM-X</option>
+            <option value="ATAC">ATAC: v1, v1.1 and v2</option>
+            <option value="ARC-v1">ATAC: Multiome</option>
         </select>
     </td>
     <td>
@@ -46,22 +49,22 @@
     </td>
     <td>
         <select class="index" name="index" required>
-            <option value="ATTACTCG">HTO - D701: ATTACTCG</option>
-            <option value="TCCGGAGA">HTO - D702: TCCGGAGA</option>
-            <option value="CGCTCATT">HTO - D703: CGCTCATT</option>
-            <option value="GAGATTCC">HTO - D704: GAGATTCC</option>
-            <option value="ATTCAGAA">HTO - D705: ATTCAGAA</option>
-            <option value="GAATTCGT">HTO - D706: GAATTCGT</option>
-            <option value="CTGAAGCT">HTO - D707: CTGAAGCT</option>
-            <option value="TAATGCGC">HTO - D708: TAATGCGC</option>
-            <option value="CGAGTAAT">ADT - RP701: CGAGTAAT</option>
-            <option value="TCTCCGGA">ADT - RP702: TCTCCGGA</option>
-            <option value="AATGAGCG">ADT - RP703: AATGAGCG</option>
-            <option value="GGAATCTC">ADT - RP704: GGAATCTC</option>
-            <option value="TTCTGAAT">ADT - RP705: TTCTGAAT</option>
-            <option value="ACGAATTC">ADT - RP706: ACGAATTC</option>
-            <option value="AGCTTCAG">ADT - RP707: AGCTTCAG</option>
-            <option value="GCGCATTA">ADT - RP708: GCGCATTA</option>
+            <option value="ATTACTCG">HTO D701: ATTACTCG</option>
+            <option value="TCCGGAGA">HTO D702: TCCGGAGA</option>
+            <option value="CGCTCATT">HTO D703: CGCTCATT</option>
+            <option value="GAGATTCC">HTO D704: GAGATTCC</option>
+            <option value="ATTCAGAA">HTO D705: ATTCAGAA</option>
+            <option value="GAATTCGT">HTO D706: GAATTCGT</option>
+            <option value="CTGAAGCT">HTO D707: CTGAAGCT</option>
+            <option value="TAATGCGC">HTO D708: TAATGCGC</option>
+            <option value="CGAGTAAT">ADT RP701: CGAGTAAT</option>
+            <option value="TCTCCGGA">ADT RP702: TCTCCGGA</option>
+            <option value="AATGAGCG">ADT RP703: AATGAGCG</option>
+            <option value="GGAATCTC">ADT RP704: GGAATCTC</option>
+            <option value="TTCTGAAT">ADT RP705: TTCTGAAT</option>
+            <option value="ACGAATTC">ADT RP706: ACGAATTC</option>
+            <option value="AGCTTCAG">ADT RP707: AGCTTCAG</option>
+            <option value="GCGCATTA">ADT RP708: GCGCATTA</option>
         </select>
     </td>
     <td>
