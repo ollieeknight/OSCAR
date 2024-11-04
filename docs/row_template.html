@@ -1,7 +1,7 @@
 <tr>
     <td>
         <select class="assay" name="assay" required title="Type of assay">
-            <option value="">assay</option>
+            <option value="">unselected</option>
             <option value="GEX">GEX</option>
             <option value="CITE">CITE</option>
             <option value="DOGMA">DOGMA</option>
@@ -10,11 +10,11 @@
         </select>
     </td>
     <td><input type="text" class="experiment_id" name="experiment_id" required title="Short name of experiment"></td>
-    <td><input type="number" class="historical_number" name="historical_number" required title="Number of the experiment"></td>
+    <td><input type="number" class="historical_number" name="historical_number" required title="Number of the pool of the experiment"></td>
     <td><input type="text" class="replicate" name="replicate" required pattern="[A-Z]" title="One pool split across more than one well: A, B, C..."></td>
     <td>
         <select class="modality" name="modality" required>
-            <option value="">Select Modality</option>
+            <option value="">unselected</option>
             <option value="GEX">Gene expression</option>
             <option value="ADT">Surface antibody</option>
             <option value="HTO">Surface hashtag</option>
@@ -24,7 +24,7 @@
     </td>
     <td>
         <select class="chemistry" name="chemistry" required>
-            <option value="">chemistry</option>
+            <option value="">unselected</option>
             <option value="SC3Pv1">Single Cell 3' v1</option>
             <option value="SC3Pv2">Single Cell 3' v2</option>
             <option value="SC3Pv3">Single Cell 3' v3</option>
@@ -42,13 +42,14 @@
     </td>
     <td>
         <select class="index_type" name="index_type" required>
-            <option value="">index_type</option>
+            <option value="">unselected</option>
             <option value="SI">Single index</option>
             <option value="DI">Dual index</option>
         </select>
     </td>
     <td>
         <select class="index" name="index" required>
+            <option value="">unselected</option>
             <!-- SI-GA -->
             <option value="SI-GA-A1">SI-GA-A1</option>
             <option value="SI-GA-A2">SI-GA-A2</option>
@@ -458,7 +459,7 @@
     </td>
     <td>
         <select class="species" name="species" required>
-            <option value="">species</option>
+            <option value="">unselected</option>
             <option value="Human">Human</option>
             <option value="Mouse">Mouse</option>
         </select>

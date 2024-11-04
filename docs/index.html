@@ -63,10 +63,28 @@
 
         async function addRow() {
             const container = document.getElementById('rowsContainer');
-            const template = await fetchRowTemplate();
-            const newRow = document.createElement('tr');
-            newRow.innerHTML = template;
-            container.appendChild(newRow);
+            const rows = container.querySelectorAll('tr');
+            const lastRow = rows[rows.length - 1];
+            const inputs = lastRow ? lastRow.querySelectorAll('input, select') : [];
+            let allFilled = true;
+
+            inputs.forEach(input => {
+                if (input.value === '') {
+                    input.classList.add('error');
+                    allFilled = false;
+                } else {
+                    input.classList.remove('error');
+                }
+            });
+
+            if (allFilled) {
+                const template = await fetchRowTemplate();
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = template;
+                container.appendChild(newRow);
+            } else {
+                alert('Please fill in all fields in the current row before adding a new one.');
+            }
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
