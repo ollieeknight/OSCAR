@@ -1,0 +1,76 @@
+<tr>
+    <td>
+        <select class="assay" name="assay" required>
+            <option value="">Select Assay</option>
+            <option value="GEX">GEX</option>
+            <option value="CITE">CITE</option>
+            <option value="DOGMA">DOGMA</option>
+            <option value="ATAC">ATAC</option>
+            <option value="ASAP">ASAP</option>
+        </select>
+    </td>
+    <td><input type="text" class="experiment_id" name="experiment_id" required></td>
+    <td><input type="text" class="historical_number" name="historical_number" required></td>
+    <td><input type="text" class="replicate" name="replicate" required></td>
+    <td>
+        <select class="modality" name="modality" required>
+            <option value="">Select Modality</option>
+            <option value="GEX">Gene expression</option>
+            <option value="ADT">Surface antibody</option>
+            <option value="HTO">Surface hashtag</option>
+            <option value="ATAC">ATAC</option>
+            <option value="GENO">GoTChA genotyping</option>
+        </select>
+    </td>
+    <td>
+        <select class="chemistry" name="chemistry" required>
+            <option value="">Select Chemistry</option>
+            <option value="SC3Pv1">Single Cell 3' v1</option>
+            <option value="SC3Pv2">Single Cell 3' v2</option>
+            <option value="SC3Pv3">Single Cell 3' v3</option>
+            <option value="SC3Pv4">Single Cell 3' v4</option>
+            <option value="SC3Pv3LT">Single Cell 3' v3 LT</option>
+            <option value="SC3Pv3HT">Single Cell 3' v3 HT</option>
+            <option value="SC5P-PE">Single Cell 5' paired-end</option>
+            <option value="SC5P-R2">Single Cell 5' R2-only</option>
+            <option value="SC5P-PE-v3">Single Cell 5' paired-end v3</option>
+            <option value="SC5P-R2-v3">Single Cell 5' R2-only GEM-X</option>
+        </select>
+    </td>
+    <td>
+        <select class="index_type" name="index_type" required>
+            <option value="">Select Index Type</option>
+            <option value="SI">Single index</option>
+            <option value="DI">Dual index</option>
+        </select>
+    </td>
+    <td>
+        <select class="index" name="index" required>
+            <option value="ATTACTCG">HTO - D701: ATTACTCG</option>
+            <option value="TCCGGAGA">HTO - D702: TCCGGAGA</option>
+            <option value="CGCTCATT">HTO - D703: CGCTCATT</option>
+            <option value="GAGATTCC">HTO - D704: GAGATTCC</option>
+            <option value="ATTCAGAA">HTO - D705: ATTCAGAA</option>
+            <option value="GAATTCGT">HTO - D706: GAATTCGT</option>
+            <option value="CTGAAGCT">HTO - D707: CTGAAGCT</option>
+            <option value="TAATGCGC">HTO - D708: TAATGCGC</option>
+            <option value="CGAGTAAT">ADT - RP701: CGAGTAAT</option>
+            <option value="TCTCCGGA">ADT - RP702: TCTCCGGA</option>
+            <option value="AATGAGCG">ADT - RP703: AATGAGCG</option>
+            <option value="GGAATCTC">ADT - RP704: GGAATCTC</option>
+            <option value="TTCTGAAT">ADT - RP705: TTCTGAAT</option>
+            <option value="ACGAATTC">ADT - RP706: ACGAATTC</option>
+            <option value="AGCTTCAG">ADT - RP707: AGCTTCAG</option>
+            <option value="GCGCATTA">ADT - RP708: GCGCATTA</option>
+        </select>
+    </td>
+    <td>
+        <select class="species" name="species" required>
+            <option value="">Select Species</option>
+            <option value="Human">Human</option>
+            <option value="Mouse">Mouse</option>
+        </select>
+    </td>
+    <td><input type="text" class="n_donors" name="n_donors" required></td>
+    <td><input type="text" class="adt_file" name="adt_file" required></td>
+</tr>

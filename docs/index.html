@@ -39,69 +39,7 @@
                     </tr>
                 </thead>
                 <tbody id="rowsContainer">
-                    <tr>
-                        <td>
-                            <select id="assay" name="assay" required>
-                                <option value="">Select Assay</option>
-                                <option value="GEX">GEX</option>
-                                <option value="CITE">CITE</option>
-                                <option value="DOGMA">DOGMA</option>
-                                <option value="ATAC">ATAC</option>
-                                <option value="ASAP">ASAP</option>
-                            </select>
-                        </td>
-                        <td><input type="text" id="experiment_id" name="experiment_id" required></td>
-                        <td><input type="text" id="historical_number" name="historical_number" required></td>
-                        <td><input type="text" id="replicate" name="replicate" required></td>
-                        <td>
-                            <select id="modality" name="modality" required>
-                                <option value="">Select Modality</option>
-                                <option value="GEX">GEX</option>
-                                <option value="ADT">ADT</option>
-                                <option value="HTO">HTO</option>
-                                <option value="ATAC">ATAC</option>
-                                <option value="GENO">GENO</option>
-                            </select>
-                        </td>
-                        <td>
-                            <select id="chemistry" name="chemistry" required>
-                                <option value="">Select Chemistry</option>
-                                <option value="SC3Pv1">Single Cell 3' v1</option>
-                                <option value="SC3Pv2">Single Cell 3' v2</option>
-                                <option value="SC3Pv3">Single Cell 3' v3</option>
-                                <option value="SC3Pv4">Single Cell 3' v4</option>
-                                <option value="SC3Pv3LT">Single Cell 3' v3 LT</option>
-                                <option value="SC3Pv3HT">Single Cell 3' v3 HT</option>
-                                <option value="SC5P-PE">Single Cell 5' paired-end</option>
-                                <option value="SC5P-R2">Single Cell 5' R2-only</option>
-                                <option value="SC5P-PE-v3">Single Cell 5' paired-end v3</option>
-                                <option value="SC5P-R2-v3">Single Cell 5' R2-only GEM-X</option>
-                            </select>
-                        </td>
-                        <td>
-                            <select id="index_type" name="index_type" required>
-                                <option value="">Select Index Type</option>
-                                <option value="SI">SI</option>
-                                <option value="DI">DI</option>
-                            </select>
-                        </td>
-                        <td>
-                            <select id="index" name="index" required>
-                                <option value="">Select Index</option>
-                                <option value="Index 1">Index 1</option>
-                                <option value="Index 2">Index 2</option>
-                            </select>
-                        </td>
-                        <td>
-                            <select id="species" name="species" required>
-                                <option value="">Select Species</option>
-                                <option value="Human">Human</option>
-                                <option value="Mouse">Mouse</option>
-                            </select>
-                        </td>
-                        <td><input type="text" id="n_donors" name="n_donors" required></td>
-                        <td><input type="text" id="adt_file" name="adt_file" required></td>
-                    </tr>
+                    <!-- Rows will be dynamically added here -->
                 </tbody>
             </table>
             <button type="button" onclick="addRow()">Add Row</button>
@@ -110,74 +48,27 @@
     </div>
 
     <script>
-        function addRow() {
+        async function fetchRowTemplate() {
+            const response = await fetch('row_template.html');
+            const template = await response.text();
+            return template;
+        }
+
+        async function addRow() {
             const container = document.getElementById('rowsContainer');
+            const template = await fetchRowTemplate();
             const newRow = document.createElement('tr');
-            newRow.innerHTML = `
-                <td>
-                    <select id="assay" name="assay" required>
-                        <option value="">Select Assay</option>
-                        <option value="GEX">GEX</option>
-                        <option value="CITE">CITE</option>
-                        <option value="DOGMA">DOGMA</option>
-                        <option value="ATAC">ATAC</option>
-                        <option value="ASAP">ASAP</option>
-                    </select>
-                </td>
-                <td><input type="text" id="experiment_id" name="experiment_id" required></td>
-                <td><input type="text" id="historical_number" name="historical_number" required></td>
-                <td><input type="text" id="replicate" name="replicate" required></td>
-                <td>
-                    <select id="modality" name="modality" required>
-                        <option value="">Select Modality</option>
-                        <option value="GEX">GEX</option>
-                        <option value="ADT">ADT</option>
-                        <option value="HTO">HTO</option>
-                        <option value="ATAC">ATAC</option>
-                        <option value="GENO">GENO</option>
-                    </select>
-                </td>
-                <td>
-                    <select id="chemistry" name="chemistry" required>
-                        <option value="">Select Chemistry</option>
-                        <option value="SC3Pv1">Single Cell 3' v1</option>
-                        <option value="SC3Pv2">Single Cell 3' v2</option>
-                        <option value="SC3Pv3">Single Cell 3' v3</option>
-                        <option value="SC3Pv4">Single Cell 3' v4</option>
-                        <option value="SC3Pv3LT">Single Cell 3' v3 LT</option>
-                        <option value="SC3Pv3HT">Single Cell 3' v3 HT</option>
-                        <option value="SC5P-PE">Single Cell 5' paired-end</option>
-                        <option value="SC5P-R2">Single Cell 5' R2-only</option>
-                        <option value="SC5P-PE-v3">Single Cell 5' paired-end v3</option>
-                        <option value="SC5P-R2-v3">Single Cell 5' R2-only GEM-X</option>
-                    </select>
-                </td>
-                <td>
-                    <select id="index_type" name="index_type" required>
-                        <option value="">Select Index Type</option>
-                        <option value="SI">SI</option>
-                        <option value="DI">DI</option>
-                    </select>
-                </td>
-                <td>
-                    <select id="index" name="index" required>
-                        <option value="">Select Index</option>
-                        <option value="Index 1">Index 1</option>
-                        <option value="Index 2">Index 2</option>
-                    </select>
-                </td>
-                <td>
-                    <select id="species" name="species" required>
-                        <option value="">Select Species</option>
-                        <option value="Human">Human</option>
-                        <option value="Mouse">Mouse</option>
-                    </select>
-                </td>
-                <td><input type="text" id="n_donors" name="n_donors" required></td>
-                <td><input type="text" id="adt_file" name="adt_file" required></td>
-            `;
+            newRow.innerHTML = template;
             container.appendChild(newRow);
         }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const container = document.getElementById('rowsContainer');
+            const template = await fetchRowTemplate();
+            const firstRow = document.createElement('tr');
+            firstRow.innerHTML = template;
+            container.appendChild(firstRow);
+        });
 
         function generateCSV() {
             const rows = document.querySelectorAll('#rowsContainer tr');
