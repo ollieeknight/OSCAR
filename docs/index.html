@@ -6,31 +6,74 @@
     <title>CSV Generator</title>
     <style>
         body { font-family: Arial, sans-serif; }
-        input { margin: 5px; }
-        .row { margin-bottom: 10px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .row { margin-bottom: 10px; display: flex; flex-direction: row; }
+        .row label { width: 150px; } /* Adjust width as needed */
+        .row select, .row input { flex: 1; margin: 5px; }
+        button { margin: 10px 0; }
     </style>
 </head>
 <body>
-    <h1>CSV Generator</h1>
-    <form id="csvForm">
-        <div id="rowsContainer">
-            <div class="row">
-                <input type="text" placeholder="Assay" name="assay" required>
-                <input type="text" placeholder="Experiment ID" name="experiment_id" required>
-                <input type="text" placeholder="Historical Number" name="historical_number" required>
-                <input type="text" placeholder="Replicate" name="replicate" required>
-                <input type="text" placeholder="Modality" name="modality" required>
-                <input type="text" placeholder="Chemistry" name="chemistry" required>
-                <input type="text" placeholder="Index Type" name="index_type" required>
-                <input type="text" placeholder="Index" name="index" required>
-                <input type="text" placeholder="Species" name="species" required>
-                <input type="text" placeholder="Number of Donors" name="n_donors" required>
-                <input type="text" placeholder="ADT File" name="adt_file" required>
+    <div class="container">
+        <h1>CSV Generator</h1>
+        <form id="csvForm">
+            <div id="rowsContainer">
+                <div class="row">
+                    <label for="assay">Assay</label>
+                    <select id="assay" name="assay" required>
+                        <option value="">Select Assay</option>
+                        <option value="GEX">GEX</option>
+                        <option value="CITE">CITE</option>
+                        <option value="DOGMA">DOGMA</option>
+                        <option value="ATAC">ATAC</option>
+                        <option value="ASAP">ASAP</option>
+                    </select>
+                    <label for="experiment_id">Experiment ID</label>
+                    <input type="text" id="experiment_id" name="experiment_id" required>
+                    <label for="historical_number">Historical Number</label>
+                    <input type="text" id="historical_number" name="historical_number" required>
+                    <label for="replicate">Replicate</label>
+                    <input type="text" id="replicate" name="replicate" required>
+                    <label for="modality">Modality</label>
+                    <select id="modality" name="modality" required>
+                        <option value="">Select Modality</option>
+                        <option value="Single Cell">Single Cell</option>
+                        <option value="Bulk">Bulk</option>
+                    </select>
+                    <label for="chemistry">Chemistry</label>
+                    <select id="chemistry" name="chemistry" required>
+                        <option value="">Select Chemistry</option>
+                        <option value="Chemistry 1">Chemistry 1</option>
+                        <option value="Chemistry 2">Chemistry 2</option>
+                    </select>
+                    <label for="index_type">Index Type</label>
+                    <select id="index_type" name="index_type" required>
+                        <option value="">Select Index Type</option>
+                        <option value="Index Type 1">Index Type 1</option>
+                        <option value="Index Type 2">Index Type 2</option>
+                    </select>
+                    <label for="index">Index</label>
+                    <select id="index" name="index" required>
+                        <option value="">Select Index</option>
+                        <option value="Index 1">Index 1</option>
+                        <option value="Index 2">Index 2</option>
+                    </select>
+                    <label for="species">Species</label>
+                    <select id="species" name="species" required>
+                        <option value="">Select Species</option>
+                        <option value="Human">Human</option>
+                        <option value="Mouse">Mouse</option>
+                    </select>
+                    <label for="n_donors">Number of Donors</label>
+                    <input type="text" id="n_donors" name="n_donors" required>
+                    <label for="adt_file">ADT File</label>
+                    <input type="text" id="adt_file" name="adt_file" required>
+                </div>
             </div>
-        </div>
-        <button type="button" onclick="addRow()">Add Row</button>
-        <button type="button" onclick="generateCSV()">Generate CSV</button>
-    </form>
+            <button type="button" onclick="addRow()">Add Row</button>
+            <button type="button" onclick="generateCSV()">Generate CSV</button>
+        </form>
+    </div>
     
     <script>
         function addRow() {
@@ -38,17 +81,55 @@
             const newRow = document.createElement('div');
             newRow.className = 'row';
             newRow.innerHTML = `
-                <input type="text" placeholder="Assay" name="assay" required>
-                <input type="text" placeholder="Experiment ID" name="experiment_id" required>
-                <input type="text" placeholder="Historical Number" name="historical_number" required>
-                <input type="text" placeholder="Replicate" name="replicate" required>
-                <input type="text" placeholder="Modality" name="modality" required>
-                <input type="text" placeholder="Chemistry" name="chemistry" required>
-                <input type="text" placeholder="Index Type" name="index_type" required>
-                <input type="text" placeholder="Index" name="index" required>
-                <input type="text" placeholder="Species" name="species" required>
-                <input type="text" placeholder="Number of Donors" name="n_donors" required>
-                <input type="text" placeholder="ADT File" name="adt_file" required>
+                <label for="assay">Assay</label>
+                <select id="assay" name="assay" required>
+                    <option value="">Select Assay</option>
+                    <option value="GEX">GEX</option>
+                    <option value="CITE">CITE</option>
+                    <option value="DOGMA">DOGMA</option>
+                    <option value="ATAC">ATAC</option>
+                    <option value="ASAP">ASAP</option>
+                </select>
+                <label for="experiment_id">Experiment ID</label>
+                <input type="text" id="experiment_id" name="experiment_id" required>
+                <label for="historical_number">Historical Number</label>
+                <input type="text" id="historical_number" name="historical_number" required>
+                <label for="replicate">Replicate</label>
+                <input type="text" id="replicate" name="replicate" required>
+                <label for="modality">Modality</label>
+                <select id="modality" name="modality" required>
+                    <option value="">Select Modality</option>
+                    <option value="Single Cell">Single Cell</option>
+                    <option value="Bulk">Bulk</option>
+                </select>
+                <label for="chemistry">Chemistry</label>
+                <select id="chemistry" name="chemistry" required>
+                    <option value="">Select Chemistry</option>
+                    <option value="Chemistry 1">Chemistry 1</option>
+                    <option value="Chemistry 2">Chemistry 2</option>
+                </select>
+                <label for="index_type">Index Type</label>
+                <select id="index_type" name="index_type" required>
+                    <option value="">Select Index Type</option>
+                    <option value="Index Type 1">Index Type 1</option>
+                    <option value="Index Type 2">Index Type 2</option>
+                </select>
+                <label for="index">Index</label>
+                <select id="index" name="index" required>
+                    <option value="">Select Index</option>
+                    <option value="Index 1">Index 1</option>
+                    <option value="Index 2">Index 2</option>
+                </select>
+                <label for="species">Species</label>
+                <select id="species" name="species" required>
+                    <option value="">Select Species</option>
+                    <option value="Human">Human</option>
+                    <option value="Mouse">Mouse</option>
+                </select>
+                <label for="n_donors">Number of Donors</label>
+                <input type="text" id="n_donors" name="n_donors" required>
+                <label for="adt_file">ADT File</label>
+                <input type="text" id="adt_file" name="adt_file" required>
             `;
             container.appendChild(newRow);
         }
@@ -57,7 +138,7 @@
             const rows = document.querySelectorAll('.row');
             let csvContent = 'assay,experiment_id,historical_number,replicate,modality,chemistry,index_type,index,species,n_donors,adt_file\n';
             rows.forEach(row => {
-                const values = Array.from(row.querySelectorAll('input')).map(input => input.value);
+                const values = Array.from(row.querySelectorAll('input, select')).map(input => input.value);
                 csvContent += values.join(',') + '\n';
             });
 
