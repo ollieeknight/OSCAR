@@ -22,6 +22,7 @@
         select option {
             width: auto; /* Allow the dropdown menu to scale to the content */
         }
+        .error { border: 2px solid red; }
     </style>
 </head>
 <body>
@@ -82,13 +83,24 @@
             let allValid = true;
 
             rows.forEach(row => {
-                const values = Array.from(row.querySelectorAll('input, select')).map(input => input.value || 'NA');
-                if (values.some(value => value === '')) {
-                    alert('Please fill in all fields. Empty entries are not allowed.');
+                const inputs = row.querySelectorAll('input, select');
+                const values = Array.from(inputs).map(input => input.value || 'NA');
+                let rowValid = true;
+
+                inputs.forEach(input => {
+                    if (input.value === '') {
+                        input.classList.add('error');
+                        rowValid = false;
+                    } else {
+                        input.classList.remove('error');
+                    }
+                });
+
+                if (!rowValid) {
                     allValid = false;
-                    return;
+                } else {
+                    csvContent += values.join(',') + '\n';
                 }
-                csvContent += values.join(',') + '\n';
             });
 
             if (allValid) {
@@ -100,6 +112,8 @@
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
+            } else {
+                alert('Please fill in all fields. Empty entries are not allowed.');
             }
         }
     </script>
