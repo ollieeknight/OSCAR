@@ -70,8 +70,15 @@
         </section>        
         
         <form id="csvForm">
+            <label for="species">Select Species:</label>
+            <select id="species" onchange="filterMarkers()">
+                <option value="all">All</option>
+                <option value="Human">Human</option>
+                <option value="Mouse">Mouse</option>
+            </select>
+            <br><br>
             <label for="format">Select Format:</label>
-            <select id="format">
+            <select id="format" onchange="filterMarkers()">
                 <option value="totalseq_a.csv">TotalSeq-A</option>
                 <option value="totalseq_b.csv">TotalSeq-B</option>
                 <option value="totalseq_c.csv">TotalSeq-C</option>
@@ -99,6 +106,8 @@
     </div>
 
     <script>
+        let markersData = [];
+
         async function fetchCSV(file) {
             const response = await fetch(file);
             const data = await response.text();
@@ -108,20 +117,30 @@
         function parseCSV(data) {
             const rows = data.split('\n').slice(1); // Remove header
             return rows.map(row => {
-                const [name, sequence, barcode] = row.split(',');
-                return { name, sequence, barcode };
+                const [catalogue_number, id, marker, clone, reactivity, barcode] = row.split(',');
+                return { catalogue_number, id, marker, clone, reactivity, barcode };
             });
         }
 
-        async function searchMarker() {
+        async function filterMarkers() {
             const format = document.getElementById('format').value;
-            const search = document.getElementById('search').value.toLowerCase();
+            const species = document.getElementById('species').value;
             const data = await fetchCSV(format);
-            const markers = parseCSV(data);
-            const result = markers.find(marker => marker.name.toLowerCase() === search);
+            markersData = parseCSV(data);
+
+            if (species !== 'all') {
+                markersData = markersData.filter(marker => marker.reactivity === species);
+            }
+        }
+
+        async function searchMarker() {
+            const search = document.getElementById('search').value.toLowerCase();
+            const result = markersData.find(marker => marker.marker.toLowerCase() === search);
 
             if (result) {
-                addRow(result.name, result.sequence, result.barcode);
+                addRow(result.marker, result.clone, result.barcode);
+                document.getElementById('species').disabled = true;
+                document.getElementById('format').disabled = true;
             } else {
                 alert('Marker not found');
             }
@@ -154,6 +173,8 @@
             a.click();
             document.body.removeChild(a);
         }
+
+        document.addEventListener('DOMContentLoaded', filterMarkers);
     </script>
 </body>
 </html>
