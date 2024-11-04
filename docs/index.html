@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        input { margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>CSV Generator</h1>
+    <form id="csvForm">
+        <input type="text" placeholder="Header 1" name="header1" required>
+        <input type="text" placeholder="Header 2" name="header2" required>
+        <input type="text" placeholder="Header 3" name="header3" required>
+        <input type="text" placeholder="Header 4" name="header4" required>
+        <input type="text" placeholder="Header 5" name="header5" required>
+        <input type="text" placeholder="Header 6" name="header6" required>
+        <input type="text" placeholder="Header 7" name="header7" required>
+        <input type="text" placeholder="Header 8" name="header8" required>
+        <input type="text" placeholder="Header 9" name="header9" required>
+        <button type="button" onclick="generateCSV()">Generate CSV</button>
+    </form>
+    
+    <script>
+        function generateCSV() {
+            const form = document.getElementById('csvForm');
+            const headers = Array.from(form.elements)
+                .filter(input => input.name.startsWith('header'))
+                .map(input => input.value);
+            const csvContent = headers.join(',') + '\n'; // Add your row logic here
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'data.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
