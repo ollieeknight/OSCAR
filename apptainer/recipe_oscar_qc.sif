@@ -25,7 +25,7 @@ From: ubuntu:latest
     mkdir -p /opt/SNP/ /opt/AMULET/
 
     curl -L -o /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz "https://www.dropbox.com/scl/fi/qpsdse6dqqjnje53mtyps/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz?rlkey=cxfnlxp8d4zref5eixg0x9uah&st=h5bxgja6&dl=1"
-    git clone https://github.com/UcarLab/AMULET /opt/AMULET/
+    git clone https://github.com/ollieeknight/AMULET /opt/AMULET/
     curl -sSL -o /opt/AMULET/RestrictionRepeatLists.zip https://github.com/UcarLab/AMULET/releases/download/v1.0/RestrictionRepeatLists.zip
     unzip -q /opt/AMULET/RestrictionRepeatLists.zip -d /opt/AMULET/ && rm /opt/AMULET/RestrictionRepeatLists.zip
     chmod -R +x /opt/AMULET/
