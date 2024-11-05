@@ -38,7 +38,7 @@
             padding: 14px 16px;
             text-decoration: none;
         }
-        .top-bar a.top-bar-link:hover {
+        .top-bar a:hover {
             background-color: #ddd;
             color: black;
         }
@@ -50,14 +50,14 @@
             box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
             z-index: 1;
         }
-        .dropdown-content .dropdown-item {
+        .dropdown-content div {
             color: black;
             padding: 12px 16px;
             text-decoration: none;
             display: block;
             cursor: pointer;
         }
-        .dropdown-content .dropdown-item:hover {background-color: #f1f1f1}
+        .dropdown-content div:hover {background-color: #f1f1f1}
         .dropdown {
             position: relative;
             display: inline-block;
@@ -87,39 +87,31 @@
                 This page allows you to generate an ADT list file for use with the <a href="https://github.com/ollieeknight/OSCAR" target="_blank">Romagnani lab OSCAR pipeline for sequencing data analysis</a>.<br>
                 This pipeline takes raw sequencing data and performs cellranger counting, as well as quality control, doublet detection, and donor genotype deconvolution, as detailed in the <a href="https://github.com/ollieeknight/OSCAR" target="_blank">OSCAR pipeline documentation</a>.
             </p>
-        </section>        
-        
-        <section>
-            <p>Several input variables are required to make the ADT list file. These are detailed below:</p>
-            <ul>
-                <li>ADT Name: The name of the ADT</li>
-                <li>ADT Sequence: The sequence of the ADT</li>
-                <li>ADT Barcode: The barcode of the ADT</li>
-            </ul>
-        </section>        
+        </section>              
         
         <form id="csvForm">
             <div class="form-group">
-                <label for="species">Select Species:</label>
-                <select id="species" onchange="resetSelections('species')">
-                    <option value="all">All</option>
+                <label for="species">Species:</label>
+                <select id="species" onchange="confirmReset('species')">
+                    <option value="" selected disabled>Unselected</option>
                     <option value="Human">Human</option>
                     <option value="Mouse">Mouse</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="format">Select Format:</label>
-                <select id="format" onchange="resetSelections('format')">
-                    <option value="files/totalseq_a.csv">TotalSeq-A</option>
-                    <option value="files/totalseq_b.csv">TotalSeq-B</option>
-                    <option value="files/totalseq_c.csv">TotalSeq-C</option>
-                    <option value="files/totalseq_d.csv">TotalSeq-D</option>
+                <label for="format">Antibody format:</label>
+                <select id="format" onchange="confirmReset('format')">
+                    <option value="" selected disabled>Unselected</option>
+                    <option value="../files/totalseq_a.csv">TotalSeq-A</option>
+                    <option value="../files/totalseq_b.csv">TotalSeq-B</option>
+                    <option value="../files/totalseq_c.csv">TotalSeq-C</option>
+                    <option value="../files/totalseq_d.csv">TotalSeq-D</option>
                 </select>
             </div>
             <br><br>
             <label for="search">Search Marker:</label>
             <div class="dropdown">
-                <input type="text" id="search" placeholder="Enter marker name" oninput="filterMarkersDropdown()">
+                <input type="text" id="search" placeholder="Enter marker name" oninput="showDropdown()">
                 <div id="dropdown-content" class="dropdown-content"></div>
             </div>
             <br><br>
@@ -134,16 +126,14 @@
                     </tr>
                 </thead>
                 <tbody id="rowsContainer">
-                    <!-- Rows will be dynamically added here -->
                 </tbody>
             </table>
         </form>
     </div>
 
     <script>
-        // Array to store marker data fetched from the CSV file
         let markersData = [];
-        // Fetch and include the top bar from an external HTML file, then set the href attributes for navigation links
+
         // JavaScript to include the top bar
         fetch('topbar.html')
             .then(response => response.text())
@@ -160,31 +150,14 @@
                 document.getElementById('references-link').href = basePath + 'pages/references.html';
             });
 
-        // Function to fetch CSV data from a given file path
         async function fetchCSV(file) {
             const response = await fetch(file);
             const data = await response.text();
             return data;
         }
-        /**
-         * Parses CSV data and returns an array of marker objects.
-         * @param {string} data - The CSV data as a string.
-         * @returns {Array} - An array of marker objects.
-         */
-        /**
-         * Parses CSV data and returns an array of marker objects.
-         * @param {string} data - The CSV data as a string.
-         * @returns {Array} - An array of marker objects.
-         */
+
         function parseCSV(data) {
-            const rows = data.split('\n').slice(1); // Remove header
-            return rows.map(row => {
-                const [catalogue_number, id, marker, clone, reactivity, barcode] = row.split(',');
-                return { catalogue_number, id, marker, clone, reactivity, barcode };
-            });
-        }
-        function parseCSV(data) {
-            const rows = data.split('\n').slice(1); // Remove header
+            const rows = data.split('\n').slice(1);
             return rows.map(row => {
                 const [catalogue_number, id, marker, clone, reactivity, barcode] = row.split(',');
                 return { catalogue_number, id, marker, clone, reactivity, barcode };
@@ -198,18 +171,10 @@
             markersData = parseCSV(data);
 
             if (species === 'Human') {
-        // Function to remove a row from the table
-        function removeRow(element) {
+                markersData = markersData.filter(marker => ['Human', 'Both', 'Epitope'].includes(marker.reactivity));
             }
         }
-        /**
-         * Adds a new row to the table with the given ADT details.
-         * @param {string} name - The name of the ADT.
-         * @param {string} catalogueNumber - The catalogue number of the ADT.
-         * @param {string} clone - The clone of the ADT.
-         * @param {string} barcode - The barcode of the ADT.
-         */
-        function addRow(name, catalogueNumber, clone, barcode) {
+
         function addRow(name, catalogueNumber, clone, barcode) {
             const container = document.getElementById('rowsContainer');
             const newRow = document.createElement('tr');
@@ -221,11 +186,8 @@
             const row = element.parentElement.parentElement;
             row.remove();
         }
-        /**
-         * Displays the dropdown with filtered markers based on the search input.
-         */
-        function filterMarkersDropdown() {
-        function filterMarkersDropdown() {
+
+        function showDropdown() {
             const search = document.getElementById('search').value.toLowerCase();
             const dropdown = document.getElementById('dropdown-content');
             dropdown.innerHTML = '';
@@ -249,14 +211,9 @@
             } else {
                 dropdown.style.display = 'none';
             }
-        /**
-         * Resets the selections for species and format, and clears the table.
-         * Prompts the user for confirmation before proceeding.
-         * @param {string} type - The type of selection being reset ('species' or 'format').
-         */
-        function resetSelections(type) {
+        }
 
-        function resetSelections(type) {
+        function confirmReset(type) {
             const confirmed = confirm('Changing this will reset all choices. Do you want to proceed?');
             if (confirmed) {
                 document.getElementById('rowsContainer').innerHTML = '';
@@ -270,16 +227,11 @@
             } else {
                 if (type === 'species') {
                     document.getElementById('species').value = 'all';
-                } else if (type === 'format') {
-        document.querySelector('.generate-csv-button').addEventListener('click', generateCSV);
-
-        /**
-         * Generates a CSV file from the table data and triggers a download.
-         */
-        function generateCSV() {
+                }
+            }
         }
 
-        document.querySelector('.generate-csv-btn').addEventListener('click', generateCSV);
+        document.querySelector('.generate-csv-button').addEventListener('click', generateCSV);
 
         function generateCSV() {
             const rows = document.querySelectorAll('#rowsContainer tr');
@@ -287,24 +239,20 @@
             rows.forEach(row => {
                 const cells = row.querySelectorAll('td');
                 const values = Array.from(cells).map(cell => cell.textContent);
-                csvContent += values.slice(0, 4).join(',') + '\n'; // Exclude the "Remove" button column
+                csvContent += values.slice(0, 4).join(',') + '\n';
             });
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'adt_list.csv'; // Output file name
+            a.download = 'adt_list.csv';
             document.body.appendChild(a);
             a.click();
-        // Ensure the DOM is fully loaded before executing the script
-        document.addEventListener('DOMContentLoaded', () => {
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             filterMarkers();
-            document.getElementById('species').addEventListener('change', filterMarkers);
-            document.getElementById('format').addEventListener('change', filterMarkers);
         });
     </script>
 </body>
