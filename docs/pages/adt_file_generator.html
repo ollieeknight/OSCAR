@@ -55,6 +55,7 @@
             padding: 12px 16px;
             text-decoration: none;
             display: block;
+            cursor: pointer;
         }
         .dropdown-content div:hover {background-color: #f1f1f1}
         .dropdown {
@@ -68,6 +69,10 @@
         }
         .form-group label {
             margin-right: 10px;
+        }
+        .remove-btn {
+            cursor: pointer;
+            color: red;
         }
     </style>
 </head>
@@ -117,21 +122,21 @@
                 <input type="text" id="search" placeholder="Enter marker name" oninput="showDropdown()">
                 <div id="dropdown-content" class="dropdown-content"></div>
             </div>
-            <button type="button" onclick="searchMarker()">Search</button>
             <br><br>
             <table>
                 <thead>
                     <tr>
                         <th>ADT Name</th>
-                        <th>ADT Sequence</th>
+                        <th>Catalogue Number</th>
+                        <th>Clone</th>
                         <th>ADT Barcode</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="rowsContainer">
                     <!-- Rows will be dynamically added here -->
                 </tbody>
             </table>
-            <button type="button" class="add-row-btn">Add row</button>
         </form>
     </div>
 
@@ -179,28 +184,16 @@
             }
         }
 
-        async function searchMarker() {
-            const search = document.getElementById('search').value.toLowerCase();
-            const result = markersData.find(marker => 
-                marker.catalogue_number.toLowerCase() === search ||
-                marker.marker.toLowerCase() === search ||
-                marker.clone.toLowerCase() === search
-            );
-
-            if (result) {
-                addRow(result.marker, result.clone, result.barcode);
-                document.getElementById('species').disabled = true;
-                document.getElementById('format').disabled = true;
-            } else {
-                alert('Marker not found');
-            }
-        }
-
-        function addRow(name, sequence, barcode) {
+        function addRow(name, catalogueNumber, clone, barcode) {
             const container = document.getElementById('rowsContainer');
             const newRow = document.createElement('tr');
-            newRow.innerHTML = `<td>${name}</td><td>${sequence}</td><td>${barcode}</td>`;
+            newRow.innerHTML = `<td>${name}</td><td>${catalogueNumber}</td><td>${clone}</td><td>${barcode}</td><td><span class="remove-btn" onclick="removeRow(this)">Remove</span></td>`;
             container.appendChild(newRow);
+        }
+
+        function removeRow(element) {
+            const row = element.parentElement.parentElement;
+            row.remove();
         }
 
         function showDropdown() {
@@ -217,7 +210,8 @@
                     const div = document.createElement('div');
                     div.textContent = `${marker.marker}: ${marker.clone}: ${marker.catalogue_number}`;
                     div.onclick = () => {
-                        document.getElementById('search').value = marker.marker;
+                        addRow(marker.marker, marker.catalogue_number, marker.clone, marker.barcode);
+                        document.getElementById('search').value = '';
                         dropdown.innerHTML = '';
                     };
                     dropdown.appendChild(div);
@@ -252,11 +246,11 @@
 
         function generateCSV() {
             const rows = document.querySelectorAll('#rowsContainer tr');
-            let csvContent = 'adt_name,adt_sequence,adt_barcode\n';
+            let csvContent = 'adt_name,catalogue_number,clone,adt_barcode\n';
             rows.forEach(row => {
                 const cells = row.querySelectorAll('td');
                 const values = Array.from(cells).map(cell => cell.textContent);
-                csvContent += values.join(',') + '\n';
+                csvContent += values.slice(0, 4).join(',') + '\n'; // Exclude the "Remove" button column
             });
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
