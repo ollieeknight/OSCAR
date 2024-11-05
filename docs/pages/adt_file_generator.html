@@ -103,9 +103,7 @@
                 <select id="format" onchange="confirmReset('format')">
                     <option value="" selected disabled>Unselected</option>
                     <option value="../files/totalseq_a.csv">TotalSeq-A</option>
-                    <option value="../files/totalseq_b.csv">TotalSeq-B</option>
                     <option value="../files/totalseq_c.csv">TotalSeq-C</option>
-                    <option value="../files/totalseq_d.csv">TotalSeq-D</option>
                 </select>
             </div>
             <div class="form-group">
@@ -126,13 +124,13 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Marker Name</th>
-                        <th>Corrected Marker Name</th>
-                        <th>Catalogue Number</th>
+                        <th>Marker</th>
+                        <th>Corrected name</th>
+                        <th>Catalogue number</th>
                         <th>Clone</th>
                         <th>Reactivity</th>
                         <th>Barcode</th>
-                        <th>Action</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody id="rowsContainer">
@@ -184,9 +182,9 @@
             markersData = parseCSV(data);
 
             if (species === 'Human') {
-                markersData = markersData.filter(marker => ['Human', 'Both', 'Epitope'].includes(marker.reactivity));
+                markersData = markersData.filter(marker => ['Human', 'Human and mouse', 'Isotype control', 'Epitope'].includes(marker.reactivity));
             } else if (species === 'Mouse') {
-                markersData = markersData.filter(marker => ['Mouse', 'Both', 'Epitope'].includes(marker.reactivity));
+                markersData = markersData.filter(marker => ['Mouse', 'Human and mouse', 'Isotype control', 'Epitope'].includes(marker.reactivity));
             }
         }
 
@@ -272,7 +270,7 @@
             }
 
             if (currentValue !== '') {
-                const confirmed = confirm('Changing this will reset all choices. Do you want to proceed?');
+                const confirmed = confirm('Changing this will reset all choices. Is this alright?');
                 if (!confirmed) {
                     return;
                 }
@@ -294,6 +292,8 @@
                 .replace(/beta/gi, 'b')
                 .replace(/gamma/gi, 'g')
                 .replace(/delta/gi, 'd')
+                .replace(/γ/gi, 'g')
+                .replace(/δ/gi, 'd')
                 .replace(/\s+/g, '')
                 .replace(/\//g, '-')
                 .replace(/\./g, '_')
