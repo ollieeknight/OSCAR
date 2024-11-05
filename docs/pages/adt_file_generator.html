@@ -203,8 +203,8 @@
                 <td>
                     <span class="corrected-name">${correctedName}</span>
                     <input type="text" class="edit-input" value="${correctedName}" style="display:none;">
-                    <button class="edit-btn" onclick="editRow(this)">Edit</button>
-                    <button class="save-btn" onclick="saveRow(this)" style="display:none;">Save</button>
+                    <button class="edit-btn" onclick="editRow(event, this)">Edit</button>
+                    <button class="save-btn" onclick="saveRow(event, this)" style="display:none;">Save</button>
                 </td>
                 <td>${catalogueNumber}</td>
                 <td>${clone}</td>
@@ -318,7 +318,8 @@
                 .replace(/,/g, '_');
         }
 
-        function editRow(button) {
+        function editRow(event, button) {
+            event.preventDefault();
             const row = button.closest('td');
             const span = row.querySelector('.corrected-name');
             const input = row.querySelector('.edit-input');
@@ -329,7 +330,8 @@
             button.style.display = 'none';
             saveButton.style.display = 'inline';
         }
-
+        function saveRow(event, button) {
+            event.preventDefault();
         function saveRow(button) {
             const row = button.closest('td');
             const span = row.querySelector('.corrected-name');
