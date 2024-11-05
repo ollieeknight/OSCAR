@@ -387,24 +387,27 @@
     // Combine sorted non-hashtag rows and hashtag rows
     const sortedRows = nonHashtagRows.concat(hashtagRows);
 
-    if (outputFormat === 'cellranger') {
-        csvContent = 'id,name,read,pattern,sequence,feature_type\n';
-        sortedRows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            const marker = substituteCharacters(cells[0].textContent);
-            const correctedName = cells[1].querySelector('.corrected-name').textContent;
-            const barcode = cells[5].textContent;
-            csvContent += `${correctedName},${correctedName},R2,5PNNNNNNNNNN(BC),${barcode},Antibody Capture\n`;
-        });
-    } else if (outputFormat === 'kallisto') {
-        csvContent = 'Feature Barcode name,Feature Barcode sequence\n';
-        sortedRows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            const correctedName = cells[1].querySelector('.corrected-name').textContent;
-            const barcode = cells[5].textContent;
-            csvContent += `${correctedName},${barcode}\n`;
-        });
-    }
+const format = document.getElementById('format').value;
+
+if (outputFormat === 'cellranger') {
+    csvContent = 'id,name,read,pattern,sequence,feature_type\n';
+    sortedRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const marker = substituteCharacters(cells[0].textContent);
+        const correctedName = cells[1].querySelector('.corrected-name').textContent;
+        const barcode = cells[5].textContent;
+        const pattern = format.includes('totalseq_a') ? '5P(BC)' : '5PNNNNNNNNNN(BC)';
+        csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
+    });
+} else if (outputFormat === 'kallisto') {
+    csvContent = 'Feature Barcode name,Feature Barcode sequence\n';
+    sortedRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const correctedName = cells[1].querySelector('.corrected-name').textContent;
+        const barcode = cells[5].textContent;
+        csvContent += `${correctedName},${barcode}\n`;
+    });
+}
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
