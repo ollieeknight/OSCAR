@@ -40,14 +40,33 @@
             background-color: #ddd;
             color: black;
         }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+        .dropdown-content div {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+        .dropdown-content div:hover {background-color: #f1f1f1}
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
     <div class="top-bar">
         <a href="index.html">Home</a>
-        <a href="metadata_generator.html">Metadata Generator</a>
-        <a href="adt_list_generator.html">ADT List Generator</a>
-        <a href="references.html">References</a>
+        <a href="pages/metadata_generator.html">Metadata Generator</a>
+        <a href="pages/adt_file_generator.html">ADT List Generator</a>
+        <a href="pages/references.html">References</a>
     </div>
     <div class="container">
         <h1>OSCAR ADT List Generator</h1>
@@ -71,22 +90,25 @@
         
         <form id="csvForm">
             <label for="species">Select Species:</label>
-            <select id="species" onchange="filterMarkers()">
+            <select id="species" onchange="confirmReset('species')"></select>
                 <option value="all">All</option>
                 <option value="Human">Human</option>
                 <option value="Mouse">Mouse</option>
             </select>
             <br><br>
             <label for="format">Select Format:</label>
-            <select id="format" onchange="filterMarkers()">
-                <option value="totalseq_a.csv">TotalSeq-A</option>
-                <option value="totalseq_b.csv">TotalSeq-B</option>
-                <option value="totalseq_c.csv">TotalSeq-C</option>
-                <option value="totalseq_d.csv">TotalSeq-D</option>
+            <select id="format" onchange="confirmReset('format')"></select>
+                <option value="files/totalseq_a.csv">TotalSeq-A</option>
+                <option value="files/totalseq_b.csv">TotalSeq-B</option>
+                <option value="files/totalseq_c.csv">TotalSeq-C</option>
+                <option value="files/totalseq_d.csv">TotalSeq-D</option>
             </select>
             <br><br>
             <label for="search">Search Marker:</label>
-            <input type="text" id="search" placeholder="Enter marker name">
+            <div class="dropdown">
+                <input type="text" id="search" placeholder="Enter marker name" oninput="showDropdown()">
+                <div id="dropdown-content" class="dropdown-content"></div>
+            </div>
             <button type="button" onclick="searchMarker()">Search</button>
             <br><br>
             <table>
@@ -109,7 +131,7 @@
         let markersData = [];
 
         async function fetchCSV(file) {
-            const response = await fetch(file);
+            const response = await fetch(`files/${file}`);
             const data = await response.text();
             return data;
         }
@@ -128,14 +150,18 @@
             const data = await fetchCSV(format);
             markersData = parseCSV(data);
 
-            if (species !== 'all') {
-                markersData = markersData.filter(marker => marker.reactivity === species);
+            if (species === 'Human') {
+                markersData = markersData.filter(marker => ['Human', 'Both', 'Epitope'].includes(marker.reactivity));
             }
         }
 
         async function searchMarker() {
             const search = document.getElementById('search').value.toLowerCase();
-            const result = markersData.find(marker => marker.marker.toLowerCase() === search);
+            const result = markersData.find(marker => 
+                marker.catalogue_number.toLowerCase() === search ||
+                marker.marker.toLowerCase() === search ||
+                marker.clone.toLowerCase() === search
+            );
 
             if (result) {
                 addRow(result.marker, result.clone, result.barcode);
@@ -151,6 +177,51 @@
             const newRow = document.createElement('tr');
             newRow.innerHTML = `<td>${name}</td><td>${sequence}</td><td>${barcode}</td>`;
             container.appendChild(newRow);
+        }
+
+        function showDropdown() {
+            const search = document.getElementById('search').value.toLowerCase();
+            const dropdown = document.getElementById('dropdown-content');
+            dropdown.innerHTML = '';
+            if (search) {
+                const filteredMarkers = markersData.filter(marker => 
+                    marker.catalogue_number.toLowerCase().includes(search) ||
+                    marker.marker.toLowerCase().includes(search) ||
+                    marker.clone.toLowerCase().includes(search)
+                );
+                filteredMarkers.forEach(marker => {
+                    const div = document.createElement('div');
+                    div.textContent = `${marker.marker}: ${marker.clone}: ${marker.catalogue_number}`;
+                    div.onclick = () => {
+                        document.getElementById('search').value = marker.marker;
+                        dropdown.innerHTML = '';
+                    };
+                    dropdown.appendChild(div);
+                });
+                dropdown.style.display = 'block';
+            } else {
+                dropdown.style.display = 'none';
+            }
+        }
+
+        function confirmReset(type) {
+            const confirmed = confirm('Changing this will reset all choices. Do you want to proceed?');
+            if (confirmed) {
+                document.getElementById('rowsContainer').innerHTML = '';
+                document.getElementById('species').disabled = false;
+                document.getElementById('format').disabled = false;
+                if (type === 'species') {
+                    filterMarkers();
+                } else if (type === 'format') {
+                    filterMarkers();
+                }
+            } else {
+                if (type === 'species') {
+                    document.getElementById('species').value = 'all';
+                } else if (type === 'format') {
+                    document.getElementById('format').value = 'files/totalseq_a.csv';
+                }
+            }
         }
 
         document.querySelector('.generate-csv-btn').addEventListener('click', generateCSV);

@@ -45,9 +45,9 @@
 <body>
     <div class="top-bar">
         <a href="index.html">Home</a>
-        <a href="metadata_file_generator.html">Metadata Generator</a>
-        <a href="adt_file_generator.html">ADT List Generator</a>
-        <a href="references.html">References</a>
+        <a href="pages/metadata_file_generator.html">Metadata Generator</a>
+        <a href="pages/adt_file_generator.html">ADT List Generator</a>
+        <a href="pages/references.html">References</a>
     </div>
     <div class="container">
         <h1>OSCAR Metadata Generator</h1>
@@ -104,7 +104,7 @@
 
     <script>
         async function fetchRowTemplate() {
-            const response = await fetch('row_template.html');
+            const response = await fetch('pages/row_template.html');
             const template = await response.text();
             return template;
         }
