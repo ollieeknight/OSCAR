@@ -319,7 +319,7 @@
         }
 
         function editRow(button) {
-            const row = button.parentElement;
+            const row = button.closest('td');
             const span = row.querySelector('.corrected-name');
             const input = row.querySelector('.edit-input');
             const saveButton = row.querySelector('.save-btn');
@@ -331,7 +331,7 @@
         }
 
         function saveRow(button) {
-            const row = button.parentElement;
+            const row = button.closest('td');
             const span = row.querySelector('.corrected-name');
             const input = row.querySelector('.edit-input');
             const editButton = row.querySelector('.edit-btn');
