@@ -26,7 +26,7 @@
         }
         .error { border: 2px solid red; }
         .generate-csv-button { position: absolute; top: 10px; right: 10px; }
-        .csv-name-input { position: absolute; top: 10px; right: 150px; width: 120px; }
+        .csv-name-input { position: relative; margin-top: 10px; margin-right: 150px; width: 120px; }
         .top-bar {
             background-color: #333;
             overflow: hidden;
@@ -74,6 +74,10 @@
         .remove-btn {
             cursor: pointer;
             color: red;
+        }
+        .edit-btn {
+            cursor: pointer;
+            color: blue;
         }
     </style>
 </head>
@@ -194,7 +198,19 @@
             const container = document.getElementById('rowsContainer');
             const correctedName = substituteCharacters(name);
             const newRow = document.createElement('tr');
-            newRow.innerHTML = `<td>${name}</td><td>${correctedName}</td><td>${catalogueNumber}</td><td>${clone}</td><td>${reactivity}</td><td>${barcode}</td><td><span class="remove-btn" onclick="removeRow(this)">Remove</span></td>`;
+            newRow.innerHTML = `
+                <td>${name}</td>
+                <td>
+                    <span class="corrected-name">${correctedName}</span>
+                    <input type="text" class="edit-input" value="${correctedName}" style="display:none;">
+                    <button class="edit-btn" onclick="editRow(this)">Edit</button>
+                    <button class="save-btn" onclick="saveRow(this)" style="display:none;">Save</button>
+                </td>
+                <td>${catalogueNumber}</td>
+                <td>${clone}</td>
+                <td>${reactivity}</td>
+                <td>${barcode}</td>
+                <td><span class="remove-btn" onclick="removeRow(this)">Remove</span></td>`;
             container.appendChild(newRow);
         }
 
@@ -302,6 +318,31 @@
                 .replace(/,/g, '_');
         }
 
+        function editRow(button) {
+            const row = button.parentElement;
+            const span = row.querySelector('.corrected-name');
+            const input = row.querySelector('.edit-input');
+            const saveButton = row.querySelector('.save-btn');
+
+            span.style.display = 'none';
+            input.style.display = 'inline';
+            button.style.display = 'none';
+            saveButton.style.display = 'inline';
+        }
+
+        function saveRow(button) {
+            const row = button.parentElement;
+            const span = row.querySelector('.corrected-name');
+            const input = row.querySelector('.edit-input');
+            const editButton = row.querySelector('.edit-btn');
+
+            span.textContent = input.value;
+            span.style.display = 'inline';
+            input.style.display = 'none';
+            button.style.display = 'none';
+            editButton.style.display = 'inline';
+        }
+
         document.querySelector('.generate-csv-button').addEventListener('click', generateCSV);
 
         function generateCSV() {
@@ -329,16 +370,17 @@
                 sortedRows.forEach(row => {
                     const cells = row.querySelectorAll('td');
                     const marker = substituteCharacters(cells[0].textContent);
+                    const correctedName = cells[1].querySelector('.corrected-name').textContent;
                     const barcode = cells[5].textContent;
-                    csvContent += `${marker},${marker},R2,5PNNNNNNNNNN(BC),${barcode},Antibody Capture\n`;
+                    csvContent += `${correctedName},${correctedName},R2,5PNNNNNNNNNN(BC),${barcode},Antibody Capture\n`;
                 });
             } else if (outputFormat === 'kallisto') {
                 csvContent = 'Feature Barcode name,Feature Barcode sequence\n';
                 sortedRows.forEach(row => {
                     const cells = row.querySelectorAll('td');
-                    const marker = substituteCharacters(cells[0].textContent);
+                    const correctedName = cells[1].querySelector('.corrected-name').textContent;
                     const barcode = cells[5].textContent;
-                    csvContent += `${marker},${barcode}\n`;
+                    csvContent += `${correctedName},${barcode}\n`;
                 });
             }
 
