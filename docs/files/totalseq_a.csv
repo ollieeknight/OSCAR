@@ -1,4 +1,4 @@
-catalogue_number,totalseq_id,marker,clone,reactivity,barcode_sequence
+﻿catalogue_number,totalseq_id,marker,clone,reactivity,barcode_sequence
 100569,0001,CD4,RM4-5,Mouse,AACAAGACCCTTGAG
 100773,0002,CD8a,53-6.7,Mouse,TACCCGTAATAGCGT
 119729,0003,CD366,RMT3-23,Mouse,ATTGGCACTCAGATG
