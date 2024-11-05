@@ -111,6 +111,7 @@
             <div class="form-group">
                 <label for="output-format">Output Format:</label>
                 <select id="output-format">
+                    <option value="" selected disabled>Unselected</option>
                     <option value="cellranger">Cellranger</option>
                     <option value="kallisto">Kallisto</option>
                 </select>
@@ -125,11 +126,12 @@
             <table>
                 <thead>
                     <tr>
-                        <th>ADT Name</th>
+                        <th>Marker Name</th>
+                        <th>Corrected Marker Name</th>
                         <th>Catalogue Number</th>
                         <th>Clone</th>
-                        <th>Species</th>
-                        <th>ADT Barcode</th>
+                        <th>Reactivity</th>
+                        <th>Barcode</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -180,13 +182,15 @@
 
             if (species === 'Human') {
                 markersData = markersData.filter(marker => ['Human', 'Both', 'Epitope'].includes(marker.reactivity));
+            } else if (species === 'Mouse') {
+                markersData = markersData.filter(marker => ['Mouse', 'Both', 'Epitope'].includes(marker.reactivity));
             }
         }
 
-        function addRow(name, catalogueNumber, clone, species, barcode) {
+        function addRow(name, correctedName, catalogueNumber, clone, reactivity, barcode) {
             const container = document.getElementById('rowsContainer');
             const newRow = document.createElement('tr');
-            newRow.innerHTML = `<td>${name}</td><td>${catalogueNumber}</td><td>${clone}</td><td>${species}</td><td>${barcode}</td><td><span class="remove-btn" onclick="removeRow(this)">Remove</span></td>`;
+            newRow.innerHTML = `<td>${name}</td><td>${correctedName}</td><td>${catalogueNumber}</td><td>${clone}</td><td>${reactivity}</td><td>${barcode}</td><td><span class="remove-btn" onclick="removeRow(this)">Remove</span></td>`;
             container.appendChild(newRow);
         }
 
@@ -211,7 +215,8 @@
                     const text = `${marker.marker}: ${marker.clone}: ${marker.catalogue_number}`;
                     div.textContent = text;
                     div.onclick = () => {
-                        addRow(marker.marker, marker.catalogue_number, marker.clone, document.getElementById('species').value, marker.barcode);
+                        const correctedName = substituteCharacters(marker.marker);
+                        addRow(marker.marker, correctedName, marker.catalogue_number, marker.clone, marker.reactivity, marker.barcode);
                         document.getElementById('search').value = '';
                         dropdown.innerHTML = '';
                     };
@@ -236,25 +241,51 @@
         }
 
         function confirmReset(type) {
-            const confirmed = confirm('Changing this will reset all choices. Do you want to proceed?');
-            if (confirmed) {
-                document.getElementById('rowsContainer').innerHTML = '';
-                document.getElementById('species').disabled = false;
-                document.getElementById('format').disabled = false;
-                if (type === 'species') {
-                    filterMarkers();
-                } else if (type === 'format') {
-                    filterMarkers();
+            const speciesElement = document.getElementById('species');
+            const formatElement = document.getElementById('format');
+            const outputFormatElement = document.getElementById('output-format');
+
+            let currentValue;
+            if (type === 'species') {
+                currentValue = speciesElement.value;
+            } else if (type === 'format') {
+                currentValue = formatElement.value;
+            } else if (type === 'output-format') {
+                currentValue = outputFormatElement.value;
+            }
+
+            if (currentValue !== '') {
+                const confirmed = confirm('Changing this will reset all choices. Do you want to proceed?');
+                if (!confirmed) {
+                    return;
                 }
-            } else {
-                if (type === 'species') {
-                    document.getElementById('species').value = 'all';
-                } else if (type === 'format') {
-                    document.getElementById('format').value = 'files/totalseq_a.csv';
-                }
+            }
+
+            document.getElementById('rowsContainer').innerHTML = '';
+            speciesElement.disabled = false;
+            formatElement.disabled = false;
+            outputFormatElement.disabled = false;
+
+            if (type === 'species') {
+                filterMarkers();
+            } else if (type === 'format') {
+                filterMarkers();
             }
         }
 
+        function substituteCharacters(text) {
+    return text
+        .replace(/alpha/gi, 'a')
+        .replace(/beta/gi, 'b')
+        .replace(/gamma/gi, 'g')
+        .replace(/delta/gi, 'd')
+        .replace(/lambda/gi, 'l')
+        .replace(/kappa/gi, 'k')
+        .replace(/\s+/g, '')
+        .replace(/\//g, '-')
+        .replace(/\./g, '_')
+        .replace(/,/g, '_');
+}
         document.querySelector('.generate-csv-button').addEventListener('click', generateCSV);
 
         function generateCSV() {
@@ -280,16 +311,16 @@
                 csvContent = 'id,name,read,pattern,sequence,feature_type\n';
                 sortedRows.forEach(row => {
                     const cells = row.querySelectorAll('td');
-                    const marker = cells[0].textContent;
-                    const barcode = cells[4].textContent;
+                    const marker = substituteCharacters(cells[0].textContent);
+                    const barcode = cells[5].textContent;
                     csvContent += `${marker},${marker},R2,5PNNNNNNNNNN(BC),${barcode},Antibody Capture\n`;
                 });
             } else if (outputFormat === 'kallisto') {
                 csvContent = 'Feature Barcode name,Feature Barcode sequence\n';
                 sortedRows.forEach(row => {
                     const cells = row.querySelectorAll('td');
-                    const marker = cells[0].textContent;
-                    const barcode = cells[4].textContent;
+                    const marker = substituteCharacters(cells[0].textContent);
+                    const barcode = cells[5].textContent;
                     csvContent += `${marker},${barcode}\n`;
                 });
             }
