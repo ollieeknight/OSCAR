@@ -43,12 +43,7 @@
     </style>
 </head>
 <body>
-    <div class="top-bar">
-        <a href="index.html">Home</a>
-        <a href="pages/metadata_file_generator.html">Metadata Generator</a>
-        <a href="pages/adt_file_generator.html">ADT List Generator</a>
-        <a href="pages/references.html">References</a>
-    </div>
+    <div id="topbar-placeholder"></div>
     <div class="container">
         <h1>OSCAR Metadata Generator</h1>
         <button type="button" class="generate-csv-btn">Generate and download .csv</button>
@@ -103,8 +98,24 @@
     </div>
 
     <script>
+        // JavaScript to include the top bar
+        fetch('topbar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('topbar-placeholder').innerHTML = data;
+
+                // Determine the base path
+                const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
+
+                // Set the href attributes
+                document.getElementById('home-link').href = basePath + 'index.html';
+                document.getElementById('metadata-link').href = basePath + 'pages/metadata_file_generator.html';
+                document.getElementById('adt-link').href = basePath + 'pages/adt_file_generator.html';
+                document.getElementById('references-link').href = basePath + 'pages/references.html';
+            });
+
         async function fetchRowTemplate() {
-            const response = await fetch('pages/row_template.html');
+            const response = await fetch('row_template.html');
             const template = await response.text();
             return template;
         }

@@ -17,7 +17,9 @@
         input, select { width: 100%; box-sizing: border-box; }
         button { padding: 5px 10px; margin-top: 10px; }
         select {
-            width: 100%; /* Consistent width with input elements */
+            width: auto; /* Consistent width with input elements */
+            display: inline-block;
+            margin-right: 10px;
         }
         select option {
             width: auto; /* Allow the dropdown menu to scale to the content */
@@ -59,15 +61,18 @@
             position: relative;
             display: inline-block;
         }
+        .form-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .form-group label {
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
-    <div class="top-bar">
-        <a href="index.html">Home</a>
-        <a href="pages/metadata_generator.html">Metadata Generator</a>
-        <a href="pages/adt_file_generator.html">ADT List Generator</a>
-        <a href="pages/references.html">References</a>
-    </div>
+    <div id="topbar-placeholder"></div>
     <div class="container">
         <h1>OSCAR ADT List Generator</h1>
         <button type="button" class="generate-csv-btn">Generate and download .csv</button>
@@ -89,20 +94,23 @@
         </section>        
         
         <form id="csvForm">
-            <label for="species">Select Species:</label>
-            <select id="species" onchange="confirmReset('species')"></select>
-                <option value="all">All</option>
-                <option value="Human">Human</option>
-                <option value="Mouse">Mouse</option>
-            </select>
-            <br><br>
-            <label for="format">Select Format:</label>
-            <select id="format" onchange="confirmReset('format')"></select>
-                <option value="files/totalseq_a.csv">TotalSeq-A</option>
-                <option value="files/totalseq_b.csv">TotalSeq-B</option>
-                <option value="files/totalseq_c.csv">TotalSeq-C</option>
-                <option value="files/totalseq_d.csv">TotalSeq-D</option>
-            </select>
+            <div class="form-group">
+                <label for="species">Select Species:</label>
+                <select id="species" onchange="confirmReset('species')">
+                    <option value="all">All</option>
+                    <option value="Human">Human</option>
+                    <option value="Mouse">Mouse</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="format">Select Format:</label>
+                <select id="format" onchange="confirmReset('format')">
+                    <option value="files/totalseq_a.csv">TotalSeq-A</option>
+                    <option value="files/totalseq_b.csv">TotalSeq-B</option>
+                    <option value="files/totalseq_c.csv">TotalSeq-C</option>
+                    <option value="files/totalseq_d.csv">TotalSeq-D</option>
+                </select>
+            </div>
             <br><br>
             <label for="search">Search Marker:</label>
             <div class="dropdown">
@@ -129,6 +137,22 @@
 
     <script>
         let markersData = [];
+
+        // JavaScript to include the top bar
+        fetch('topbar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('topbar-placeholder').innerHTML = data;
+
+                // Determine the base path
+                const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
+
+                // Set the href attributes
+                document.getElementById('home-link').href = basePath + 'index.html';
+                document.getElementById('metadata-link').href = basePath + 'pages/metadata_file_generator.html';
+                document.getElementById('adt-link').href = basePath + 'pages/adt_file_generator.html';
+                document.getElementById('references-link').href = basePath + 'pages/references.html';
+            });
 
         async function fetchCSV(file) {
             const response = await fetch(`files/${file}`);
