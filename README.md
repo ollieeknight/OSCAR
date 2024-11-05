@@ -4,6 +4,8 @@
 
 **Ollie's Single Cell Analysis for the Romagnani Lab**
 
+<div style="border-top: 2px solid black; width: 50%; margin: 0; padding: 0;"></div>
+
 OSCAR is a comprehensive pipeline designed for processing single-cell RNA, ATAC, and multiome sequencing data.
 
 ## Features
