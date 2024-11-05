@@ -91,24 +91,25 @@
             align-items: center;
             margin-top: 10px;
         }
+        .separator {
+            border-top: 3px solid black;
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
     <div id="topbar-placeholder"></div>
     <div class="container">
-        <h1>OSCAR ADT List Generator</h1>
-        <div class="button-container">
-            <button type="button" class="generate-csv-button">Generate and download .csv</button>
-            <input type="text" id="csvName" class="csv-name-input" placeholder="CSV file name">
-        </div>
-        
+        <h1>Feature barcode reference generator</h1>
+    
         <section>
             <p>
-                This page allows you to generate an ADT list file for use with the <a href="https://github.com/ollieeknight/OSCAR" target="_blank">Romagnani lab OSCAR pipeline for sequencing data analysis</a>.<br>
-                This pipeline takes raw sequencing data and performs cellranger counting, as well as quality control, doublet detection, and donor genotype deconvolution, as detailed in the <a href="https://github.com/ollieeknight/OSCAR" target="_blank">OSCAR pipeline documentation</a>.
+                This page allows you to generate a feature barcode file for <a href="https://www.10xgenomics.com/support/software/cell-ranger/latest" target="_blank">Cell Ranger</a> and (<a href="https://github.com/pachterlab/kite" target="_blank">Kallisto Indexing and Tag Extractor (KITE)</a>).<br>
+                Antibody lists are taken directly from the <a href="https://www.biolegend.com/en-gb/totalseq/barcode-lookup" target="_blank">BioLegend barcode lookup </a> website and slightly reformatted in order to search for the correct names. In a few cases, markers will have been renamed to their CD numbers (<a href="https://www.thefcn.org/mouse-cd-list" target="_blank">mouse </a> and <a href="https://en.wikipedia.org/wiki/List_of_human_clusters_of_differentiation" target="_blank">human</a>), but in any case you can search for the antibody clone and catalogue number on the <a href="https://www.biolegend.com/en-gb/search-results?Applications=PG" target="_blank">BioLegend website</a>.<br>
+                If you're running a 10x scRNA-seq experiment (3prime, 5prime, DOGMA), please select the 'Cellranger' output format. If you're running an ASAP-seq experiment, you'll want the 'Kallisto' output format.
             </p>
-        </section>              
-        
+        </section>
+                     
         <form id="csvForm">
             <div class="form-group">
                 <label for="species">Species:</label>
@@ -157,6 +158,13 @@
                 </tbody>
             </table>
         </form>
+
+        <div class="separator"></div>
+
+        <div class="button-container">
+            <input type="text" id="csvName" class="csv-name-input" placeholder="CSV file name">
+            <button type="button" class="generate-csv-button">Generate and download .csv</button>
+        </div>
     </div>
 
     <script>
