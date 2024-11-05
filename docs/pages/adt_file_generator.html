@@ -143,6 +143,9 @@
 
     <script>
         let markersData = [];
+        let speciesSelected = false;
+        let formatSelected = false;
+        let outputFormatSelected = false;
 
         // JavaScript to include the top bar
         fetch('topbar.html')
@@ -187,8 +190,9 @@
             }
         }
 
-        function addRow(name, correctedName, catalogueNumber, clone, reactivity, barcode) {
+        function addRow(name, catalogueNumber, clone, reactivity, barcode) {
             const container = document.getElementById('rowsContainer');
+            const correctedName = substituteCharacters(name);
             const newRow = document.createElement('tr');
             newRow.innerHTML = `<td>${name}</td><td>${correctedName}</td><td>${catalogueNumber}</td><td>${clone}</td><td>${reactivity}</td><td>${barcode}</td><td><span class="remove-btn" onclick="removeRow(this)">Remove</span></td>`;
             container.appendChild(newRow);
@@ -215,8 +219,7 @@
                     const text = `${marker.marker}: ${marker.clone}: ${marker.catalogue_number}`;
                     div.textContent = text;
                     div.onclick = () => {
-                        const correctedName = substituteCharacters(marker.marker);
-                        addRow(marker.marker, correctedName, marker.catalogue_number, marker.clone, marker.reactivity, marker.barcode);
+                        addRow(marker.marker, marker.catalogue_number, marker.clone, marker.reactivity, marker.barcode);
                         document.getElementById('search').value = '';
                         dropdown.innerHTML = '';
                     };
@@ -248,10 +251,24 @@
             let currentValue;
             if (type === 'species') {
                 currentValue = speciesElement.value;
+                if (!speciesSelected) {
+                    speciesSelected = true;
+                    filterMarkers();
+                    return;
+                }
             } else if (type === 'format') {
                 currentValue = formatElement.value;
+                if (!formatSelected) {
+                    formatSelected = true;
+                    filterMarkers();
+                    return;
+                }
             } else if (type === 'output-format') {
                 currentValue = outputFormatElement.value;
+                if (!outputFormatSelected) {
+                    outputFormatSelected = true;
+                    return;
+                }
             }
 
             if (currentValue !== '') {
@@ -266,26 +283,23 @@
             formatElement.disabled = false;
             outputFormatElement.disabled = false;
 
-            if (type === 'species') {
-                filterMarkers();
-            } else if (type === 'format') {
+            if (type === 'species' || type === 'format') {
                 filterMarkers();
             }
         }
 
         function substituteCharacters(text) {
-    return text
-        .replace(/alpha/gi, 'a')
-        .replace(/beta/gi, 'b')
-        .replace(/gamma/gi, 'g')
-        .replace(/delta/gi, 'd')
-        .replace(/lambda/gi, 'l')
-        .replace(/kappa/gi, 'k')
-        .replace(/\s+/g, '')
-        .replace(/\//g, '-')
-        .replace(/\./g, '_')
-        .replace(/,/g, '_');
-}
+            return text
+                .replace(/alpha/gi, 'a')
+                .replace(/beta/gi, 'b')
+                .replace(/gamma/gi, 'g')
+                .replace(/delta/gi, 'd')
+                .replace(/\s+/g, '')
+                .replace(/\//g, '-')
+                .replace(/\./g, '_')
+                .replace(/,/g, '_');
+        }
+
         document.querySelector('.generate-csv-button').addEventListener('click', generateCSV);
 
         function generateCSV() {
