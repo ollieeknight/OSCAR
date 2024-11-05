@@ -41,17 +41,25 @@
             background-color: #ddd;
             color: black;
         }
+        .last-updated {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #555;
+        }
     </style>
 </head>
 <body>
     <div id="topbar-placeholder"></div>
     <div class="container">
         <h1>Welcome to the OSCAR Project</h1>
+        <div class="last-updated" id="last-updated">Last updated: Loading...</div>
         <div class="content">
             <p>This project provides tools for generating metadata and ADT lists for the OSCAR pipeline.</p>
             <a href="pages/metadata_file_generator.html">Go to Metadata Generator</a>
         </div>
     </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/timeago.js/4.0.2/timeago.min.js"></script>
     <script>
         // JavaScript to include the top bar
         fetch('pages/topbar.html')
@@ -67,6 +75,19 @@
                 document.getElementById('metadata-link').href = basePath + 'pages/metadata_file_generator.html';
                 document.getElementById('adt-link').href = basePath + 'pages/adt_file_generator.html';
                 document.getElementById('references-link').href = basePath + 'pages/references.html';
+            });
+
+        // JavaScript to fetch the last commit date from GitHub API
+        fetch('https://api.github.com/repos/your-username/your-repo/commits?path=docs')
+            .then(response => response.json())
+            .then(data => {
+                const lastCommitDate = new Date(data[0].commit.committer.date);
+                const timeagoInstance = timeago();
+                document.getElementById('last-updated').textContent = `Last updated: ${timeagoInstance.format(lastCommitDate)}`;
+            })
+            .catch(error => {
+                console.error('Error fetching last commit date:', error);
+                document.getElementById('last-updated').textContent = 'Last updated: Error fetching date';
             });
     </script>
 </body>
