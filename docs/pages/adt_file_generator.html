@@ -25,8 +25,8 @@
             width: auto;
         }
         .error { border: 2px solid red; }
-        .generate-csv-button { position: absolute; top: 10px; right: 10px; }
-        .csv-name-input { position: relative; margin-top: 10px; margin-right: 150px; width: 120px; }
+        .generate-csv-button { position: relative; }
+        .csv-name-input { position: relative; margin-top: 10px; margin-left: 10px; width: 120px; }
         .top-bar {
             background-color: #333;
             overflow: hidden;
@@ -79,14 +79,28 @@
             cursor: pointer;
             color: blue;
         }
+        .corrected-name-container {
+            display: flex;
+            align-items: center;
+        }
+        .corrected-name-container span {
+            flex-grow: 1;
+        }
+        .button-container {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
     <div id="topbar-placeholder"></div>
     <div class="container">
         <h1>OSCAR ADT List Generator</h1>
-        <input type="text" id="csvName" class="csv-name-input" placeholder="CSV file name">
-        <button type="button" class="generate-csv-button generate-csv-button">Generate and download .csv</button>
+        <div class="button-container">
+            <button type="button" class="generate-csv-button">Generate and download .csv</button>
+            <input type="text" id="csvName" class="csv-name-input" placeholder="CSV file name">
+        </div>
         
         <section>
             <p>
@@ -201,10 +215,12 @@
             newRow.innerHTML = `
                 <td>${name}</td>
                 <td>
-                    <span class="corrected-name">${correctedName}</span>
-                    <input type="text" class="edit-input" value="${correctedName}" style="display:none;">
-                    <button class="edit-btn" onclick="editRow(event, this)">Edit</button>
-                    <button class="save-btn" onclick="saveRow(event, this)" style="display:none;">Save</button>
+                    <div class="corrected-name-container">
+                        <span class="corrected-name">${correctedName}</span>
+                        <input type="text" class="edit-input" value="${correctedName}" style="display:none;">
+                        <button class="edit-btn" onclick="editRow(event, this)">Edit</button>
+                        <button class="save-btn" onclick="saveRow(event, this)" style="display:none;">Save</button>
+                    </div>
                 </td>
                 <td>${catalogueNumber}</td>
                 <td>${clone}</td>
@@ -347,53 +363,57 @@
         document.querySelector('.generate-csv-button').addEventListener('click', generateCSV);
 
         function generateCSV() {
-            const rows = Array.from(document.querySelectorAll('#rowsContainer tr'));
-            const outputFormat = document.getElementById('output-format').value;
-            const csvName = document.getElementById('csvName').value || 'adt_list';
-            let csvContent = '';
+    const outputFormat = document.getElementById('output-format').value;
+    if (!outputFormat) {
+        alert('Please select an output format.');
+        return;
+    }
 
-            // Separate rows with 'Hashtag' in the marker column
-            const hashtagRows = rows.filter(row => row.querySelector('td').textContent.includes('Hashtag'));
-            const nonHashtagRows = rows.filter(row => !row.querySelector('td').textContent.includes('Hashtag'));
+    const rows = Array.from(document.querySelectorAll('#rowsContainer tr'));
+    const csvName = document.getElementById('csvName').value || 'adt_list';
+    let csvContent = '';
 
-            // Sort non-hashtag rows alphabetically by the first column (marker)
-            nonHashtagRows.sort((a, b) => {
-                const markerA = a.querySelector('td').textContent.toLowerCase();
-                const markerB = b.querySelector('td').textContent.toLowerCase();
-                return markerA.localeCompare(markerB);
-            });
+    // Separate rows with 'Hashtag' in the marker column
+    const hashtagRows = rows.filter(row => row.querySelector('td').textContent.includes('Hashtag'));
+    const nonHashtagRows = rows.filter(row => !row.querySelector('td').textContent.includes('Hashtag'));
 
-            // Combine sorted non-hashtag rows and hashtag rows
-            const sortedRows = nonHashtagRows.concat(hashtagRows);
+    // Sort non-hashtag rows alphabetically by the first column (marker)
+    nonHashtagRows.sort((a, b) => {
+        const markerA = a.querySelector('td').textContent.toLowerCase();
+        const markerB = b.querySelector('td').textContent.toLowerCase();
+        return markerA.localeCompare(markerB);
+    });
 
-            if (outputFormat === 'cellranger') {
-                csvContent = 'id,name,read,pattern,sequence,feature_type\n';
-                sortedRows.forEach(row => {
-                    const cells = row.querySelectorAll('td');
-                    const marker = substituteCharacters(cells[0].textContent);
-                    const correctedName = cells[1].querySelector('.corrected-name').textContent;
-                    const barcode = cells[5].textContent;
-                    csvContent += `${correctedName},${correctedName},R2,5PNNNNNNNNNN(BC),${barcode},Antibody Capture\n`;
-                });
-            } else if (outputFormat === 'kallisto') {
-                csvContent = 'Feature Barcode name,Feature Barcode sequence\n';
-                sortedRows.forEach(row => {
-                    const cells = row.querySelectorAll('td');
-                    const correctedName = cells[1].querySelector('.corrected-name').textContent;
-                    const barcode = cells[5].textContent;
-                    csvContent += `${correctedName},${barcode}\n`;
-                });
-            }
+    // Combine sorted non-hashtag rows and hashtag rows
+    const sortedRows = nonHashtagRows.concat(hashtagRows);
 
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${csvName}.csv`;
-            document.body.appendChild(a);
-            a.click();
-        }
+    if (outputFormat === 'cellranger') {
+        csvContent = 'id,name,read,pattern,sequence,feature_type\n';
+        sortedRows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            const marker = substituteCharacters(cells[0].textContent);
+            const correctedName = cells[1].querySelector('.corrected-name').textContent;
+            const barcode = cells[5].textContent;
+            csvContent += `${correctedName},${correctedName},R2,5PNNNNNNNNNN(BC),${barcode},Antibody Capture\n`;
+        });
+    } else if (outputFormat === 'kallisto') {
+        csvContent = 'Feature Barcode name,Feature Barcode sequence\n';
+        sortedRows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            const correctedName = cells[1].querySelector('.corrected-name').textContent;
+            const barcode = cells[5].textContent;
+            csvContent += `${correctedName},${barcode}\n`;
+        });
+    }
 
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${csvName}.csv`;
+    document.body.appendChild(a);
+    a.click();
+}
         document.addEventListener('DOMContentLoaded', () => {
             filterMarkers();
         });
