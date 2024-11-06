@@ -4,7 +4,7 @@
 
 **Ollie's Single Cell Analysis for the Romagnani Lab**
 
-<div style="border-top: 2px solid black; width: 50%; margin: 0; padding: 0;"></div>
+```markdown
 
 OSCAR is a comprehensive pipeline designed for processing single-cell RNA, ATAC, and multiome sequencing data.
 
@@ -12,9 +12,9 @@ OSCAR is a comprehensive pipeline designed for processing single-cell RNA, ATAC,
 - **Comprehensive metadata tracking**: Generate your metadata file [here](https://ollieeknight.github.io/OSCAR/) and keep track of sequencing runs.
 - **FASTQ demultiplexing and QC**: Takes a raw bcl folder and demultiplexes FASTQ files, performs `fastqc` and `multiqc`.
 - **scRNA pipeline**: Utilises `cellranger` for counting (with and without ADT/HTO), performs ambient-RNA correction with `CellBender`, and donor genotyping demultiplexing with `cellsnp-lite` and `vireo`.
-- **scATAC pipeiline**: Utilises `cellranger` for counting, AMULET for doublet prediction, donor genotyping demultiplexing with `cellsnp-lite` and `vireo`, and for ASAP-seq performs ADT/HTO counting with `kallisto.
+- **scATAC pipeiline**: Utilises `cellranger` for counting, AMULET for doublet prediction, donor genotyping demultiplexing with `cellsnp-lite` and `vireo`, and for ASAP-seq performs ADT/HTO counting with `kallisto`.
 - **Multiome pipeline**: All of the above
-- **Multiple sequencing run integration** Integrate sequenced libraries from several runs into one output folder.
+- **Multiple sequencing run integration**: Integrate sequenced libraries from several runs into one output folder.
 
 ## Getting Started
 
@@ -28,7 +28,7 @@ To get started with OSCAR, please follow these instructions:
 2. There are two Apptainer images: `oscar-count.sif` for the counting steps, and `oscar-qc.sif` for post-counting steps.
    ```bash
    mkdir -p ${TMPDIR}/OSCAR
-   apptainer pull library://romagnanilab/oscar/oscar-qc:latest --dir ${TMPDIR}/OSCAR/
+   apptainer pull library://romagnanilab/oscar/oscar-count:latest --dir ${TMPDIR}/OSCAR/
    apptainer pull library://romagnanilab/oscar/oscar-qc:latest --dir ${TMPDIR}/OSCAR/
    ```
 3. Reference genomes are also required, and build steps can be found under `reference/`.
