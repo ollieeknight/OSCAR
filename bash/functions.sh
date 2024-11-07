@@ -55,16 +55,16 @@ check_and_pull_oscar_containers() {
     if [ ! -f "${container}" ]; then
         echo "oscar-count_latest.sif singularity file not found, pulling..."
         mkdir -p "${TMPDIR}/OSCAR"
-        apptainer pull --dir "${TMPDIR}/OSCAR" library://romagnanilab/default/oscar-count:latest
+        apptainer pull --dir "${TMPDIR}/OSCAR" library://romagnanilab/oscar/oscar-count:latest
     fi
 
-        # container="${TMPDIR}/OSCAR/oscar-qc_latest.sif"
+    container="${TMPDIR}/OSCAR/oscar-qc_latest.sif"
     
-    # if [ ! -f "${container}" ]; then
-    #     echo "oscar-qc_latest.sif singularity file not found, pulling..."
-    #     mkdir -p "${TMPDIR}/OSCAR"
-    #     apptainer pull --dir "${TMPDIR}/OSCAR" library://romagnanilab/default/oscar-qc:latest
-    # fi
+    if [ ! -f "${container}" ]; then
+        echo "oscar-qc_latest.sif singularity file not found, pulling..."
+        mkdir -p "${TMPDIR}/OSCAR"
+        apptainer pull --dir "${TMPDIR}/OSCAR" library://romagnanilab/oscar/oscar-qc:latest
+    fi
 }
 
 check_base_masks_step1() {
