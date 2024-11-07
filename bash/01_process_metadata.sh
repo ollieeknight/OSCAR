@@ -6,8 +6,6 @@ source "${oscar_dir}/functions.sh"  # Source the functions script
 dir_prefix="${HOME}/scratch/ngs"  # Default directory prefix
 metadata_file_name="metadata.csv"  # Default metadata file name
 
-check_project_id  # Function to check the project ID
-
 # Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
   if [[ "$1" == --* ]]; then
@@ -19,6 +17,8 @@ while [[ "$#" -gt 0 ]]; do
     exit 1  # Exit with error code
   fi
 done
+
+check_project_id  # Function to check the project ID
 
 # Set project directories
 project_dir="${dir_prefix}/${project_id}"

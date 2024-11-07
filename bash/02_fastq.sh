@@ -6,9 +6,6 @@ source "${oscar_dir}/functions.sh"
 dir_prefix="${HOME}/scratch/ngs"
 metadata_file_name="metadata.csv"
 
-# Check if project_id is set
-check_project_id
-
 # Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
   if [[ "$1" == --* ]]; then
@@ -20,6 +17,8 @@ while [[ "$#" -gt 0 ]]; do
     exit 1
   fi
 done
+
+check_project_id
 
 # Set project directories
 project_dir="${dir_prefix}/${project_id}"

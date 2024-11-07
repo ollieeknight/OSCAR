@@ -13,9 +13,6 @@ vdj_options=""
 adt_options=""
 mode=""
 
-# Check if project_id is set
-check_project_id
-
 # Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
     if [[ "$1" == --* ]]; then
@@ -27,6 +24,8 @@ while [[ "$#" -gt 0 ]]; do
         exit 1
     fi
 done
+
+check_project_id
 
 # Split project_ids, gene_expression_options, vdj_options, and adt_options into arrays
 IFS=',' read -r -a project_ids <<< "${project_ids}"
