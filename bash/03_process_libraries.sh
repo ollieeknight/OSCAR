@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/bash
 
 # Enable debugging
 set -x
@@ -16,7 +16,8 @@ mode=""
 # Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
     if [[ "$1" == --* ]]; then
-        var_name=$(echo "$1" | sed 's/--//; s/-/_/')
+        var_name="${1#--}"
+        var_name="${var_name//-/_}"
         declare "$var_name"="$2"
         shift 2
     else
@@ -28,7 +29,7 @@ done
 check_project_id
 
 # Split project_ids, gene_expression_options, vdj_options, and adt_options into arrays
-IFS=',' read -r -a project_ids <<< "${project_ids}"
+IFS=',' read -r -a project_ids <<< "${project_id}"
 IFS=';' read -r -a gene_expression_options <<< "${gene_expression_options}"
 IFS=';' read -r -a vdj_options <<< "${vdj_options}"
 IFS=';' read -r -a adt_options <<< "${adt_options}"
