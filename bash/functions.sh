@@ -209,131 +209,185 @@ check_base_masks_step3() {
   echo "${cellranger_command// /.}" "${index_type// /.}" "${filter_option// /.}" "${base_mask// /.}"
 }
 
-# Function to check and print options for a given array
-print_options() {
-    local array_name="$1"
-    local array_ref=("${!2}")
-    local label="$3"
+validate_mode() {
+    local mode=$1
 
-    if [ ${#array_ref[@]} -gt 0 ]; then
-        echo "${label} set as:"
-        for option in "${array_ref[@]}"; do
+    # Check if mode is specified
+    if [[ -z "${mode}" ]]; then
+        echo -e "\033[0;31mERROR:\033[0m  Please specify the mode using the --mode option (ATAC or GEX)."
+        exit 1
+    fi
+
+    # Validate mode
+    if [[ "${mode}" != "ATAC" && "${mode}" != "GEX" ]]; then
+        echo -e "\033[0;31mERROR:\033[0m Invalid mode. Mode must be either 'ATAC' or 'GEX'."
+        exit 1
+    fi
+}
+
+print_options() {
+    local options=("$@")
+    local option_name=$1
+    shift
+    local option_values=("$@")
+
+    if [ ${#option_values[@]} -gt 0 ]; then
+        echo "${option_name} options set as:"
+        for option in "${option_values[@]}"; do
             echo "${option}"
         done
     else
-        echo "No options set for ${label,,}"  # Convert label to lowercase
+        echo "No options set for ${option_name}"
     fi
 }
 
-process_library_files() {
-    local library_type="$1"
-    local library_output="$2"
+determine_full_modality() {
+    local modality=$1
+    local library=$2
+    local full_modality=""
 
-    if [[ "${run_type}" == "${library_type}" && "${mode}" == "${library_type}" ]]; then
-        if [[ "${modality}" == 'GEX' ]]; then
-            handle_gex "${library_output}"
-        elif [[ "${modality}" =~ ^(ADT|HTO|VDJ-T|VDJ-B|CRISPR)$ ]]; then
-            handle_other "${library_output}"
-        fi
+    # Determine the full-length modality name based on its shortened name
+    if [ "${modality}" = "GEX" ]; then
+        full_modality='Gene Expression'
+    elif [ "${modality}" = "ADT" ] || [ "${modality}" = "HTO" ]; then
+        full_modality='Antibody Capture'
+    elif [ "${modality}" = "VDJ-T" ]; then
+        full_modality='VDJ-T'
+    elif [ "${modality}" = "VDJ-B" ]; then
+        full_modality='VDJ-B'
+    elif [ "${modality}" = "CRISPR" ]; then
+        full_modality='CRISPR Guide Capture'
+    elif [ "${modality}" = "GENO" ]; then
+        return 1
     fi
+
+    echo "Adding ${full_modality} for ${library}"
+    echo "${full_modality}"
 }
 
-handle_gex() {
-    local library_output="$1"
-    # Check for existing output file
-    if [[ -f "${library_output}" ]]; then
-        return
-    fi
-
-    echo "Writing ${modality} for ${library}"
-
-    if [[ "${species}" =~ ^(Human|human|Hs|hs)$ ]]; then
-        write_human_gex "${library_output}"
-    elif [[ "${species}" =~ ^(Mouse|mouse|Mm|mm)$ ]]; then
-        write_mouse_gex "${library_output}"
-    fi
-
-    # Handle ADT data if specified
-    if [[ "${adt_file}" != "NA" ]]; then
-        echo "" >> "${library_output}"
-        echo "[feature]" >> "${library_output}"
-        echo "reference,$project_scripts/ADT_files/${adt_file}.csv" >> "${library_output}"
-        if [[ -n "${adt_options}" ]]; then
-            IFS=',' read -ra values <<< "${adt_options}"
-            for value in "${values[@]}"; do
-                echo "${value}" >> "${library_output}"
-            done
-        fi
-    fi
-
-    echo "" >> "${library_output}"
-    echo "[libraries]" >> "${library_output}"
-    echo "fastq_id,fastqs,feature_types" >> "${library_output}"
-
-    # Process fastq files
-    write_fastq_files "${library_output}"
-}
-
-write_human_gex() {
-    local library_output="$1"
-    echo "[gene-expression]" >> "${library_output}"
-    echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/hs/GRCh38-hardmasked-optimised-arc" >> "${library_output}"
-    echo "create-bam,true" >> "${library_output}"
-    add_options "${library_output}" "${gene_expression_options}"
-
-    if [[ "${assay}" == "DOGMA" || "${assay}" == "MULTIOME" ]]; then
-        echo "chemistry,ARC-v1" >> "${library_output}"
-    fi
-
-    echo "" >> "${library_output}"
-    echo "[vdj]" >> "${library_output}"
-    echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/hs/GRCh38-IMGT-VDJ-2024" >> "${library_output}"
-    add_options "${library_output}" "${vdj_options}"
-}
-
-write_mouse_gex() {
-    local library_output="$1"
-    echo "[gene-expression]" >> "${library_output}"
-    echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/mm/GRCm38-hardmasked-optimised-arc" >> "${library_output}"
-    echo "create-bam,true" >> "${library_output}"
-    add_options "${library_output}" "${gene_expression_options}"
-
-    if [[ "${assay}" == "DOGMA" || "${assay}" == "MULTIOME" ]]; then
-        echo "chemistry,ARC-v1" >> "${library_output}"
-    fi
-
-    echo "" >> "${library_output}"
-    echo "[vdj]" >> "${library_output}"
-    echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/mm/GRCm38-IMGT-VDJ-2024" >> "${library_output}"
-    add_options "${library_output}" "${vdj_options}"
-}
-
-add_options() {
-    local library_output="$1"
-    local options="$2"
-    if [[ -n "${options}" && "${options}" != "NA" ]]; then
-        IFS=';' read -ra values <<< "${options}"
-        for value in "${values[@]}"; do
-            echo "${value}" >> "${library_output}"
-        done
-    fi
-}
-
-write_fastq_files() {
-    local library_output="$1"
-    declare -A unique_lines
-    for folder in "${project_dir}/${project_id}_fastq"/*/outs; do
-        matching_fastq_files=($(find "${folder}" -type f -name "${library}*${modality}*" | sort -u))
-        for fastq_file in "${matching_fastq_files[@]}"; do
-            directory=$(dirname "${fastq_file}")
-            fastq_name=$(basename "${fastq_file}" | sed -E 's/\.fastq\.gz$//; s/(_S[0-9]+)?(_[SL][0-9]+_[IR][0-9]+_[0-9]+)*$//')
-            line_identifier="${fastq_name},${directory},${full_modality}"
-
-            if [ ! -v unique_lines["${line_identifier}"] ]; then
-                unique_lines["${line_identifier}"]=1
-                echo "${fastq_name},${directory},${full_modality}" >> "${library_output}"
-                echo "Writing ${fastq_name},${directory},${full_modality} to ${library_output}"
+        write_human_reference() {
+            echo "Writing human reference files for ${library}"
+            echo "[gene-expression]" >> "${library_output}"
+            echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/hs/GRCh38-hardmasked-optimised-arc" >> "${library_output}"
+            echo "create-bam,true" >> "${library_output}"
+            if [ -n "${gene_expression_options}" ] && [ "${gene_expression_options}" != "NA" ]; then
+                IFS=';' read -ra values <<< "${gene_expression_options}"
+                for value in "${values[@]}"; do
+                    echo "${value}" >> "${library_output}"
+                done
             fi
-        done
-    done
-}
+            if [ "${assay}" == "DOGMA" ] || [ "${assay}" == "MULTIOME" ]; then
+                echo "chemistry,ARC-v1" >> "${library_output}"
+            fi
+            echo "" >> "${library_output}"
+            echo "[vdj]" >> "${library_output}"
+            echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/hs/GRCh38-IMGT-VDJ-2024" >> "${library_output}"
+            if [ "${vdj_options}" != "NA" ]; then
+                IFS=',' read -ra values <<< "${vdj_options}"
+                for value in "${values[@]}"; do
+                    echo "${value}" >> "${library_output}"
+                done
+            fi
+        }
+
+        write_mouse_reference() {
+            echo "[gene-expression]" >> "${library_output}"
+            echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/mm/GRCm38-hardmasked-optimised-arc" >> "${library_output}"
+            echo "create-bam,true" >> "${library_output}"
+            if [ -n "${gene_expression_options}" ] && [ "${gene_expression_options}" != "NA" ]; then
+                IFS=';' read -ra values <<< "${gene_expression_options}"
+                for value in "${values[@]}"; do
+                    echo "${value}" >> "${library_output}"
+                done
+            fi
+            if [ "${assay}" == "DOGMA" ] || [ "${assay}" == "MULTIOME" ]; then
+                echo "chemistry,ARC-v1" >> "${library_output}"
+            fi
+            echo "" >> "${library_output}"
+            echo "[vdj]" >> "${library_output}"
+            echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/mm/GRCm38-IMGT-VDJ-2024" >> "${library_output}"
+            if [ -n "${vdj_options}" ] && [ "${vdj_options}" != "NA" ]; then
+                IFS=',' read -ra values <<< "${vdj_options}"
+                for value in "${values[@]}"; do
+                    echo "${value}" >> "${library_output}"
+                done
+            fi
+        }
+
+        write_adt_data() {
+            echo "" >> "${library_output}"
+            echo "[feature]" >> "${library_output}"
+            echo "reference,$project_scripts/ADT_files/${adt_file}.csv" >> "${library_output}"
+            if [ "${adt_options}" != "" ]; then
+                IFS=',' read -ra values <<< "${adt_options}"
+                for value in "${values[@]}"; do
+                    echo "${value}" >> "${library_output}"
+                done
+            fi
+        }
+
+        write_fastq_files() {
+            declare -A unique_lines
+            for folder in "${project_dir}/${project_id}_fastq"/*/outs; do
+                matching_fastq_files=($(find "${folder}" -type f -name "${library}*${modality}*" | sort -u))
+                for fastq_file in "${matching_fastq_files[@]}"; do
+                    directory=$(dirname "${fastq_file}")
+                    fastq_name=$(basename "${fastq_file}" | sed -E 's/\.fastq\.gz$//' | sed -E 's/(_S[0-9]+)?(_[SL][0-9]+_[IR][0-9]+_[0-9]+)*$//')
+                    line_identifier="${fastq_name},${directory},${full_modality}"
+                    if [ ! -v unique_lines["${line_identifier}"] ]; then
+                        unique_lines["${line_identifier}"]=1
+                        echo "${fastq_name},${directory},${full_modality}" >> "${library_output}"
+                        echo "Writing ${fastq_name},${directory},${full_modality} to ${library}"
+                    fi
+                done
+            done
+        }
+
+        handle_gex_mode() {
+            if [[ "${modality}" == 'GEX' ]]; then
+                if [ ! -f "${library_output}" ]; then
+                    if [[ "${species}" =~ ^(Human|human|Hs|hs)$ ]]; then
+                        write_human_reference
+                    elif [[ "${species}" =~ ^(Mouse|mouse|Mm|mm)$ ]]; then
+                        write_mouse_reference
+                    fi
+                    if [ "${adt_file}" != "NA" ]; then
+                        write_adt_data
+                    fi
+                    echo "Writing ${modality} for ${library}"
+                    echo "" >> "${library_output}"
+                    echo "[libraries]" >> "${library_output}"
+                    echo "fastq_id,fastqs,feature_types" >> "${library_output}"
+                fi
+            elif [[ "${modality}" == 'HTO' || "${modality}" == 'ADT' || "${modality}" == 'VDJ-T' || "${modality}" == 'VDJ-B' || "${modality}" == 'CRISPR' ]]; then
+                if [[ -f ${library_output} ]]; then
+                    :
+                else
+                    echo -e "\033[0;31mERROR:\033[0m Please ensure that in the metadata file, GEX libraries for all samples are first, before ADT/HTO/VDJ-T/CRISPR"
+                    exit 1
+                fi
+            fi
+            write_fastq_files
+        }
+
+        handle_atac_mode() {
+            if [[ (${modality} == 'ADT' || ${modality} == 'HTO') && ${assay} != 'ASAP' ]]; then
+                if [[ -f ${library_output} ]]; then
+                    :
+                else
+                    echo -e "\033[0;31mERROR:\033[0m If you're trying to combine DOGMA ADT/HTO to a DOGMA GEX, please make sure the output directory is of the run containing the GEX FASTQ files"
+                    echo -e "\033[0;31mERROR:\033[0m The reference part of the csv file needs to be initialised"
+                    exit 1
+                fi
+                write_fastq_files
+            elif [[ (${modality} == 'ADT' || ${modality} == 'HTO') && ${assay} == 'ASAP' ]]; then
+                library_output=${output_project_libraries}/${library}_ADT.csv
+                write_fastq_files
+            elif [[ ${modality} == 'ATAC' ]]; then
+                write_fastq_files
+            else
+                echo -e "\033[0;31mERROR:\033[0m Cannot determine modality for this ATAC run. Are you sure the only modalities are either ATAC, ADT, or HTO?"
+                echo -e "\033[0;31mERROR:\033[0m Library: ${library}, modality: ${modality}"
+                exit 1
+            fi
+        }
