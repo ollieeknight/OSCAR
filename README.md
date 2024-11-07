@@ -4,8 +4,6 @@
 
 **Ollie's Single Cell Analysis for the Romagnani Lab**
 
-```markdown
-
 OSCAR is a comprehensive pipeline designed for processing single-cell RNA, ATAC, and multiome sequencing data.
 
 ## Features
@@ -25,12 +23,14 @@ To get started with OSCAR, please follow these instructions:
    cd $HOME/work/bin/
    git clone https://github.com/ollieeknight/OSCAR
    ```
+
 2. There are two Apptainer images: `oscar-count.sif` for the counting steps, and `oscar-qc.sif` for post-counting steps.
    ```bash
    mkdir -p ${TMPDIR}/OSCAR
    apptainer pull library://romagnanilab/oscar/oscar-count:latest --dir ${TMPDIR}/OSCAR/
    apptainer pull library://romagnanilab/oscar/oscar-qc:latest --dir ${TMPDIR}/OSCAR/
    ```
+
 3. Reference genomes are also required, and build steps can be found under `reference/`.
 
    For any questions, please e-mail me at `oliver.knight@charite.de`!
