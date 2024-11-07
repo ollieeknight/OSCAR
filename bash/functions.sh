@@ -2,8 +2,8 @@
 
 # Function to check if project_id is defined
 check_project_id() {
-    if [ -z "${project-id}" ]; then
-        echo -e "\033[0;31mERROR:\033[0m project-id is not defined. Please provide --project-id"
+    if [ -z "${project_id}" ]; then
+        echo -e "\033[0;31mERROR:\033[0m project_id is not defined. Please provide --project-id"
         exit 1
     fi
 }
