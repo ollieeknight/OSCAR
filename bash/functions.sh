@@ -261,7 +261,6 @@ determine_full_modality() {
         return 1
     fi
 
-    echo "Adding ${full_modality} for ${library}"
     echo "${full_modality}"
 }
 
