@@ -28,21 +28,13 @@ h1 {
     font-size: 0.9em;
     color: #555;
 }
-body { font-family: 'Roboto', sans-serif; }
-th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-family: 'Roboto', sans-serif; }
-th { background-color: #f2f2f2; }
-tr:nth-child(even) { background-color: #f9f9f9; }
-tr:hover { background-color: #f1f1f1; }
-input, select { width: 100%; box-sizing: border-box; }
-button { padding: 5px 10px; margin-top: 10px; }
 select {
-    width: 100%; /* Consistent width with input elements */
+    width: auto;
+    min-width: 100px; /* Adjust as needed */
 }
 select option {
     width: auto; /* Allow the dropdown menu to scale to the content */
 }
-.error { border: 2px solid red; }
-.generate-csv-btn { position: absolute; top: 10px; right: 10px; }
 .top-bar {
     background-color: #333;
     overflow: hidden;
