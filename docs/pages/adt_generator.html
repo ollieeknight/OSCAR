@@ -5,7 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ADT Generator</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="">
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
+            document.querySelector('link[rel="stylesheet"]').href = basePath + 'styles.css';
+        });
+    </script>
     <style>
         body { font-family: 'Roboto', sans-serif; }
         .container { max-width: 100%; margin: 0 auto; padding: 10px; box-sizing: border-box; position: relative; }
@@ -47,7 +53,7 @@
     <div id="topbar-placeholder"></div>
     <div class="container">
         <h1>OSCAR ADT Generator</h1>
-        <button type="button" class="generate-csv-btn">Generate and download .csv</button>
+        <button type="button" class="generate-csv-button">Generate and download .csv</button>
         
         <section>
             <p>
@@ -90,15 +96,19 @@
     </div>
 
     <script>
-        async function fetchRowTemplate() {
-            const response = await fetch('../pages/row_template.html');
-            const template = await response.text();
-            return template;
+
+        let cachedTemplate = null;
+
+        async function fetchRowTemplateCached() {
+            if (!cachedTemplate) {
+                cachedTemplate = await fetchRowTemplate();
+            }
+            return cachedTemplate;
         }
 
         async function addRow() {
             const container = document.getElementById('rowsContainer');
-            const template = await fetchRowTemplate();
+            const template = await fetchRowTemplateCached();
             const newRow = document.createElement('tr');
             newRow.innerHTML = template;
             container.appendChild(newRow);
@@ -106,9 +116,9 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             document.querySelector('.add-row-btn').addEventListener('click', addRow);
-            document.querySelector('.generate-csv-btn').addEventListener('click', generateCSV);
+            document.querySelector('.generate-csv-button').addEventListener('click', generateCSV);
             const container = document.getElementById('rowsContainer');
-            const template = await fetchRowTemplate();
+            const template = await fetchRowTemplateCached();
             const firstRow = document.createElement('tr');
             firstRow.innerHTML = template;
             container.appendChild(firstRow);
@@ -138,27 +148,32 @@
         function validateRow(row) {
             const inputs = row.querySelectorAll('input, select');
             const values = Array.from(inputs).map(input => input.value || 'NA');
-            let rowValid = true;
+            const rowValid = validateInputs(inputs);
+            return { rowValid, values };
+        }
 
+        function validateInputs(inputs) {
+            let allValid = true;
             inputs.forEach(input => {
                 if (input.value === '') {
                     input.classList.add('error');
-                    rowValid = false;
+                    allValid = false;
                 } else {
                     input.classList.remove('error');
                 }
             });
-
-            return { rowValid, values };
-        }
+        const downloadLink = document.createElement('a');
+        document.body.appendChild(downloadLink);
+        downloadLink.style.display = 'none';
 
         function downloadCSV(csvContent) {
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'adt.csv'; // Output file name
-            document.body.appendChild(a);
+            downloadLink.href = url;
+            downloadLink.download = 'adt.csv'; // Output file name
+            downloadLink.click();
+            URL.revokeObjectURL(url);
+        }
             a.click();
             document.body.removeChild(a);
         }
@@ -179,7 +194,7 @@
                 document.getElementById('references-link').href = basePath + 'pages/references.html';
             })
             .catch(error => {
-                console.error('Error fetching topbar:', error);
+                console.error('Error fetching topbar.html:', error);
             });
     </script>
 </body>
