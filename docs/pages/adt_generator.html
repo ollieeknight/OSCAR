@@ -335,26 +335,30 @@ if (outputFormat === 'cellranger') {
         });
 
         
-            // JavaScript to include the top bar
-            fetch('topbar.html')
-                .then(response => response.text())
-                .then(data => {
-                    document.getElementById('topbar-placeholder').innerHTML = data;
-    
-                    // Determine the base path
-                    const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
-    
-                    // Set the href attributes
-                    document.getElementById('home-link').href = basePath + 'index.html';
-                    document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
-                    document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
-                    document.getElementById('references-link').href = basePath + 'pages/references.html';
-                })
-                .catch(error => {
-                    console.error('Error fetching topbar:', error);
-                });
+        // JavaScript to include the top bar
+        fetch('topbar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('topbar-placeholder').innerHTML = data;
+
+                // Determine the base path
+                const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
+
+                // Set the href attributes
+                document.getElementById('home-link').href = basePath + 'index.html';
+                document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
+                document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
+                document.getElementById('references-link').href = basePath + 'pages/references.html';
+            })
+            .catch(error => {
+                console.error('Error fetching topbar:', error);
+            });
     </script>
     
+<div class="button-container">
+    <button class="add-row-button">Add Row</button>
+</div>
+
 <div class="right-align-container">
     <input type="text" class="csv-name-input" placeholder="CSV Name">
     <button class="generate-csv-button">Generate CSV</button>
