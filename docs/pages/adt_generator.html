@@ -3,15 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OSCAR ADT List Generator</title>
+    <title>Feature barcode reference generator</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../styles.css">
+    <style>
+        .generate-csv-button { position: absolute; top: 10px; right: 10px; }
+        .csv-name-input { position: relative; margin-top: 10px; margin-left: 10px; width: 120px; }
+    </style>
 </head>
 <body>
     <div id="topbar-placeholder"></div>
     <div class="container">
         <h1>Feature barcode reference generator</h1>
-    
+
         <section>
             <p>
                 This page allows you to generate a feature barcode file for <a href="https://www.10xgenomics.com/support/software/cell-ranger/latest" target="_blank">Cell Ranger</a> and (<a href="https://github.com/pachterlab/kite" target="_blank">Kallisto Indexing and Tag Extractor (KITE)</a>).<br>
@@ -72,11 +76,6 @@
         </form>
 
         <div class="separator"></div>
-
-        <div class="button-container">
-            <input type="text" id="csvName" class="csv-name-input" placeholder="CSV file name">
-            <button type="button" class="generate-csv-button">Generate and download .csv</button>
-        </div>
     </div>
 
     <script>
@@ -141,7 +140,7 @@
                     <div class="corrected-name-container">
                         <span class="corrected-name">${correctedName}</span>
                         <input type="text" class="edit-input" value="${correctedName}" style="display:none;">
-                        <button class="edit-btn" onclick="editRow(event, this)">Edit</button>
+                        <button class="edit-button" onclick="editRow(event, this)">Edit</button>
                         <button class="save-btn" onclick="saveRow(event, this)" style="display:none;">Save</button>
                     </div>
                 </td>
@@ -149,7 +148,7 @@
                 <td>${clone}</td>
                 <td>${reactivity}</td>
                 <td>${barcode}</td>
-                <td><span class="remove-btn" onclick="removeRow(this)">Remove</span></td>`;
+                <td><span class="remove-button" onclick="removeRow(this)">Remove</span></td>`;
             container.appendChild(newRow);
         }
 
@@ -274,7 +273,7 @@
             const row = button.closest('td');
             const span = row.querySelector('.corrected-name');
             const input = row.querySelector('.edit-input');
-            const editButton = row.querySelector('.edit-btn');
+            const editButton = row.querySelector('.edit-button');
 
             span.textContent = input.value;
             span.style.display = 'inline';
@@ -344,5 +343,9 @@ if (outputFormat === 'cellranger') {
             filterMarkers();
         });
     </script>
+            <div class="button-container">
+                <input type="text" id="csvName" class="csv-name-input" placeholder="CSV file name">
+                <button type="button" class="generate-csv-button">Generate and download .csv</button>
+            </div>
 </body>
 </html>
