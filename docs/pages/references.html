@@ -58,7 +58,7 @@
     </style>
 </head>
 <body>
-    <div id="topbar-placeholder"></div>
+    <div class="topbar-placeholder"></div>
     <div class="container">
         <h1>References</h1>
         <section>
@@ -121,14 +121,24 @@
                 document.getElementById('topbar-placeholder').innerHTML = data;
 
                 // Determine the base path
-                const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
+                const basePath = getBasePath();
 
                 // Set the href attributes
-                document.getElementById('home-link').href = basePath + 'index.html';
-                document.getElementById('metadata-link').href = basePath + 'pages/metadata_file_generator.html';
-                document.getElementById('adt-link').href = basePath + 'pages/adt_file_generator.html';
-                document.getElementById('references-link').href = basePath + 'pages/references.html';
+                const homeLink = document.getElementById('home-link');
+                if (homeLink) homeLink.href = basePath + 'index.html';
+
+                const metadataLink = document.getElementById('metadata-link');
+                if (metadataLink) metadataLink.href = basePath + 'pages/metadata_file_generator.html';
+
+                const adtLink = document.getElementById('adt-link');
+                if (adtLink) adtLink.href = basePath + 'pages/adt_file_generator.html';
+
+                const referencesLink = document.getElementById('references-link');
+                if (referencesLink) referencesLink.href = basePath + 'pages/references.html';
             });
+        function getBasePath() {
+            return window.location.pathname.includes('/pages/') ? '../' : '';
+        }
     </script>
 </body>
 </html>

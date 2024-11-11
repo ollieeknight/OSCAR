@@ -1,3 +1,4 @@
+<!-- This table row contains form elements for entering assay details -->
 <tr>
     <td>
         <select class="assay" name="assay" required title="Type of assay">
@@ -5,15 +6,16 @@
             <option value="GEX">GEX</option>
             <option value="CITE">CITE</option>
             <option value="DOGMA">DOGMA</option>
+            <option value="FRP">FRP</option>
             <option value="ATAC">ATAC</option>
             <option value="ASAP">ASAP</option>
         </select>
     </td>
-    <td><input type="text" class="experiment_id" name="experiment_id" required title="Short name of experiment"></td>
-    <td><input type="number" class="historical_number" name="historical_number" required title="Number of the pool of the experiment"></td>
-    <td><input type="text" class="replicate" name="replicate" required pattern="[A-Z]" title="One pool split across more than one well: A, B, C..."></td>
+    <td><input type="text" class="experiment_id" name="experiment_id" required title="Short name of experiment" placeholder="e.g., Exp123"></td>
+    <td><input type="number" class="historical_number" name="historical_number" required pattern="\d+" title="Number of the pool of the experiment (only digits allowed)" placeholder="e.g., 123"></td>
+    <td><input type="text" class="replicate" name="replicate" required pattern="[A-Z]" title="One pool split across more than one well: A, B, C..." placeholder="e.g., A"></td>
     <td>
-        <select class="modality" name="modality" required>
+        <select class="modality" name="modality" required title="Type of modality">
             <option value="" selected>unselected</option>
             <option value="GEX">Gene expression</option>
             <option value="ADT">Surface antibody</option>
@@ -23,7 +25,7 @@
         </select>
     </td>
     <td>
-        <select class="chemistry" name="chemistry" required>
+        <select class="chemistry" name="chemistry" required title="Type of chemistry">
             <option value="" selected>unselected</option>
             <option value="SC3Pv1">Single Cell 3' v1</option>
             <option value="SC3Pv2">Single Cell 3' v2</option>
@@ -36,6 +38,7 @@
             <option value="SC5P-R2">Single Cell 5' R2-only</option>
             <option value="SC5P-PE-v3">Single Cell 5' paired-end v3</option>
             <option value="SC5P-R2-v3">Single Cell 5' R2-only GEM-X</option>
+            <option value="FRP">Fixed RNA profiling v1</option>
             <option value="ATAC">ATAC: v1, v1.1 and v2</option>
             <option value="ARC-v1">ATAC: Multiome</option>
         </select>
@@ -48,7 +51,7 @@
         </select>
     </td>
     <td>
-        <select class="index" name="index" required>
+        <select class="index" name="index" required title="Index selection">
             <option value="" selected>unselected</option>
                       <!---SI-GA--->
           <option value="SI-GA-A1">SI-GA-A1</option>
@@ -464,6 +467,6 @@
             <option value="Mouse">Mouse</option>
         </select>
     </td>
-    <td><input type="text" class="n_donors" name="n_donors" required title="Number of donors present in library"></td>
-    <td><input type="text" class="adt_file" name="adt_file" required title="Name of ADT csv file, without the .csv suffix"></td>
+    <td><input type="text" class="n_donors" name="n_donors" required title="Number of donors present in library" placeholder="e.g., 3"></td>
+    <td><input type="text" class="adt_file" name="adt_file" required title="Name of ADT csv file, without the .csv suffix" placeholder="e.g., sample_adt"></td>
 </tr>

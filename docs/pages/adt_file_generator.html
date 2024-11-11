@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OSCAR ADT List Generator</title>
+    <title>Feature barcode reference generator</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Roboto', sans-serif; }
@@ -15,7 +15,7 @@
         tr:nth-child(even) { background-color: #f9f9f9; }
         tr:hover { background-color: #f1f1f1; }
         input, select { width: 100%; box-sizing: border-box; }
-        .generate-csv-button { padding: 5px 10px; margin-top: 10px; }
+        .generate-csv-button { padding: 5px 10px; margin-top: 10px; position: relative; }
         select {
             width: auto;
             display: inline-block;
@@ -25,8 +25,6 @@
             width: auto;
         }
         .error { border: 2px solid red; }
-        .generate-csv-button { position: relative; }
-        .csv-name-input { position: relative; margin-top: 10px; margin-left: 10px; width: 120px; }
         .top-bar {
             background-color: #333;
             overflow: hidden;
@@ -101,12 +99,13 @@
     <div id="topbar-placeholder"></div>
     <div class="container">
         <h1>Feature barcode reference generator</h1>
-    
+        <h1>OSCAR ADT List Generator</h1>
         <section>
             <p>
-                This page allows you to generate a feature barcode file for <a href="https://www.10xgenomics.com/support/software/cell-ranger/latest" target="_blank">Cell Ranger</a> and (<a href="https://github.com/pachterlab/kite" target="_blank">Kallisto Indexing and Tag Extractor (KITE)</a>).<br>
-                Antibody lists are taken directly from the <a href="https://www.biolegend.com/en-gb/totalseq/barcode-lookup" target="_blank">BioLegend barcode lookup </a> website and slightly reformatted in order to search for the correct names. In a few cases, markers will have been renamed to their CD numbers (<a href="https://www.thefcn.org/mouse-cd-list" target="_blank">mouse </a> and <a href="https://en.wikipedia.org/wiki/List_of_human_clusters_of_differentiation" target="_blank">human</a>), but in any case you can search for the antibody clone and catalogue number on the <a href="https://www.biolegend.com/en-gb/search-results?Applications=PG" target="_blank">BioLegend website</a>.<br>
+                This page allows you to generate a feature barcode file for <a href="https://www.10xgenomics.com/support/software/cell-ranger/latest" target="_blank" rel="noopener noreferrer">Cell Ranger</a> and (<a href="https://github.com/pachterlab/kite" target="_blank" rel="noopener noreferrer">Kallisto Indexing and Tag Extractor (KITE)</a>).<br>
+                Antibody lists are taken directly from the <a href="https://www.biolegend.com/en-gb/totalseq/barcode-lookup" target="_blank" rel="noopener noreferrer">BioLegend barcode lookup </a> website and slightly reformatted in order to search for the correct names. In a few cases, markers will have been renamed to their CD numbers (<a href="https://www.thefcn.org/mouse-cd-list" target="_blank" rel="noopener noreferrer">mouse </a> and <a href="https://en.wikipedia.org/wiki/List_of_human_clusters_of_differentiation" target="_blank" rel="noopener noreferrer">human</a>), but in any case you can search for the antibody clone and catalogue number on the <a href="https://www.biolegend.com/en-gb/search-results?Applications=PG" target="_blank" rel="noopener noreferrer">BioLegend website</a>.<br>
                 If you're running a 10x scRNA-seq experiment (3prime, 5prime, DOGMA), please select the 'Cellranger' output format. If you're running an ASAP-seq experiment, you'll want the 'Kallisto' output format.
+                For an ASAP-seq experiment, select the 'Kallisto' output format.
             </p>
         </section>
                      
@@ -124,15 +123,17 @@
                 <select id="format" onchange="confirmReset('format')">
                     <option value="" selected disabled>Unselected</option>
                     <option value="../files/totalseq_a.csv">TotalSeq-A</option>
+                    <option value="../files/totalseq_b.csv">TotalSeq-B</option>
                     <option value="../files/totalseq_c.csv">TotalSeq-C</option>
+                    <option value="../files/totalseq_d.csv">TotalSeq-D</option>
                 </select>
             </div>
             <div class="form-group">
                 <label for="output-format">Output Format:</label>
                 <select id="output-format">
                     <option value="" selected disabled>Unselected</option>
-                    <option value="cellranger">Cellranger</option>
-                    <option value="kallisto">Kallisto</option>
+                    <option value="cellranger">Cellranger (CITE)</option>
+                    <option value="kallisto">Kallisto (ASAP)</option>
                 </select>
             </div>
             <br><br>
@@ -169,9 +170,6 @@
 
     <script>
         let markersData = [];
-        let speciesSelected = false;
-        let formatSelected = false;
-        let outputFormatSelected = false;
 
         // JavaScript to include the top bar
         fetch('topbar.html')
@@ -288,30 +286,7 @@
             const formatElement = document.getElementById('format');
             const outputFormatElement = document.getElementById('output-format');
 
-            let currentValue;
-            if (type === 'species') {
-                currentValue = speciesElement.value;
-                if (!speciesSelected) {
-                    speciesSelected = true;
-                    filterMarkers();
-                    return;
-                }
-            } else if (type === 'format') {
-                currentValue = formatElement.value;
-                if (!formatSelected) {
-                    formatSelected = true;
-                    filterMarkers();
-                    return;
-                }
-            } else if (type === 'output-format') {
-                currentValue = outputFormatElement.value;
-                if (!outputFormatSelected) {
-                    outputFormatSelected = true;
-                    return;
-                }
-            }
-
-            if (currentValue !== '') {
+            if (speciesElement.value !== '' || formatElement.value !== '' || outputFormatElement.value !== '') {
                 const confirmed = confirm('Changing this will reset all choices. Is this alright?');
                 if (!confirmed) {
                     return;
@@ -398,26 +373,42 @@
 const format = document.getElementById('format').value;
 
 if (outputFormat === 'cellranger') {
-    csvContent = 'id,name,read,pattern,sequence,feature_type\n';
+    let csvContent;
+    let pattern;
+    if (format.includes('totalseq_a')) {
+        csvContent = 'id,name,read,pattern,sequence,feature_type\n';
+        pattern = '5P(BC)';
+    } else if (format.includes('totalseq_b') || format.includes('totalseq_c')) {
+        csvContent = 'id,name,read,pattern,sequence,feature_type\n';
+        pattern = '5PNNNNNNNNNN(BC)';
+    } else if (format.includes('totalseq_d')) {
+        csvContent = 'ID,marker,barcode\n';
+    }
+
     sortedRows.forEach(row => {
         const cells = row.querySelectorAll('td');
         const marker = substituteCharacters(cells[0].textContent);
         const correctedName = cells[1].querySelector('.corrected-name').textContent;
         const barcode = cells[5].textContent;
-        const pattern = format.includes('totalseq_a') ? '5P(BC)' : '5PNNNNNNNNNN(BC)';
-        csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
-    });
-} else if (outputFormat === 'kallisto') {
-    csvContent = 'Feature Barcode name,Feature Barcode sequence\n';
-    sortedRows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        const correctedName = cells[1].querySelector('.corrected-name').textContent;
-        const barcode = cells[5].textContent;
-        csvContent += `${correctedName},${barcode}\n`;
-    });
-}
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        if (format.includes('totalseq_d')) {
+            const totalseqId = cells[1].textContent;
+            csvContent += `D${totalseqId},${marker},${barcode}\n`;
+        } else {
+            csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
+        }
+    });
+
+    let pattern;
+    csvContent += 'Feature Barcode name,Feature Barcode sequence\n';
+        csvContent = 'id,name,read,pattern,sequence,feature_type\n';
+        pattern = '5P(BC)';
+    } else if (format.includes('totalseq_b') || format.includes('totalseq_c')) {
+        csvContent = 'id,name,read,pattern,sequence,feature_type\n';
+        pattern = '5PNNNNNNNNNN(BC)';
+    } else if (format.includes('totalseq_d')) {
+        csvContent = 'ID,marker,barcode\n';
+    }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -426,7 +417,9 @@ if (outputFormat === 'cellranger') {
     a.click();
 }
         document.addEventListener('DOMContentLoaded', () => {
-            filterMarkers();
+            setTimeout(() => {
+                filterMarkers();
+            }, 0);
         });
     </script>
 </body>
