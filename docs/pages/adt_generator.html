@@ -294,39 +294,25 @@
                 } else if (format.includes('totalseq_d')) {
                     csvContent = 'ID,marker,barcode\n';
                 }
-        // JavaScript to include the top bar with caching
-        const topbarKey = 'topbarHTML';
-        const cachedTopbar = localStorage.getItem(topbarKey);
 
-        if (cachedTopbar) {
-            document.getElementById('topbar-placeholder').innerHTML = cachedTopbar;
-            setTopbarLinks();
-        } else {
-            fetch('topbar.html')
-                .then(response => response.text())
-                .then(data => {
-                    document.getElementById('topbar-placeholder').innerHTML = data;
-                    localStorage.setItem(topbarKey, data);
-                    setTopbarLinks();
-                })
-                .catch(error => {
-                    console.error('Error fetching topbar:', error);
-                });
+                       // JavaScript to include the top bar
+        fetch('topbar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('topbar-placeholder').innerHTML = data;
 
-        function setTopbarLinks() {
-            // Determine the base path
-            const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
+                // Determine the base path
+                const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
 
-            const homeLink = document.getElementById('home-link');
-            const metadataLink = document.getElementById('metadata-link');
-            const adtLink = document.getElementById('adt-link');
-            const referencesLink = document.getElementById('references-link');
-
-            if (homeLink) homeLink.href = basePath + 'index.html';
-            if (metadataLink) metadataLink.href = basePath + 'pages/metadata_generator.html';
-            if (adtLink) adtLink.href = basePath + 'pages/adt_generator.html';
-            if (referencesLink) referencesLink.href = basePath + 'pages/references.html';
-        }
+                // Set the href attributes
+                document.getElementById('home-link').href = basePath + 'index.html';
+                document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
+                document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
+                document.getElementById('references-link').href = basePath + 'pages/references.html';
+            })
+            .catch(error => {
+                console.error('Error fetching topbar:', error);
+            }); 
 
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
