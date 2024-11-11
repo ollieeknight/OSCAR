@@ -74,3 +74,62 @@ select {
     background-color: #ddd;
     color: black;
 }
+
+select {
+    width: auto;
+    display: inline-block;
+    margin-right: 10px;
+}
+.csv-name-input { position: relative; margin-top: 10px; margin-left: 10px; width: 120px; }
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+.dropdown-content div {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    cursor: pointer;
+}
+.dropdown-content div:hover {background-color: #f1f1f1}
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+.form-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.form-group label {
+    margin-right: 10px;
+}
+.remove-btn {
+    cursor: pointer;
+    color: red;
+}
+.edit-btn {
+    cursor: pointer;
+    color: blue;
+}
+.corrected-name-container {
+    display: flex;
+    align-items: center;
+}
+.corrected-name-container span {
+    flex-grow: 1;
+}
+.button-container {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+.separator {
+    border-top: 3px solid black;
+    margin: 20px 0;
+}
