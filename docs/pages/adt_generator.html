@@ -333,12 +333,8 @@ if (outputFormat === 'cellranger') {
         document.addEventListener('DOMContentLoaded', () => {
             filterMarkers();
         });
-    </script>
-            <div class="button-container">
-                <input type="text" id="csvName" class="csv-name-input" placeholder="CSV file name">
-                <button type="button" class="generate-csv-button">Generate and download .csv</button>
-            </div>
 
+        
             // JavaScript to include the top bar
             fetch('topbar.html')
                 .then(response => response.text())
@@ -357,5 +353,12 @@ if (outputFormat === 'cellranger') {
                 .catch(error => {
                     console.error('Error fetching topbar:', error);
                 });
+    </script>
+    
+<div class="right-align-container">
+    <input type="text" class="csv-name-input" placeholder="CSV Name">
+    <button class="generate-csv-button">Generate CSV</button>
+</div>
+
 </body>
 </html>
