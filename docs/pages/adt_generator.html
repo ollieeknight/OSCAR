@@ -3,10 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feature barcode reference generator</title>
+    <title>OSCAR ADT List Generator</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../styles.css">
     <style>
+        body { font-family: 'Roboto', sans-serif; }
+        .container { margin: 0 auto; padding: 10px; box-sizing: border-box; position: relative; }
+        h1 { text-align: left; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:hover { background-color: #f1f1f1; }
+        input, select { width: 100%; box-sizing: border-box; }
+        .generate-csv-button { padding: 5px 10px; margin-top: 10px; }
+        select {
+            width: auto;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        select option {
+            width: auto;
+        }
+        .error { border: 2px solid red; }
+        .generate-csv-button { position: relative; }
+        .csv-name-input { position: relative; margin-top: 10px; margin-left: 10px; width: 120px; }
         .top-bar {
             background-color: #333;
             overflow: hidden;
@@ -23,23 +43,6 @@
             background-color: #ddd;
             color: black;
         }
-        .container {
-            padding: 20px;
-        }
-        .search-bar {
-            margin-bottom: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        table, th, td {
-            border: 1px solid black;
-        }
-        th, td {
-            padding: 10px;
-            text-align: left;
-        }
         .dropdown-content {
             display: none;
             position: absolute;
@@ -53,9 +56,44 @@
             padding: 12px 16px;
             text-decoration: none;
             display: block;
+            cursor: pointer;
         }
-        .dropdown-content div:hover {
-            background-color: #f1f1f1;
+        .dropdown-content div:hover {background-color: #f1f1f1}
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .form-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .form-group label {
+            margin-right: 10px;
+        }
+        .remove-btn {
+            cursor: pointer;
+            color: red;
+        }
+        .edit-btn {
+            cursor: pointer;
+            color: blue;
+        }
+        .corrected-name-container {
+            display: flex;
+            align-items: center;
+        }
+        .corrected-name-container span {
+            flex-grow: 1;
+        }
+        .button-container {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .separator {
+            border-top: 3px solid black;
+            margin: 20px 0;
         }
     </style>
 </head>
@@ -63,13 +101,12 @@
     <div id="topbar-placeholder"></div>
     <div class="container">
         <h1>Feature barcode reference generator</h1>
-        <h1>OSCAR ADT List Generator</h1>
+    
         <section>
             <p>
-                This page allows you to generate a feature barcode file for <a href="https://www.10xgenomics.com/support/software/cell-ranger/latest" target="_blank" rel="noopener noreferrer">Cell Ranger</a> and (<a href="https://github.com/pachterlab/kite" target="_blank" rel="noopener noreferrer">Kallisto Indexing and Tag Extractor (KITE)</a>).<br>
-                Antibody lists are taken directly from the <a href="https://www.biolegend.com/en-gb/totalseq/barcode-lookup" target="_blank" rel="noopener noreferrer">BioLegend barcode lookup </a> website and slightly reformatted in order to search for the correct names. In a few cases, markers will have been renamed to their CD numbers (<a href="https://www.thefcn.org/mouse-cd-list" target="_blank" rel="noopener noreferrer">mouse </a> and <a href="https://en.wikipedia.org/wiki/List_of_human_clusters_of_differentiation" target="_blank" rel="noopener noreferrer">human</a>), but in any case you can search for the antibody clone and catalogue number on the <a href="https://www.biolegend.com/en-gb/search-results?Applications=PG" target="_blank" rel="noopener noreferrer">BioLegend website</a>.<br>
+                This page allows you to generate a feature barcode file for <a href="https://www.10xgenomics.com/support/software/cell-ranger/latest" target="_blank">Cell Ranger</a> and (<a href="https://github.com/pachterlab/kite" target="_blank">Kallisto Indexing and Tag Extractor (KITE)</a>).<br>
+                Antibody lists are taken directly from the <a href="https://www.biolegend.com/en-gb/totalseq/barcode-lookup" target="_blank">BioLegend barcode lookup </a> website and slightly reformatted in order to search for the correct names. In a few cases, markers will have been renamed to their CD numbers (<a href="https://www.thefcn.org/mouse-cd-list" target="_blank">mouse </a> and <a href="https://en.wikipedia.org/wiki/List_of_human_clusters_of_differentiation" target="_blank">human</a>), but in any case you can search for the antibody clone and catalogue number on the <a href="https://www.biolegend.com/en-gb/search-results?Applications=PG" target="_blank">BioLegend website</a>.<br>
                 If you're running a 10x scRNA-seq experiment (3prime, 5prime, DOGMA), please select the 'Cellranger' output format. If you're running an ASAP-seq experiment, you'll want the 'Kallisto' output format.
-                For an ASAP-seq experiment, select the 'Kallisto' output format.
             </p>
         </section>
                      
@@ -96,8 +133,8 @@
                 <label for="output-format">Output Format:</label>
                 <select id="output-format">
                     <option value="" selected disabled>Unselected</option>
-                    <option value="cellranger">Cellranger (CITE)</option>
-                    <option value="kallisto">Kallisto (ASAP)</option>
+                    <option value="cellranger">Cellranger</option>
+                    <option value="kallisto">Kallisto</option>
                 </select>
             </div>
             <br><br>
@@ -134,6 +171,28 @@
 
     <script>
         let markersData = [];
+        let speciesSelected = false;
+        let formatSelected = false;
+        let outputFormatSelected = false;
+
+        // JavaScript to include the top bar
+        fetch('topbar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('topbar-placeholder').innerHTML = data;
+
+                // Determine the base path
+                const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
+
+                // Set the href attributes
+                document.getElementById('home-link').href = basePath + 'index.html';
+                document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
+                document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
+                document.getElementById('references-link').href = basePath + 'pages/references.html';
+            })
+            .catch(error => {
+                console.error('Error fetching topbar:', error);
+            });
 
         async function fetchCSV(file) {
             const response = await fetch(file);
@@ -154,6 +213,12 @@
             const species = document.getElementById('species').value;
             const data = await fetchCSV(format);
             markersData = parseCSV(data);
+
+            if (species === 'Human') {
+                markersData = markersData.filter(marker => ['Human', 'Human and mouse', 'Isotype control', 'Epitope'].includes(marker.reactivity));
+            } else if (species === 'Mouse') {
+                markersData = markersData.filter(marker => ['Mouse', 'Human and mouse', 'Isotype control', 'Epitope'].includes(marker.reactivity));
+            }
         }
 
         function addRow(name, catalogueNumber, clone, reactivity, barcode) {
@@ -228,7 +293,30 @@
             const formatElement = document.getElementById('format');
             const outputFormatElement = document.getElementById('output-format');
 
-            if (speciesElement.value !== '' || formatElement.value !== '' || outputFormatElement.value !== '') {
+            let currentValue;
+            if (type === 'species') {
+                currentValue = speciesElement.value;
+                if (!speciesSelected) {
+                    speciesSelected = true;
+                    filterMarkers();
+                    return;
+                }
+            } else if (type === 'format') {
+                currentValue = formatElement.value;
+                if (!formatSelected) {
+                    formatSelected = true;
+                    filterMarkers();
+                    return;
+                }
+            } else if (type === 'output-format') {
+                currentValue = outputFormatElement.value;
+                if (!outputFormatSelected) {
+                    outputFormatSelected = true;
+                    return;
+                }
+            }
+
+            if (currentValue !== '') {
                 const confirmed = confirm('Changing this will reset all choices. Is this alright?');
                 if (!confirmed) {
                     return;
@@ -288,89 +376,63 @@
         document.querySelector('.generate-csv-button').addEventListener('click', generateCSV);
 
         function generateCSV() {
-            const outputFormat = document.getElementById('output-format').value;
-            if (!outputFormat) {
-                alert('Please select an output format.');
-                return;
-            }
+    const outputFormat = document.getElementById('output-format').value;
+    if (!outputFormat) {
+        alert('Please select an output format.');
+        return;
+    }
 
-            const rows = Array.from(document.querySelectorAll('#rowsContainer tr'));
-            const csvName = document.getElementById('csvName').value || 'adt_list';
-            let csvContent = '';
+    const rows = Array.from(document.querySelectorAll('#rowsContainer tr'));
+    const csvName = document.getElementById('csvName').value || 'adt_list';
+    let csvContent = '';
 
-            // Separate rows with 'Hashtag' in the marker column
-            const hashtagRows = rows.filter(row => row.querySelector('td').textContent.includes('Hashtag'));
-            const nonHashtagRows = rows.filter(row => !row.querySelector('td').textContent.includes('Hashtag'));
+    // Separate rows with 'Hashtag' in the marker column
+    const hashtagRows = rows.filter(row => row.querySelector('td').textContent.includes('Hashtag'));
+    const nonHashtagRows = rows.filter(row => !row.querySelector('td').textContent.includes('Hashtag'));
 
-            // Sort non-hashtag rows alphabetically by the first column (marker)
-            nonHashtagRows.sort((a, b) => {
-                const markerA = a.querySelector('td').textContent.toLowerCase();
-                const markerB = b.querySelector('td').textContent.toLowerCase();
-                return markerA.localeCompare(markerB);
-            });
+    // Sort non-hashtag rows alphabetically by the first column (marker)
+    nonHashtagRows.sort((a, b) => {
+        const markerA = a.querySelector('td').textContent.toLowerCase();
+        const markerB = b.querySelector('td').textContent.toLowerCase();
+        return markerA.localeCompare(markerB);
+    });
 
-            // Combine sorted non-hashtag rows and hashtag rows
-            const sortedRows = nonHashtagRows.concat(hashtagRows);
+    // Combine sorted non-hashtag rows and hashtag rows
+    const sortedRows = nonHashtagRows.concat(hashtagRows);
 
-            const format = document.getElementById('format').value;
+const format = document.getElementById('format').value;
 
-            if (outputFormat === 'cellranger') {
-                let csvContent;
-                let pattern;
-                if (format.includes('totalseq_a')) {
-                    csvContent = 'id,name,read,pattern,sequence,feature_type\n';
-                    pattern = '5P(BC)';
-                } else if (format.includes('totalseq_b') || format.includes('totalseq_c')) {
-                    csvContent = 'id,name,read,pattern,sequence,feature_type\n';
-                    pattern = '5PNNNNNNNNNN(BC)';
-                } else if (format.includes('totalseq_d')) {
-                    csvContent = 'ID,marker,barcode\n';
-                }
+if (outputFormat === 'cellranger') {
+    csvContent = 'id,name,read,pattern,sequence,feature_type\n';
+    sortedRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const marker = substituteCharacters(cells[0].textContent);
+        const correctedName = cells[1].querySelector('.corrected-name').textContent;
+        const barcode = cells[5].textContent;
+        const pattern = format.includes('totalseq_a') ? '5P(BC)' : '5PNNNNNNNNNN(BC)';
+        csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
+    });
+} else if (outputFormat === 'kallisto') {
+    csvContent = 'Feature Barcode name,Feature Barcode sequence\n';
+    sortedRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const correctedName = cells[1].querySelector('.corrected-name').textContent;
+        const barcode = cells[5].textContent;
+        csvContent += `${correctedName},${barcode}\n`;
+    });
+}
 
-                sortedRows.forEach(row => {
-                    const cells = row.querySelectorAll('td');
-                    const marker = substituteCharacters(cells[0].textContent);
-                    const correctedName = cells[1].querySelector('.corrected-name').textContent;
-                    const barcode = cells[5].textContent;
-
-                    if (format.includes('totalseq_d')) {
-                        const totalseqId = cells[1].textContent;
-                        csvContent += `D${totalseqId},${marker},${barcode}\n`;
-                    } else {
-                        csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
-                    }
-                });
-
-                csvContent += 'Feature Barcode name,Feature Barcode sequence\n';
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${csvName}.csv`;
-                document.body.appendChild(a);
-                a.click();
-            }
-        }
-            
-        // JavaScript to include the top bar
-        fetch('topbar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('topbar-placeholder').innerHTML = data;
-
-                // Determine the base path
-                const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
-
-                // Set the href attributes
-                document.getElementById('home-link').href = basePath + 'index.html';
-                document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
-                document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
-                document.getElementById('references-link').href = basePath + 'pages/references.html';
-            })
-            .catch(error => {
-                console.error('Error fetching topbar:', error);
-            });
-
-        
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${csvName}.csv`;
+    document.body.appendChild(a);
+    a.click();
+}
+        document.addEventListener('DOMContentLoaded', () => {
+            filterMarkers();
+        });
     </script>
 </body>
 </html>
