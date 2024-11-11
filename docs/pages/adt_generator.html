@@ -118,25 +118,6 @@
     <script>
         let markersData = [];
 
-        // JavaScript to include the top bar
-        fetch('topbar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('topbar-placeholder').innerHTML = data;
-
-                // Determine the base path
-                const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
-
-                // Set the href attributes
-                document.getElementById('home-link').href = basePath + 'index.html';
-                document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
-                document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
-                document.getElementById('references-link').href = basePath + 'pages/references.html';
-            })
-            .catch(error => {
-                console.error('Error fetching topbar:', error);
-            });
-
         async function fetchCSV(file) {
             const response = await fetch(file);
             const data = await response.text();
@@ -343,30 +324,36 @@
                     }
                 });
 
-                let pattern;
                 csvContent += 'Feature Barcode name,Feature Barcode sequence\n';
-                    csvContent = 'id,name,read,pattern,sequence,feature_type\n';
-                    pattern = '5P(BC)';
-                } else if (format.includes('totalseq_b') || format.includes('totalseq_c')) {
-                    csvContent = 'id,name,read,pattern,sequence,feature_type\n';
-                    pattern = '5PNNNNNNNNNN(BC)';
-                } else if (format.includes('totalseq_d')) {
-                    csvContent = 'ID,marker,barcode\n';
-                }
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${csvNamecsv`;
+                a.download = `${csvName}.csv`;
                 document.body.appendChild(a);
                 a.click();
             }
         }
+            
+        // JavaScript to include the top bar
+        fetch('topbar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('topbar-placeholder').innerHTML = data;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                filterMarkers();
-            }, 0);
-        });
+                // Determine the base path
+                const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
+
+                // Set the href attributes
+                document.getElementById('home-link').href = basePath + 'index.html';
+                document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
+                document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
+                document.getElementById('references-link').href = basePath + 'pages/references.html';
+            })
+            .catch(error => {
+                console.error('Error fetching topbar:', error);
+            });
+
+        
     </script>
 </body>
 </html>
