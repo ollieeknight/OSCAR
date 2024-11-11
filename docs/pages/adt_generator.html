@@ -97,6 +97,9 @@
                 document.getElementById('metadata-link').href = basePath + 'pages/metadata_file_generator.html';
                 document.getElementById('adt-link').href = basePath + 'pages/adt_file_generator.html';
                 document.getElementById('references-link').href = basePath + 'pages/references.html';
+            })
+            .catch(error => {
+                console.error('Error fetching topbar:', error);
             });
 
         async function fetchCSV(file) {
@@ -118,12 +121,6 @@
             const species = document.getElementById('species').value;
             const data = await fetchCSV(format);
             markersData = parseCSV(data);
-
-            if (species === 'Human') {
-                markersData = markersData.filter(marker => ['Human', 'Human and mouse', 'Isotype control', 'Epitope'].includes(marker.reactivity));
-            } else if (species === 'Mouse') {
-                markersData = markersData.filter(marker => ['Mouse', 'Human and mouse', 'Isotype control', 'Epitope'].includes(marker.reactivity));
-            }
         }
 
         function addRow(name, catalogueNumber, clone, reactivity, barcode) {
@@ -324,7 +321,7 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${csvName}.csv`;
+                a.download = `${csvNamecsv`;
                 document.body.appendChild(a);
                 a.click();
             }
