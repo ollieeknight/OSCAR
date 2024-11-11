@@ -11,9 +11,9 @@
             <option value="ASAP">ASAP</option>
         </select>
     </td>
-    <td><input type="text" class="experiment_id" name="experiment_id" required title="Short name of experiment" placeholder="e.g., Exp123"></td>
-    <td><input type="number" class="historical_number" name="historical_number" required pattern="\d+" title="Number of the pool of the experiment (only digits allowed)" placeholder="e.g., 123"></td>
-    <td><input type="text" class="replicate" name="replicate" required pattern="[A-Z]" title="One pool split across more than one well: A, B, C..." placeholder="e.g., A"></td>
+    <td><input type="text" class="experiment_id" name="experiment_id" required title="Short name of experiment" placeholder="e.g., ILC_niche"></td>
+    <td><input type="number" class="historical_number" name="historical_number" required pattern="\d+" title="Number of the pool of the experiment (only digits allowed)" placeholder="e.g. 1, 2, 3, etc"></td>
+    <td><input type="text" class="replicate" name="replicate" required pattern="[A-Z]" title="One pool split across more than one well: A, B, C..." placeholder="e.g. A, B, C, etc"></td>
     <td>
         <select class="modality" name="modality" required title="Type of modality">
             <option value="" selected>unselected</option>
@@ -467,6 +467,6 @@
             <option value="Mouse">Mouse</option>
         </select>
     </td>
-    <td><input type="text" class="n_donors" name="n_donors" required title="Number of donors present in library" placeholder="e.g., 3"></td>
-    <td><input type="text" class="adt_file" name="adt_file" required title="Name of ADT csv file, without the .csv suffix" placeholder="e.g., sample_adt"></td>
+    <td><input type="text" class="n_donors" name="n_donors" required title="Number of donors present in library" placeholder="e.g. 1, 2, 3, etc"></td>
+    <td><input type="text" class="adt_file" name="adt_file" required title="Name of ADT csv file, without the .csv suffix" placeholder="e.g., ILC_niche"></td>
 </tr>

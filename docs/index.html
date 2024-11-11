@@ -6,21 +6,21 @@
     <title>OSCAR Project</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/timeago.js/4.0.2/timeago.min.js"></script>
 </head>
 <body>
     <div id="topbar-placeholder"></div>
     <div class="container">
         <h1>Welcome to the OSCAR documentation</h1>
-        <div class="last-updated" id="last-updated">Last updated: Loading...</div>
+        <div class="last-updated" id="last-updated" data-placeholder="Last updated: Loading..."></div>
         <div class="content">
             <p>This project provides tools for generating metadata and ADT files for input into the OSCAR pipeline.</p>
-            <div class="button-container">
+            <!-- <div class="button-container">
                 <a href="pages/metadata_generator.html">Go to metadata file generator</a>
                 <a href="pages/adt_generator.html">Go to ADT file generator</a>
-            </div>
+            </div> -->
         </div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/timeago.js/4.0.2/timeago.min.js" async></script>
     <script>
         // JavaScript to include the top bar
         fetch('pages/topbar.html')
@@ -40,45 +40,41 @@
             .catch(error => {
                 console.error('Error fetching topbar:', error);
             });
-
-        // JavaScript to fetch the last commit date from GitHub API with caching
-        const cacheKey = 'lastCommitDate';
-        const cacheExpiry = 24 * 60 * 60 * 1000; // 24 hours
-
-        function fetchLastCommitDate() {
-            fetch('https://api.github.com/repos/ollieeknight/OSCAR/commits?sha=revamp&path=docs')
+            function fetchLastCommitDate(owner, repo, path) {
+              const url = `https://api.github.com/repos/${owner}/${repo}/commits?path=${path}`;
+              return fetch(url)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.length > 0) {
-                        const lastCommitDate = new Date(data[0].commit.committer.date);
-                        localStorage.setItem(cacheKey, JSON.stringify({ date: lastCommitDate, timestamp: Date.now() }));
-                        updateLastUpdatedText(lastCommitDate);
-                    } else {
-                        document.getElementById('last-updated').textContent = 'Last updated: No commits found';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching last commit date:', error);
-                    document.getElementById('last-updated').textContent = 'Last updated: Error fetching date';
+                  if (data && data.length > 0) {
+                    return data[0].commit.author.date;
+                  } else {
+                    throw new Error('No commits found');
+                  }
                 });
-        }
-
-        function updateLastUpdatedText(date) {
-            const timeagoInstance = timeago.default();
-            document.getElementById('last-updated').textContent = `Last updated: ${timeagoInstance.format(date)}`;
-        }
-
-        const cachedData = localStorage.getItem(cacheKey);
-        if (cachedData) {
-            const { date, timestamp } = JSON.parse(cachedData);
-            if (Date.now() - timestamp < cacheExpiry) {
-                updateLastUpdatedText(new Date(date));
-            } else {
-                fetchLastCommitDate();
             }
-        } else {
-            fetchLastCommitDate();
-        }
-    </script>
+            
+const repoOwner = 'ollieeknight';
+const repoName = 'OSCAR';
+const filePath = 'docs';
+
+fetchLastCommitDate(repoOwner, repoName, filePath)
+  .then(lastCommitDate => {
+    if (lastCommitDate) {
+      updateLastUpdatedText(lastCommitDate);
+    } else {
+      document.getElementById('last-updated').textContent = 'Last updated: Error fetching date';
+    }
+  })
+  .catch(error => {
+    console.error('Error fetching last commit date:', error);
+    document.getElementById('last-updated').textContent = 'Last updated: Error fetching date';
+  });
+
+function updateLastUpdatedText(date) {
+  const timeagoInstance = timeago;
+  document.getElementById('last-updated').textContent = `Last updated: ${timeagoInstance.format(date)}`;
+}
+
+</script>
 </body>
 </html>
