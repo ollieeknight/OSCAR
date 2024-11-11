@@ -6,10 +6,6 @@
     <title>Feature barcode reference generator</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../styles.css">
-    <style>
-        .generate-csv-button { position: absolute; top: 10px; right: 10px; }
-        .csv-name-input { position: relative; margin-top: 10px; margin-left: 10px; width: 120px; }
-    </style>
 </head>
 <body>
     <div id="topbar-placeholder"></div>
@@ -26,15 +22,15 @@
                      
         <form id="csvForm">
             <div class="form-group">
-                <label for="species">Species:</label>
+                <label for="species">Species</label>
                 <select id="species" onchange="confirmReset('species')">
                     <option value="" selected disabled>Unselected</option>
-                    <option value="Human">Human</option>
-                    <option value="Mouse">Mouse</option>
+                    <option value="Human">Human (hs)</option>
+                    <option value="Mouse">Mouse (mm)</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="format">Antibody format:</label>
+                <label for="format">TotalSeq format</label>
                 <select id="format" onchange="confirmReset('format')">
                     <option value="" selected disabled>Unselected</option>
                     <option value="../files/totalseq_a.csv">TotalSeq-A</option>
@@ -44,17 +40,17 @@
                 </select>
             </div>
             <div class="form-group">
-                <label for="output-format">Output Format:</label>
+                <label for="output-format">CSV output format</label>
                 <select id="output-format">
                     <option value="" selected disabled>Unselected</option>
-                    <option value="cellranger">Cellranger</option>
-                    <option value="kallisto">Kallisto</option>
+                    <option value="cellranger">Cellranger (for CITE-, DOGMA-seq)</option>
+                    <option value="kallisto">Kallisto (for ASAP-seq)</option>
                 </select>
             </div>
             <br><br>
-            <label for="search">Search Marker:</label>
+            <label for="search">Search</label>
             <div class="dropdown">
-                <input type="text" id="search" placeholder="Enter marker name" oninput="showDropdown()">
+                <input type="text" id="search" placeholder="Marker, clone, or catalogue number" oninput="showDropdown()">
                 <div id="dropdown-content" class="dropdown-content"></div>
             </div>
             <br><br>
@@ -62,10 +58,10 @@
                 <thead>
                     <tr>
                         <th>Marker</th>
-                        <th>Corrected name</th>
-                        <th>Catalogue number</th>
-                        <th>Clone</th>
-                        <th>Reactivity</th>
+                        <th>Export name</th>
+                        <th>BioLegend catalogue number</th>
+                        <th>Antibody clone</th>
+                        <th>Species reactivity</th>
                         <th>Barcode</th>
                         <th></th>
                     </tr>
@@ -83,25 +79,6 @@
         let speciesSelected = false;
         let formatSelected = false;
         let outputFormatSelected = false;
-
-        // JavaScript to include the top bar
-        fetch('topbar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('topbar-placeholder').innerHTML = data;
-
-                // Determine the base path
-                const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
-
-                // Set the href attributes
-                document.getElementById('home-link').href = basePath + 'index.html';
-                document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
-                document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
-                document.getElementById('references-link').href = basePath + 'pages/references.html';
-            })
-            .catch(error => {
-                console.error('Error fetching topbar:', error);
-            });
 
         async function fetchCSV(file) {
             const response = await fetch(file);
@@ -309,7 +286,7 @@
     // Combine sorted non-hashtag rows and hashtag rows
     const sortedRows = nonHashtagRows.concat(hashtagRows);
 
-const format = document.getElementById('format').value;
+    const format = document.getElementById('format').value;
 
 if (outputFormat === 'cellranger') {
     csvContent = 'id,name,read,pattern,sequence,feature_type\n';
@@ -318,8 +295,22 @@ if (outputFormat === 'cellranger') {
         const marker = substituteCharacters(cells[0].textContent);
         const correctedName = cells[1].querySelector('.corrected-name').textContent;
         const barcode = cells[5].textContent;
-        const pattern = format.includes('totalseq_a') ? '5P(BC)' : '5PNNNNNNNNNN(BC)';
-        csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
+        let pattern = '';
+
+        if (format.includes('totalseq_a')) {
+            pattern = '5P(BC)';
+            csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
+        } else if (format.includes('totalseq_b')) {
+            pattern = '5PNNNNNNNNNN(BC)';
+            csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
+        } else if (format.includes('totalseq_c')) {
+            pattern = '5PNNNNNNNNNN(BC)';
+            csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
+        } else if (format.includes('totalseq_d')) {
+            csvContent = 'ID,Name,Sequence\n';
+            const totalseqId = cells[1].textContent;
+            csvContent += `D${totalseqId},${marker},${barcode}\n`;
+        }
     });
 } else if (outputFormat === 'kallisto') {
     csvContent = 'Feature Barcode name,Feature Barcode sequence\n';
@@ -347,5 +338,24 @@ if (outputFormat === 'cellranger') {
                 <input type="text" id="csvName" class="csv-name-input" placeholder="CSV file name">
                 <button type="button" class="generate-csv-button">Generate and download .csv</button>
             </div>
+
+            // JavaScript to include the top bar
+            fetch('topbar.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('topbar-placeholder').innerHTML = data;
+    
+                    // Determine the base path
+                    const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
+    
+                    // Set the href attributes
+                    document.getElementById('home-link').href = basePath + 'index.html';
+                    document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
+                    document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
+                    document.getElementById('references-link').href = basePath + 'pages/references.html';
+                })
+                .catch(error => {
+                    console.error('Error fetching topbar:', error);
+                });
 </body>
 </html>

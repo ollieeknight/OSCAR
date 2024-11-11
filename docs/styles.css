@@ -136,3 +136,6 @@ select {
     border-top: 3px solid black;
     margin: 20px 0;
 }
+
+.generate-csv-button { margin-top: 10px; }
+.csv-name-input { margin-top: 10px; width: 120px; }
