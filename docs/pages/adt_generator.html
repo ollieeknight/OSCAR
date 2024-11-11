@@ -11,14 +11,12 @@
     <div id="topbar-placeholder"></div>
     <div class="container">
         <h1>Feature barcode reference generator</h1>
-        <h1>OSCAR ADT List Generator</h1>
         <section>
             <p>
                 This page allows you to generate a feature barcode file for <a href="https://www.10xgenomics.com/support/software/cell-ranger/latest" target="_blank" rel="noopener noreferrer">Cell Ranger</a> and (<a href="https://github.com/pachterlab/kite" target="_blank" rel="noopener noreferrer">Kallisto Indexing and Tag Extractor (KITE)</a>).<br>
                 Antibody lists are taken directly from the <a href="https://www.biolegend.com/en-gb/totalseq/barcode-lookup" target="_blank" rel="noopener noreferrer">BioLegend barcode lookup </a> website and slightly reformatted in order to search for the correct names. In a few cases, markers will have been renamed to their CD numbers (<a href="https://www.thefcn.org/mouse-cd-list" target="_blank" rel="noopener noreferrer">mouse </a> and <a href="https://en.wikipedia.org/wiki/List_of_human_clusters_of_differentiation" target="_blank" rel="noopener noreferrer">human</a>), but in any case you can search for the antibody clone and catalogue number on the <a href="https://www.biolegend.com/en-gb/search-results?Applications=PG" target="_blank" rel="noopener noreferrer">BioLegend website</a>.<br>
                 If you're running a 10x scRNA-seq experiment (3prime, 5prime, DOGMA), please select the 'Cellranger' output format. If you're running an ASAP-seq experiment, you'll want the 'Kallisto' output format.
-                For an ASAP-seq experiment, select the 'Kallisto' output format.
-            </p>
+                If you're running a 10x scRNA-seq experiment (3prime, 5prime, DOGMA), please select the 'Cellranger' output format. If you're running an ASAP-seq experiment, you'll want the 'Kallisto' output format.
         </section>
                      
         <form id="csvForm">
@@ -76,31 +74,11 @@
 
         <div class="button-container">
             <input type="text" id="csvName" class="csv-name-input" placeholder="CSV file name">
-            <button type="button" class="generate-csv-button">Generate and download .csv</button>
-        </div>
+            <button type="button" id="generateCsvButton" class="generate-csv-button">Generate and download .csv</button>
     </div>
 
     <script>
         let markersData = [];
-
-        // JavaScript to include the top bar
-        fetch('topbar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('topbar-placeholder').innerHTML = data;
-
-                // Determine the base path
-                const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
-
-                // Set the href attributes
-                document.getElementById('home-link').href = basePath + 'index.html';
-                document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
-                document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
-                document.getElementById('references-link').href = basePath + 'pages/references.html';
-            })
-            .catch(error => {
-                console.error('Error fetching topbar:', error);
-            });
 
         async function fetchCSV(file) {
             const response = await fetch(file);
@@ -283,7 +261,7 @@
 
             if (outputFormat === 'cellranger') {
                 let csvContent;
-                let pattern;
+                // let csvContent; (removed redeclaration)
                 if (format.includes('totalseq_a')) {
                     csvContent = 'id,name,read,pattern,sequence,feature_type\n';
                     pattern = '5P(BC)';
@@ -308,23 +286,46 @@
                     }
                 });
 
-                let pattern;
                 csvContent += 'Feature Barcode name,Feature Barcode sequence\n';
-                    csvContent = 'id,name,read,pattern,sequence,feature_type\n';
-                    pattern = '5P(BC)';
+                pattern = '5P(BC)';
                 } else if (format.includes('totalseq_b') || format.includes('totalseq_c')) {
                     csvContent = 'id,name,read,pattern,sequence,feature_type\n';
                     pattern = '5PNNNNNNNNNN(BC)';
                 } else if (format.includes('totalseq_d')) {
                     csvContent = 'ID,marker,barcode\n';
                 }
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${csvNamecsv`;
-                document.body.appendChild(a);
-                a.click();
-            }
+        // JavaScript to include the top bar with caching
+        const topbarKey = 'topbarHTML';
+        const cachedTopbar = localStorage.getItem(topbarKey);
+
+        if (cachedTopbar) {
+            document.getElementById('topbar-placeholder').innerHTML = cachedTopbar;
+            setTopbarLinks();
+        } else {
+            fetch('topbar.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('topbar-placeholder').innerHTML = data;
+                    localStorage.setItem(topbarKey, data);
+                    setTopbarLinks();
+                })
+                .catch(error => {
+                    console.error('Error fetching topbar:', error);
+                });
+
+        function setTopbarLinks() {
+            // Determine the base path
+            const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
+
+            const homeLink = document.getElementById('home-link');
+            const metadataLink = document.getElementById('metadata-link');
+            const adtLink = document.getElementById('adt-link');
+            const referencesLink = document.getElementById('references-link');
+
+            if (homeLink) homeLink.href = basePath + 'index.html';
+            if (metadataLink) metadataLink.href = basePath + 'pages/metadata_generator.html';
+            if (adtLink) adtLink.href = basePath + 'pages/adt_generator.html';
+            if (referencesLink) referencesLink.href = basePath + 'pages/references.html';
         }
 
         document.addEventListener('DOMContentLoaded', () => {
