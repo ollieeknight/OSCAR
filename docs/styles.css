@@ -115,7 +115,7 @@ select {
     display: block;
     cursor: pointer;
 }
-.dropdown-content div:hover {
+
 .dropdown-content div:hover {
     background-color: #f1f1f1;
 }
