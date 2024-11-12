@@ -1,7 +1,7 @@
 // functions.js
 
-function includeTopBar() {
-    fetch('https://ollieeknight.github.io/OSCAR/docs/helpers/topbar.html')
+function indexIncludeTopBar() {
+    fetch('./helpers/topbar.html')
         .then(response => response.text())
         .then(data => {
             document.getElementById('topbar-placeholder').innerHTML = data;
