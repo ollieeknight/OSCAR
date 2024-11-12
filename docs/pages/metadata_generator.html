@@ -24,7 +24,7 @@
             <ul>
                 <li>Assay type: The type of assay used (e.g., CITE, DOGMA, etc.)</li>
                 <li>Experiment ID: A unique identifier for the experiment</li>
-                <li>Historical number: A unique identifier, likely for the pool of cells loaded onto the 10x chip. For example, if you have two pools and load the first onto two GEMs and the second onto one, the first experiment would have a historical number of 1 and replicate names of A and B, and the second pool would have a historical number of 2 and a replicate name of 1.</li>
+                <li>Historical number: A unique identifier, likely for the pool of cells loaded onto the 10x chip. For example, if you have two pools and load the first onto two GEMs and the second onto one, the first experiment would have a historical number of 1 and replicate names of A and B, and the second pool would have a historical number of 2 and a replicate name of A.</li>
                 <li>Replicate: The replicate number for the experiment: see above.</li>
                 <li>Modality: The modality of the experiment (e.g., Gene expression, ATAC, ADT, etc.)</li>
                 <li>Chemistry: The chemistry used for the experiment (e.g., 3' v2, 3' v3, etc.). For more information see <a href="https://kb.10xgenomics.com/hc/en-us/articles/115003764132-How-does-Cell-Ranger-auto-detect-chemistry" target="_blank">here</a>.</li>
@@ -156,7 +156,7 @@
             });
     </script>
 <div class="right-align-container">
-    <button class="generate-csv-button">Generate CSV</button>
+    <button class="generate-csv-button">Download metadata.csv</button>
 </div>
 </body>
 </html>

@@ -1,80 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OSCAR</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/timeago.js/4.0.2/timeago.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OSCAR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/timeago.js/4.0.2/timeago.min.js"></script>
 </head>
 <body>
-    <div id="topbar-placeholder"></div>
-    <div class="container">
-        <h1>Welcome to the OSCAR documentation</h1>
-        <div class="last-updated" id="last-updated" data-placeholder="Last updated: Loading..."></div>
-        <div class="content">
-            <p>This project provides tools for generating metadata and ADT files for input into the OSCAR pipeline.</p>
-            <!-- <div class="button-container">
-                <a href="pages/metadata_generator.html">Go to metadata file generator</a>
-                <a href="pages/adt_generator.html">Go to ADT file generator</a>
-            </div> -->
-        </div>
+  <div id="topbar-placeholder"></div>
+  <div class="container">
+    <h1>Ollie's Single Cell Analysis for the Romagnani lab (OSCAR)</h1>
+    <div class="last-updated" id="last-updated" data-placeholder="Last updated: Loading..."></div>
+    <div class="content">
+      <!-- <p>This project provides tools for generating metadata and ADT files for input into the OSCAR pipeline.</p> -->
+      <!-- <div class="button-container">
+        <a href="pages/metadata_generator.html">Go to metadata file generator</a>
+        <a href="pages/adt_generator.html">Go to ADT file generator</a>
+      </div> -->
     </div>
-    <script>
-        // JavaScript to include the top bar
-        fetch('pages/topbar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('topbar-placeholder').innerHTML = data;
+  </div>
+  <script>
+    // JavaScript to include the top bar
+    fetch('pages/topbar.html')
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById('topbar-placeholder').innerHTML = data;
 
-                // Determine the base path
-                const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
+        // Determine the base path
+        const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
 
-                // Set the href attributes
-                document.getElementById('home-link').href = basePath + 'index.html';
-                document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
-                document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
-                document.getElementById('references-link').href = basePath + 'pages/references.html';
-            })
-            .catch(error => {
-                console.error('Error fetching topbar:', error);
-            });
-            function fetchLastCommitDate(owner, repo, path) {
-              const url = `https://api.github.com/repos/${owner}/${repo}/commits?path=${path}`;
-              return fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                  if (data && data.length > 0) {
-                    return data[0].commit.author.date;
-                  } else {
-                    throw new Error('No commits found');
-                  }
-                });
-            }
-            
-const repoOwner = 'ollieeknight';
-const repoName = 'OSCAR';
-const filePath = 'docs';
+        // Set the href attributes
+        document.getElementById('home-link').href = basePath + 'index.html';
+        document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
+        document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
+        document.getElementById('references-link').href = basePath + 'pages/references.html';
+      })
+      .catch(error => {
+        console.error('Error fetching topbar:', error);
+      });
 
-fetchLastCommitDate(repoOwner, repoName, filePath)
-  .then(lastCommitDate => {
-    if (lastCommitDate) {
-      updateLastUpdatedText(lastCommitDate);
-    } else {
-      document.getElementById('last-updated').textContent = 'Last updated: Error fetching date';
+    function fetchLastCommitDate(owner, repo) {
+      const url = `https://api.github.com/repos/${owner}/${repo}/commits`;
+      return fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          if (data && data.length > 0) {
+            return data[0].commit.author.date;
+          } else {
+            throw new Error('No commits found');
+          }
+        });
     }
-  })
-  .catch(error => {
-    console.error('Error fetching last commit date:', error);
-    document.getElementById('last-updated').textContent = 'Last updated: Error fetching date';
-  });
 
-function updateLastUpdatedText(date) {
-  const timeagoInstance = timeago;
-  document.getElementById('last-updated').textContent = `Last updated: ${timeagoInstance.format(date)}`;
-}
+    const repoOwner = 'ollieeknight';
+    const repoName = 'OSCAR';
 
-</script>
+    fetchLastCommitDate(repoOwner, repoName)
+      .then(lastCommitDate => {
+        if (lastCommitDate) {
+          updateLastUpdatedText(lastCommitDate);
+        } else {
+          document.getElementById('last-updated').textContent = 'Last updated: Error fetching date';
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching last commit date:', error);
+        document.getElementById('last-updated').textContent = 'Last updated: Error fetching date';
+      });
+
+    function updateLastUpdatedText(date) {
+      const timeagoInstance = timeago;
+      document.getElementById('last-updated').textContent = `Last updated: ${timeagoInstance.format(date)}`;
+    }
+  </script>
 </body>
 </html>

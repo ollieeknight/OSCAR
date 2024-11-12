@@ -13,12 +13,12 @@ body {
 
 h1 { 
     text-align: left; 
-    font-size: 2em; /* Adjust this value as needed */
+    font-size: 4em;
 }
 
 h2 { 
     text-align: left; 
-    font-size: 1em; /* Adjust this value as needed */
+    font-size: 2em;
 }
 
 .content {
@@ -57,7 +57,6 @@ select option {
     padding: 14px 16px;
     text-decoration: none;
 }
-
 
 table { 
     width: 100%; border-collapse: collapse; margin-bottom: 20px; 
@@ -175,17 +174,4 @@ select {
 .csv-name-input { 
     margin-top: 10px; 
     width: 120px; 
-}
-
-.add-row-button {
-    margin-top: 10px;
-    padding: 10px 20px;
-    background-color: #4CAF50; /* Green */
-    color: white;
-    border: none;
-    cursor: pointer;
-}
-
-.add-row-button:hover {
-    background-color: #45a049; /* Darker green */
 }
