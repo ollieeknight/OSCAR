@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# Function to display help message
-show_help() {
-
-}
-
 # Function to check if project_id is defined
 check_project_id() {
     if [ -z "${project_id}" ]; then
