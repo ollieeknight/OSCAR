@@ -260,7 +260,10 @@
             editButton.style.display = 'inline';
         }
 
-        document.querySelector('.generate-csv-button').addEventListener('click', generateCSV);
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelector('.generate-csv-button').addEventListener('click', generateCSV);
+            filterMarkers();
+        });
 
         function generateCSV() {
             const outputFormat = document.getElementById('output-format').value;
@@ -330,6 +333,7 @@
             a.download = `${csvName}.csv`;
             document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
         }
 
     // JavaScript to include the top bar
@@ -356,10 +360,6 @@
         .catch(error => {
             console.error('Error loading topbar:', error);
             document.getElementById('topbar-placeholder').innerHTML = '<p>Error loading navigation</p>';
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            filterMarkers();
         });
     </script>
 
