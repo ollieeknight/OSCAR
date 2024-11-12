@@ -472,3 +472,54 @@ count_read_adt_csv() {
 
     echo "$fastq_dirs" "$fastq_libraries"
 }
+
+extract_variables() {
+    local library="$1"
+    local assay remainder experiment_id historical_number replicate
+
+    assay="${library%%_*}"
+    remainder="${library#*_}"
+    experiment_id="${remainder%%_exp*}"
+    remainder="${remainder#*_}"
+    remainder="${remainder#*exp}"
+    historical_number="${remainder%%_lib*}"
+    remainder="${remainder#*lib}"
+    replicate="${remainder}"
+
+    echo "$assay" "$experiment_id" "$historical_number" "$replicate"
+}
+
+search_metadata() {
+    local library="$1"
+    local assay="$2"
+    local experiment_id="$3"
+    local historical_number="$4"
+    local replicate="$5"
+    local project_ids=("${!6}")
+    local prefix="$7"
+    local n_donors ADT_file
+
+    # Loop through each project_id
+    for project_id in "${project_ids[@]}"; do
+        metadata_file="${prefix}/${project_id}/${project_id}_scripts/metadata/metadata.csv"
+
+        # Check if the metadata file exists
+        if [ -f "$metadata_file" ]; then
+            echo "Searching $project_id for ${library}"
+            # Read metadata from the CSV file line by line
+            while IFS=, read -r -a fields; do
+                # Check if all individual fields match the criteria
+                if [[ "${fields[0]}" == "$assay" && "${fields[1]}" == "$experiment_id" && "${fields[2]}" == "$historical_number" && "${fields[3]}" == "$replicate" ]]; then
+                    n_donors="${fields[9]}"
+                    ADT_file="${fields[10]}"
+                    break  # Stop searching once a match is found
+                fi
+            done < "$metadata_file"
+        else
+            echo -e "\033[0;31mERROR:\033[0m Metadata file not found for project_id: $project_id"
+            exit 1
+        fi
+    done
+
+    echo "$n_donors" "$ADT_file"
+}

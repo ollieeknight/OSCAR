@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Enable debugging
-set -x
-
 # Default values
 oscar_dir=$(dirname "${BASH_SOURCE[0]}")
 source "${oscar_dir}/functions.sh"
@@ -29,6 +26,7 @@ project_dir="${dir_prefix}/${project_id}"
 project_scripts="${project_dir}/${project_id}_scripts"
 project_indices="${project_scripts}/indices"
 project_libraries="${project_scripts}/libraries"
+project_outs="${project_scripts}/outs"
 
 # Check if metadata file exists
 metadata_file="${project_scripts}/metadata/${metadata_file_name}"
@@ -45,8 +43,7 @@ metadata_file="${project_dir}/${project_id}_scripts/metadata/metadata.csv"
 
 # Take the csv files into a list and remove the .csv suffix
 libraries=($(ls "${project_libraries}" | awk -F/ '{print $NF}' | awk -F. '{print $1}'))
-outs=${project_dir}/${project_id}_outs/
-mkdir -p ${outs}/
+mkdir -p ${project_outs}/
 
 # Iterate over each library file to submit counting jobs
 for library in "${libraries[@]}"; do
@@ -65,7 +62,6 @@ read fastq_names fastq_dirs < <(count_read_csv "${project_libraries}" "$library"
 
 extra_arguments=$(count_check_dogma "${project_libraries}" "$library")
 
-
         echo ""
         echo "cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $fastq_dirs --sample $fastq_names --localcores $num_cores $extra_arguments"
         echo "(number of cores will change upon submission)"
@@ -80,20 +76,20 @@ extra_arguments=$(count_check_dogma "${project_libraries}" "$library")
         # Process choices
         if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
                 count_submitted='YES'
-            mkdir -p $outs/logs
+            mkdir -p ${project_outs}/logs
             # Submit the job to slurm for counting
             job_id=$(sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name ${library}
-#SBATCH --output $outs/logs/cellranger_${library}.out
-#SBATCH --error $outs/logs/cellranger_${library}.out
+#SBATCH --output ${project_outs}/logs/cellranger_${library}.out
+#SBATCH --error ${project_outs}/logs/cellranger_${library}.out
 #SBATCH --ntasks=32
 #SBATCH --mem=64000
 #SBATCH --time=72:00:00
 num_cores=\$(nproc)
-cd $outs
+cd ${project_outs}
 apptainer run -B /data ${count_container} cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $fastq_dirs --sample $fastq_names --localcores \$num_cores $extra_arguments
-rm -r $outs/$library/_* $outs/$library/SC_ATAC_COUNTER_CS
+rm -r ${project_outs}/$library/_* ${project_outs}/$library/SC_ATAC_COUNTER_CS
 EOF
             )
             job_id=$(echo "$job_id" | awk '{print $4}')
@@ -147,13 +143,13 @@ read fastq_dirs fastq_libraries < <(count_read_adt_csv "${project_libraries}" "$
         sbatch $sbatch_dependency <<EOF
 #!/bin/bash
 #SBATCH --job-name ${library}_ADT
-#SBATCH --output $outs/logs/kite_${library}.out
-#SBATCH --error $outs/logs/kite_${library}.out
+#SBATCH --output ${project_outs}/logs/kite_${library}.out
+#SBATCH --error ${project_outs}/logs/kite_${library}.out
 #SBATCH --ntasks=16
 #SBATCH --mem=96000
 #SBATCH --time=72:00:00
 num_cores=\$(nproc)
-cd ${outs}/${library}
+cd ${project_outs}/${library}
 echo "Running featuremap"
 echo ""
 mkdir -p ${ADT_index_folder}/temp
@@ -183,7 +179,7 @@ echo ""
 echo "Running bustools count"
 echo ""
 mkdir -p ${ADT_outs}
-apptainer run -B /data ${count_container} bustools count -o ${outs}/${library}/ADT/ --genecounts -g ${ADT_index_folder}/FeaturesMismatch.t2g -e ${ADT_index_folder}/temp/matrix.ec -t ${ADT_index_folder}/temp/transcripts.txt ${ADT_index_folder}/temp/output_sorted.bus
+apptainer run -B /data ${count_container} bustools count -o ${project_outs}/${library}/ADT/ --genecounts -g ${ADT_index_folder}/FeaturesMismatch.t2g -e ${ADT_index_folder}/temp/matrix.ec -t ${ADT_index_folder}/temp/transcripts.txt ${ADT_index_folder}/temp/output_sorted.bus
 rm -r ${ADT_index_folder}
 EOF
 
@@ -213,20 +209,20 @@ EOF
         done
         # Process choices
         if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-            mkdir -p $outs/logs/
+            mkdir -p ${project_outs}/logs/
             # Submit the job to slurm for counting
             sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name ${library}
-#SBATCH --output $outs/logs/${library}_counting.out
-#SBATCH --error $outs/logs/${library}_counting.out
+#SBATCH --output ${project_outs}/logs/cellranger_${library}.out
+#SBATCH --error ${project_outs}/logs/cellranger_${library}.out
 #SBATCH --ntasks=32
 #SBATCH --mem=96000
 #SBATCH --time=96:00:00
 num_cores=\$(nproc)
-cd $outs
+cd ${project_outs}
 apptainer run -B /data "${count_container}" cellranger multi --id "${library}" --csv "${project_libraries}/${library}.csv" --localcores "\$num_cores"
-rm -r $outs/$library/SC_MULTI_CS $outs/$library/_*
+rm -r ${project_outs}/$library/SC_MULTI_CS ${project_outs}/$library/_*
 EOF
         fi
     else
@@ -237,6 +233,3 @@ EOF
     echo "-------------"
     echo ""
 done
-
-# Disable debugging
-set +x
