@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Enable debugging
+set -x
+
 # Default values
 oscar_dir=$(dirname "${BASH_SOURCE[0]}")
 source "${oscar_dir}/functions.sh"
@@ -241,3 +244,6 @@ EOF
     echo "-------------"
     echo ""
 done
+
+# Disable debugging
+set +x
