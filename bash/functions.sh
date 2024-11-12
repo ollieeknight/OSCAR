@@ -55,20 +55,29 @@ check_metadata_file() {
 }
 
 check_and_pull_oscar_containers() {
+    # Debug: Print TMPDIR value
+    echo "TMPDIR is set to: ${TMPDIR}"
+
     container_count="${TMPDIR}/OSCAR/oscar-count_latest.sif"
-    
+    echo "Checking for container: ${container_count}"  # Debug statement
+
     if [ ! -f "${container_count}" ]; then
         echo "oscar-count_latest.sif singularity file not found, pulling..."
         mkdir -p "${TMPDIR}/OSCAR"
         apptainer pull --dir "${TMPDIR}/OSCAR" library://romagnanilab/oscar/oscar-count:latest
+    else
+        echo "oscar-count_latest.sif already exists."
     fi
 
     container_qc="${TMPDIR}/OSCAR/oscar-qc_latest.sif"
-    
+    echo "Checking for container: ${container_qc}"  # Debug statement
+
     if [ ! -f "${container_qc}" ]; then
         echo "oscar-qc_latest.sif singularity file not found, pulling..."
         mkdir -p "${TMPDIR}/OSCAR"
         apptainer pull --dir "${TMPDIR}/OSCAR" library://romagnanilab/oscar/oscar-qc:latest
+    else
+        echo "oscar-qc_latest.sif already exists."
     fi
 }
 
