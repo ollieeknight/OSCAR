@@ -32,7 +32,6 @@ function pagesIncludeTopBar() {
         });
 }
 
-
 function fetchLastCommitDate(owner, repo) {
     const url = `https://api.github.com/repos/${owner}/${repo}/commits`;
     return fetch(url)
@@ -62,7 +61,7 @@ async function metadataFetchRowTemplate() {
 // Function to add a new row to the table
 async function metadataAddRow() {
     const container = document.getElementById('rowsContainer');
-    const template = await fetchRowTemplate();
+    const template = await metadataFetchRowTemplate();
     if (template) {
         const newRow = document.createElement('tr');
         newRow.innerHTML = template;
