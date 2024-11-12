@@ -29,8 +29,6 @@ project_dir="${dir_prefix}/${project_id}"
 project_scripts="${project_dir}/${project_id}_scripts"
 project_indices="${project_scripts}/indices"
 project_libraries="${project_scripts}/libraries"
-output_project_dir="${project_dir}/output"
-fastq_dir=${output_project_dir}/${project_id}_fastq
 
 # Check if metadata file exists
 metadata_file="${project_scripts}/metadata/${metadata_file_name}"
@@ -41,13 +39,6 @@ check_folder_exists "${project_scripts}/indices"
 
 # Pull necessary OSCAR containers
 check_and_pull_oscar_containers
-
-# List index files and extract flowcell ID from RunInfo.xml
-index_files=($(ls "${project_dir}/${project_id}_scripts/indices"))
-flowcell_id=$(grep "<Flowcell>" "${project_dir}/${project_id}_bcl/RunInfo.xml" | sed -e 's|.*<Flowcell>\(.*\)</Flowcell>.*|\1|')
-
-# Validate the mode
-validate_mode "${mode}"
 
 metadata_file="${project_dir}/${project_id}_scripts/metadata/metadata.csv"
 

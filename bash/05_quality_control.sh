@@ -1,92 +1,40 @@
 #!/bin/bash
 
-# usage is: bash 05_quality_control.sh -project-id project_ids
+# Enable debugging
+set -x
 
-# make sure your processing folder structure is similar to follows:
+# Default values
+oscar_dir=$(dirname "${BASH_SOURCE[0]}")
+source "${oscar_dir}/functions.sh"
+dir_prefix="${HOME}/scratch/ngs"
+metadata_file_name="metadata.csv"
 
-# |── {project_id}_bcl/
-# │   ├── Config/
-# │   ├── CopyComplete.txt
-# │   ├── Data/
-# │   ├── InterOp/
-# │   ├── Logs/
-# │   ├── Recipe/
-# │   ├── RTA3.cfg
-# │   ├── RTAComplete.txt
-# │   ├── RunInfo.xml
-# │   ├── RunParameters.xml
-# │   ├── SequenceComplete.txt
-# │   └── Thumbnail_Images/
-# |── {project_id}_fastq/
-# │   ├── FASTQ_1/
-# │   ├── FASTQ_2
-# │   ├── ...
-# │   ├── FASTQ_n
-# └── {project_id}_scripts/
-#     ├── ADT_files/
-#     ├── indices/
-#     ├── libraries/
-#     └── metadata/ # METADATA MUST BE IN THIS FOLDER!
-
-# Define default values
-OSCAR_script_dir=$(dirname "${BASH_SOURCE[0]}")
-prefix="$HOME/scratch/ngs"
-
-# Parse command-line arguments
-while [[ $# -gt 0 ]]; do
-    key="$1"
-
-    case $key in
-        --project-id)
-        project_ids_in="$2"
+# Parse command line arguments
+while [[ "$#" -gt 0 ]]; do
+    if [[ "$1" == --* ]]; then
+        var_name="${1#--}"
+        var_name="${var_name//-/_}"
+        declare "$var_name"="$2"
         shift 2
-        ;;
-        --prefix)
-        prefix="$2"
-        shift 2
-        ;;
-        *)
-    esac
+    else
+        echo "Invalid option: $1"
+        exit 1
+    fi
 done
 
-IFS=',' read -r -a project_ids <<< "$project_ids_in"
+check_project_id
 
-output_project_id=${project_ids[0]}
-
-# Check if project_id is empty
-if [ -z "$output_project_id" ]; then
-    echo -e "\033[0;31mERROR:\033[0m Please provide a project_id using the --project-id option."
-    exit 1
-fi
-
-# Define the project directory
-output_project_dir=${prefix}/$output_project_id
-outs="${prefix}/${output_project_id}/${output_project_id}_outs"
+# Define project directories
+project_dir="${dir_prefix}/${project_id}"
+project_scripts="${project_dir}/${project_id}_scripts"
+project_indices="${project_scripts}/indices"
+project_libraries="${project_scripts}/libraries"
+project_outs="${project_scripts}/libraries"
 
 # Check if the output_project_id folder exists
 if [ ! -d "$outs" ]; then
     echo -e "\033[0;31mERROR:\033[0m Outs folder ($outs) does not exist. Make sure cellranger has run"
     exit 1
-fi
-container="$TMPDIR/oscar-qc_latest.sif"
-
-# Check if the container exists in TMPDIR
-if [ ! -f "$container" ]; then
-    # Check if the container exists in the alternative directory
-    if [ -f "$HOME/group/work/bin/OSCAR/singularity/oscar-qc_latest.sif" ]; then
-        # Copy the container to TMPDIR
-        cp "$HOME/group/work/bin/OSCAR/singularity/oscar-qc_latest.sif" "$TMPDIR/"
-    else
-        echo "oscar-qc_latest.sif singularity file not found, pulling..."
-        apptainer pull --dir $TMPDIR library://romagnanilab/default/oscar-qc:latest
-    fi
-fi
-
-# Check if the container is now available in TMPDIR
-if [ -f "$container" ]; then
-    echo "oscar-qc_latest.sif Singularity file found in $TMPDIR."
-else
-    echo "Failed to find oscar-qc_latest.sif in $TMPDIR."
 fi
 
 libraries=($(find ${prefix}/$output_project_id/${output_project_id}_outs/ -maxdepth 1 -mindepth 1 -type d -not -name 'logs' -exec basename {} \;))
