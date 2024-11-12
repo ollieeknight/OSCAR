@@ -1,12 +1,13 @@
 #!/bin/bash
 
 # Check if the required tar.gz files are present in the parent directory
-if [[ ! -f ../cellranger-8.0.0.tar.gz ]] && [[ ! -f ../cellranger-atac-2.1.0.tar.gz ]]; then
+if [[ ! -f cellranger-8.0.1.tar.gz ]] && [[ ! -f cellranger-atac-2.1.0.tar.gz ]]; then
     # If not, prompt the user to download them
     echo "First, you need to download cellranger-8.0.0.tar.gz, cellranger-atac-2.1.0.tar.gz into this folder, then come back."
     echo "You can download them from here:"
     echo "https://www.10xgenomics.com/support/software/cell-ranger/downloads"
     echo "https://support.10xgenomics.com/single-cell-atac/software/downloads/latest"
+    exit 1
 fi
 
 # Ask the user if they want to build the counting file
