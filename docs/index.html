@@ -18,6 +18,15 @@
         // Wait for the DOM to load before including the top bar
         document.addEventListener('DOMContentLoaded', () => {
             indexIncludeTopBar();
+
+            // Fetch the last commit date and update the last-updated element
+            fetchLastCommitDate('ollieeknight', 'OSCAR')
+                .then(date => {
+                    document.getElementById('last-updated').textContent = `Last updated: ${new Date(date).toLocaleString()}`;
+                })
+                .catch(error => {
+                    console.error('Error fetching last commit date:', error);
+                });
         });
 
         const repoOwner = 'ollieeknight';
