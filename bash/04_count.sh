@@ -39,6 +39,7 @@ check_folder_exists "${project_scripts}/indices"
 
 # Pull necessary OSCAR containers
 check_and_pull_oscar_containers
+count_container=${TMPDIR}/OSCAR/oscar-count_latest.sif
 
 metadata_file="${project_dir}/${project_id}_scripts/metadata/metadata.csv"
 
@@ -91,7 +92,7 @@ extra_arguments=$(count_check_dogma "${project_libraries}" "$library")
 #SBATCH --time=72:00:00
 num_cores=\$(nproc)
 cd $outs
-apptainer run -B /data $container cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $fastq_dirs --sample $fastq_names --localcores \$num_cores $extra_arguments
+apptainer run -B /data ${count_container} cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $fastq_dirs --sample $fastq_names --localcores \$num_cores $extra_arguments
 rm -r $outs/$library/_* $outs/$library/SC_ATAC_COUNTER_CS
 EOF
             )
@@ -156,33 +157,33 @@ cd ${outs}/${library}
 echo "Running featuremap"
 echo ""
 mkdir -p ${ADT_index_folder}/temp
-apptainer run -B /data ${container} featuremap ${ADT_file} --t2g ${ADT_index_folder}/FeaturesMismatch.t2g --fa ${ADT_index_folder}/FeaturesMismatch.fa --header --quiet
+apptainer run -B /data ${count_container} featuremap ${ADT_file} --t2g ${ADT_index_folder}/FeaturesMismatch.t2g --fa ${ADT_index_folder}/FeaturesMismatch.fa --header --quiet
 echo ""
 echo "Running kallisto index"
 echo ""
-apptainer run -B /data ${container} kallisto index -i ${ADT_index_folder}/FeaturesMismatch.idx -k 15 ${ADT_index_folder}/FeaturesMismatch.fa
+apptainer run -B /data ${count_container} kallisto index -i ${ADT_index_folder}/FeaturesMismatch.idx -k 15 ${ADT_index_folder}/FeaturesMismatch.fa
 echo ""
 echo "Running asap_to_kite"
 echo ""
 mkdir -p $corrected_fastq
-apptainer run -B /data ${container} ASAP_to_KITE -f $fastq_dirs -s $fastq_libraries -o ${corrected_fastq}/${library} -c \$num_cores
+apptainer run -B /data ${count_container} ASAP_to_KITE -f $fastq_dirs -s $fastq_libraries -o ${corrected_fastq}/${library} -c \$num_cores
 echo ""
 echo "Running kallisto bus"
 echo ""
-apptainer run -B /data ${container} kallisto bus -i ${ADT_index_folder}/FeaturesMismatch.idx -o ${ADT_index_folder}/temp -x 0,0,16:0,16,26:1,0,0 -t \$num_cores ${corrected_fastq}/${library}*
+apptainer run -B /data ${count_container} kallisto bus -i ${ADT_index_folder}/FeaturesMismatch.idx -o ${ADT_index_folder}/temp -x 0,0,16:0,16,26:1,0,0 -t \$num_cores ${corrected_fastq}/${library}*
 echo ""
 echo "Running bustools correct"
 echo ""
-apptainer run -B /data ${container} bustools correct -w ${ATAC_whitelist} ${ADT_index_folder}/temp/output.bus -o ${ADT_index_folder}/temp/output_corrected.bus
+apptainer run -B /data ${count_container} bustools correct -w ${ATAC_whitelist} ${ADT_index_folder}/temp/output.bus -o ${ADT_index_folder}/temp/output_corrected.bus
 echo ""
 echo "Running bustools sort"
 echo ""
-apptainer run -B /data ${container} bustools sort -t \$num_cores -o ${ADT_index_folder}/temp/output_sorted.bus ${ADT_index_folder}/temp/output_corrected.bus
+apptainer run -B /data ${count_container} bustools sort -t \$num_cores -o ${ADT_index_folder}/temp/output_sorted.bus ${ADT_index_folder}/temp/output_corrected.bus
 echo ""
 echo "Running bustools count"
 echo ""
 mkdir -p ${ADT_outs}
-apptainer run -B /data ${container} bustools count -o ${outs}/${library}/ADT/ --genecounts -g ${ADT_index_folder}/FeaturesMismatch.t2g -e ${ADT_index_folder}/temp/matrix.ec -t ${ADT_index_folder}/temp/transcripts.txt ${ADT_index_folder}/temp/output_sorted.bus
+apptainer run -B /data ${count_container} bustools count -o ${outs}/${library}/ADT/ --genecounts -g ${ADT_index_folder}/FeaturesMismatch.t2g -e ${ADT_index_folder}/temp/matrix.ec -t ${ADT_index_folder}/temp/transcripts.txt ${ADT_index_folder}/temp/output_sorted.bus
 rm -r ${ADT_index_folder}
 EOF
 
@@ -224,7 +225,7 @@ EOF
 #SBATCH --time=96:00:00
 num_cores=\$(nproc)
 cd $outs
-apptainer run -B /data "$container" cellranger multi --id "${library}" --csv "${project_libraries}/${library}.csv" --localcores "\$num_cores"
+apptainer run -B /data "${count_container}" cellranger multi --id "${library}" --csv "${project_libraries}/${library}.csv" --localcores "\$num_cores"
 rm -r $outs/$library/SC_MULTI_CS $outs/$library/_*
 EOF
         fi
