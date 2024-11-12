@@ -1,14 +1,14 @@
 // functions.js
 function includeTopBar() {
-    fetch('/docs/helpers/topbar.html')
+    fetch('helpers/topbar.html')
         .then(response => response.text())
         .then(data => {
             document.getElementById('topbar-placeholder').innerHTML = data;
             // Set the href attributes
-            document.getElementById('home-link').href = '/docs/index.html';
-            document.getElementById('metadata-link').href = '/docs/pages/metadata_generator.html';
-            document.getElementById('adt-link').href = '/docs/pages/adt_generator.html';
-            document.getElementById('references-link').href = '/docs/pages/references.html';
+            document.getElementById('home-link').href = 'index.html';
+            document.getElementById('metadata-link').href = 'pages/metadata_generator.html';
+            document.getElementById('adt-link').href = 'pages/adt_generator.html';
+            document.getElementById('references-link').href = 'pages/references.html';
         })
         .catch(error => {
             console.error('Error fetching topbar:', error);
