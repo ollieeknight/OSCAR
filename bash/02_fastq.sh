@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Set the directory of the current script
 oscar_dir=$(dirname "${BASH_SOURCE[0]}")
 # Source the functions script

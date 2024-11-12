@@ -1,8 +1,5 @@
 #! /bin/bash
 
-# Enable debugging
-set -x
-
 # Default values
 oscar_dir=$(dirname "${BASH_SOURCE[0]}")
 source "${oscar_dir}/functions.sh"
@@ -145,6 +142,3 @@ elif [ "${choice}" = "N" ] || [ "${choice}" = "n" ]; then
 else
         echo -e "\033[0;31mERROR:\033[0m Invalid choice. Exiting"
 fi
-
-# Disable debugging
-set +x

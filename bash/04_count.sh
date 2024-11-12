@@ -1,76 +1,50 @@
-#!/bin/bash
+#! /bin/bash
 
-# Define default values
-OSCAR_script_dir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
-OSCAR_base_dir=$(dirname "$OSCAR_script_dir")
-prefix="$HOME/scratch/ngs"
-num_cores=$(nproc)
+# Default values
+oscar_dir=$(dirname "${BASH_SOURCE[0]}")
+source "${oscar_dir}/functions.sh"
+dir_prefix="${HOME}/scratch/ngs"
+metadata_file_name="metadata.csv"
 
-# Parse command-line arguments
-while [[ $# -gt 0 ]]; do
-    key="$1"
-    case $key in
-        --project-id)
-        output_project_id="$2"
+# Parse command line arguments
+while [[ "$#" -gt 0 ]]; do
+    if [[ "$1" == --* ]]; then
+        var_name="${1#--}"
+        var_name="${var_name//-/_}"
+        declare "$var_name"="$2"
         shift 2
-        ;;
-        --prefix)
-        prefix="$2"
-        shift 2
-        ;;
-        *)
-        # Unknown option
-        echo "Unknown option: $1"
+    else
+        echo "Invalid option: $1"
         exit 1
-        ;;
-    esac
+    fi
 done
 
-# Check if project_id is empty
-if [ -z "$output_project_id" ]; then
-    echo -e "\033[0;31mERROR:\033[0m Please provide a project_id using the --project-id option."
-    exit 1
-fi
+check_project_id
 
-read_length=$(awk -F '"' '/<Read Number="1"/ {print $4}' ${prefix}/${output_project_id}/${output_project_id}_bcl/RunInfo.xml)
-if [ "$read_length" -gt 45 ]; then
-    run_type="ATAC"
-elif [ "$read_length" -lt 45 ]; then
-    run_type="GEX"
-else
-    echo -e "\033[0;31mERROR:\033[0m Cannot determine run type, please check ${project_dir}/${output_project_id}_bcl/RunInfo.xml"
-    exit 1
-fi
+# Define project directories
+project_dir="${dir_prefix}/${project_id}"
+project_scripts="${project_dir}/${project_id}_scripts"
+project_indices="${project_scripts}/indices"
+fastq_dir=${output_project_dir}/${output_project_id}_fastq
 
-echo ""
-echo -e "\033[34mINFO:\033[0m $output_project_id is an $run_type run, processing appropriately"
+# Check if metadata file exists
+metadata_file="${project_scripts}/metadata/${metadata_file_name}"
+check_metadata_file "${metadata_file}"
 
-project_dir="${prefix}/$output_project_id"
-library_folder="${project_dir}/${output_project_id}_scripts/libraries"
-fastq_dir=${project_dir}/${output_project_id}_fastq
-mkdir -p $fastq_dir/logs
+# Check if indices folder exists
+check_folder_exists "${project_scripts}/indices"
 
-# Check if indices folder does not exist, and exit if it's not present
-if [ ! -d "$library_folder" ]; then
-    echo -e "\033[0;31mERROR:\033[0m Libraries folder does not exist, please run the process_metadata script"
-    exit 1
-fi
+# Pull necessary OSCAR containers
+check_and_pull_oscar_containers
 
-metadata_file="${project_dir}/${output_project_id}_scripts/metadata/metadata.csv"
+# List index files and extract flowcell ID from RunInfo.xml
+index_files=($(ls "${project_dir}/${project_id}_scripts/indices"))
+flowcell_id=$(grep "<Flowcell>" "${project_dir}/${project_id}_bcl/RunInfo.xml" | sed -e 's|.*<Flowcell>\(.*\)</Flowcell>.*|\1|')
 
-# Check the symbolic link for the group folder in the users $HOME
-if [ ! -d "$HOME/group" ]; then
-    ln -s /fast/work/groups/ag_romagnani/ $HOME/group
-fi
+# Validate the mode
+validate_mode "${mode}"
 
-container=$TMPDIR/oscar-count_latest.sif
-
-# Check that the singularity container is available
-if [ ! -f "${container}" ]; then
-    echo "oscar-count_latest.sif singularity file not found, pulling..."
-    mkdir -p $TMPDIR
-    apptainer pull --dir $TMPDIR library://romagnanilab/default/oscar-count:latest
-fi
+metadata_file="${project_dir}/${project_id}_scripts/metadata/metadata.csv"
 
 # Take the csv files into a list and remove the .csv suffix
 libraries=($(ls "$library_folder" | awk -F/ '{print $NF}' | awk -F. '{print $1}'))
@@ -90,36 +64,10 @@ elif grep -q '.*HTO.*ASAP_.*' "${library_folder}/${library}.csv"; then
 fastq_names=""
 fastq_dirs=""
 
-# Read the CSV file line by line
-while IFS= read -r line; do
-    # Check if the line contains "ATAC"
-    if [[ $line == *ATAC* ]]; then
-        # Extract fastq name and directory from the line
-        IFS=',' read -r fastq_name fastq_dir <<< "$line"
+read fastq_names fastq_dirs < <(count_read_csv "$library_folder" "$library")
 
-        # Concatenate the fastq name to fastq_names variable
-        if [ -n "$fastq_names" ]; then
-            fastq_names="${fastq_names},${fastq_name}"
-        else
-            fastq_names="$fastq_name"
-        fi
+extra_arguments=$(count_check_dogma "$library_folder" "$library")
 
-        # Concatenate the fastq directory to fastq_dirs variable
-        if [ -n "$fastq_dirs" ]; then
-            fastq_dirs="${fastq_dirs},${fastq_dir}"
-        else
-            fastq_dirs="$fastq_dir"
-        fi
-    fi
-done < "${library_folder}/${library}.csv"
-        # If it's a DOGMA-seq run, chemistry needs to be specified
-        if grep -q '.*DOGMA.*' "${library_folder}/${library}.csv"; then
-            cat ${library_folder}/${library}.csv
-            extra_arguments="--chemistry ARC-v1"
-            echo "Adding $extra_arguments as it is a DOGMA/MULTIOME run"
-        else
-            extra_arguments=""
-        fi
 
         echo ""
         echo "cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $fastq_dirs --sample $fastq_names --localcores $num_cores $extra_arguments"
@@ -140,11 +88,11 @@ done < "${library_folder}/${library}.csv"
             job_id=$(sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name ${library}
-#SBATCH --output $outs/logs/${library}_counting.out
-#SBATCH --error $outs/logs/${library}_counting.out
+#SBATCH --output $outs/logs/$cellranger_{library}.out
+#SBATCH --error $outs/logs/$cellranger_{library}.out
 #SBATCH --ntasks=32
-#SBATCH --mem=96000
-#SBATCH --time=24:00:00
+#SBATCH --mem=64000
+#SBATCH --time=72:00:00
 num_cores=\$(nproc)
 cd $outs
 apptainer run -B /data $container cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $fastq_dirs --sample $fastq_names --localcores \$num_cores $extra_arguments
@@ -169,38 +117,10 @@ EOF
     if [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
         continue
     elif [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-        # Read the metadata file line by line
-        while IFS=',' read -r -a fields; do
-            assay="${fields[0]}"
-            experiment_id="${fields[1]}"
-            historical_number="${fields[2]}"
-            replicate="${fields[3]}"
 
-            expected_library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
+ADT_file=$(count_read_metadata "$metadata_file" "$library")
 
-            if [ "$expected_library" == "$library" ]; then
-                ADT_file="${fields[10]}"
-                break
-            fi
-        done < "$metadata_file"
-
-        library_csv=${library_folder}/${library}_ADT.csv
-        fastq_dirs=''
-        fastq_libraries=''
-        while IFS= read -r line; do
-            IFS=',' read -r -a parts <<< "$line"
-            fastq_library="${parts[0]}"
-            fastq_dir="${parts[1]}"
-            fastq_libraries="$fastq_libraries,$fastq_library"
-            fastq_dirs="$fastq_dirs,$fastq_dir"
-        done < "${library_csv}"
-        fastq_dirs="${fastq_dirs:1}"
-        fastq_libraries="${fastq_libraries:1}"
-        ATAC_whitelist=${OSCAR_base_dir}/whitelists/737K-cratac-v1.txt
-        ADT_outs=${outs}/${library}/ADT
-        ADT_index_folder=${outs}/${library}/ADT_index
-        corrected_fastq=${project_dir}/${output_project_id}_fastq/ASAP_SI_ADT_corrected
-        ADT_file=${project_dir}/${output_project_id}_scripts/ADT_files/${ADT_file}.csv
+read fastq_dirs fastq_libraries < <(count_read_adt_csv "$library_folder" "$library")
 
         echo ""
         echo "For ${library}, the following ASAP FASTQ files will be converted to KITE-compatible FASTQ files:"
@@ -230,11 +150,11 @@ EOF
         sbatch $sbatch_dependency <<EOF
 #!/bin/bash
 #SBATCH --job-name ${library}_ADT
-#SBATCH --output $outs/logs/${library}_ADT.out
-#SBATCH --error $outs/logs/${library}_ADT.out
+#SBATCH --output $outs/logs/kite_${library}.out
+#SBATCH --error $outs/logs/kite_${library}.out
 #SBATCH --ntasks=16
-#SBATCH --mem=128000
-#SBATCH --time=12:00:00
+#SBATCH --mem=96000
+#SBATCH --time=72:00:00
 num_cores=\$(nproc)
 cd ${outs}/${library}
 echo "Running featuremap"
@@ -303,7 +223,7 @@ EOF
 #SBATCH --job-name ${library}
 #SBATCH --output $outs/logs/${library}_counting.out
 #SBATCH --error $outs/logs/${library}_counting.out
-#SBATCH --ntasks=64
+#SBATCH --ntasks=32
 #SBATCH --mem=96000
 #SBATCH --time=96:00:00
 num_cores=\$(nproc)
