@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="../styles.css">
 </head>
 <body>
-    <div id="topbar-placeholder"></div>
+    <div id="topbar-placeholder"></div> <!-- Placeholder for the top bar -->
     <div class="container">
         <h1>Metadata file generator</h1>    
 
@@ -36,7 +36,7 @@
             </ul>
         </section>        
         
-        <div id="messageContainer" style="color: red; display: none;"></div>
+        <div id="messageContainer" style="color: red; display: none;"></div> <!-- Container for error messages -->
         <form id="csvForm">
             <table>
                 <thead>
@@ -58,17 +58,20 @@
                     <!-- Rows will be dynamically added here -->
                 </tbody>
             </table>
-            <button type="button" class="add-row-button">Add row</button>
+            <button type="button" class="add-row-button">Add row</button> <!-- Button to add new rows -->
         </form>
     </div>
 
     <script>
+
+        // Function to fetch the row template from an external HTML file
         async function fetchRowTemplate() {
             const response = await fetch('../pages/row_template.html');
             const template = await response.text();
             return template;
         }
 
+        // Function to add a new row to the table
         async function addRow() {
             const container = document.getElementById('rowsContainer');
             const template = await fetchRowTemplate();
@@ -77,16 +80,18 @@
             container.appendChild(newRow);
         }
 
+        // Event listener for DOMContentLoaded to set up initial rows and event listeners
         document.addEventListener('DOMContentLoaded', async () => {
-            document.querySelector('.add-row-button').addEventListener('click', addRow);
-            document.querySelector('.generate-csv-button').addEventListener('click', generateCSV);
+            document.querySelector('.add-row-button').addEventListener('click', addRow); // Add row button event listener
+            document.querySelector('.generate-csv-button').addEventListener('click', generateCSV); // Generate CSV button event listener
             const container = document.getElementById('rowsContainer');
             const template = await fetchRowTemplate();
             const firstRow = document.createElement('tr');
             firstRow.innerHTML = template;
-            container.appendChild(firstRow);
+            container.appendChild(firstRow); // Add the first row on page load
         });
 
+        // Function to generate the CSV content from the table rows
         function generateCSV() {
             const rows = document.querySelectorAll('#rowsContainer tr');
             let csvContent = 'assay,experiment_id,historical_number,replicate,modality,chemistry,index_type,index,species,n_donors,adt_file\n';
@@ -102,12 +107,13 @@
             });
 
             if (allValid) {
-                downloadCSV(csvContent);
+                downloadCSV(csvContent); // Download the CSV if all rows are valid
             } else {
-                alert('Please complete all fields before generating the CSV.');
+                alert('Please complete all fields before generating the CSV.'); // Alert if any row is invalid
             }
         }
 
+        // Function to validate a row and collect its values
         function validateRow(row) {
             const inputs = row.querySelectorAll('input, select');
             const values = Array.from(inputs).map(input => input.value || 'NA');
@@ -115,16 +121,17 @@
 
             inputs.forEach(input => {
                 if (input.value === '') {
-                    input.classList.add('error');
+                    input.classList.add('error'); // Add error class if input is empty
                     rowValid = false;
                 } else {
-                    input.classList.remove('error');
+                    input.classList.remove('error'); // Remove error class if input is not empty
                 }
             });
 
-            return { rowValid, values };
+            return { rowValid, values }; // Return validation status and values
         }
 
+        // Function to download the generated CSV content
         function downloadCSV(csvContent) {
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
@@ -136,35 +143,35 @@
             document.body.removeChild(a);
         }
 
-    // JavaScript to include the top bar
-    fetch('./topbar.html')  // Changed to reference same directory
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.text();
-        })
-        .then(data => {
-            console.log('Topbar content loaded'); // Debug logging
-            document.getElementById('topbar-placeholder').innerHTML = data;
+        // JavaScript to include the top bar
+        fetch('./topbar.html')  // Fetch the top bar HTML
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(data => {
+                console.log('Topbar content loaded'); // Debug logging
+                document.getElementById('topbar-placeholder').innerHTML = data;
 
-            // Determine the base path
-            const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
+                // Determine the base path
+                const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
 
-            // Set the href attributes
-            document.getElementById('home-link').href = basePath + 'index.html';
-            document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
-            document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
-            document.getElementById('references-link').href = basePath + 'pages/references.html';
-        })
-        .catch(error => {
-            console.error('Error loading topbar:', error);
-            document.getElementById('topbar-placeholder').innerHTML = '<p>Error loading navigation</p>';
-        });
+                // Set the href attributes
+                document.getElementById('home-link').href = basePath + 'index.html';
+                document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
+                document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
+                document.getElementById('references-link').href = basePath + 'pages/references.html';
+            })
+            .catch(error => {
+                console.error('Error loading topbar:', error);
+                document.getElementById('topbar-placeholder').innerHTML = '<p>Error loading navigation</p>';
+            });
 
     </script>
-<div class="right-align-container">
-    <button class="generate-csv-button">Download metadata.csv</button>
-</div>
+    <div class="right-align-container">
+        <button class="generate-csv-button">Download metadata.csv</button> <!-- Button to generate and download the CSV -->
+    </div>
 </body>
 </html>

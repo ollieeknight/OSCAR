@@ -1,194 +1,214 @@
-body { 
-    text-align: left; 
-}
-
-.container { 
-    max-width: 100%; 
-    margin: 0 auto; 
-    padding: 10px; 
-    box-sizing: border-box; 
-    position: relative; 
-}
-
-h1 { 
-    font-family: 'Roboto', sans-serif; 
-    text-align: left; 
-    font-size: 3em; /* 3 times the size of the parent element's font size */
-}
-
-h2 { 
-    font-family: 'Roboto', sans-serif; 
-    text-align: left; 
-    font-size: 2em; /* 2 times the size of the parent element's font size */
-}
-
+/* General body styles */
 body {
-    font-family: 'Roboto', sans-serif; 
-    text-align: left; 
-    font-size: 1em; /* Normal text size, same as the parent element's font size */
+    font-family: 'Roboto', sans-serif; /* Set the font family for the entire document */
+    text-align: left; /* Align text to the left */
+    font-size: 1em; /* Set the base font size */
 }
 
+/* Heading 1 (h1) styles */
+h1 { 
+    text-align: left; /* Align text to the left */
+    font-size: 3em; /* Set the font size for h1 elements */
+}
+
+/* Heading 2 (h2) styles */
+h2 { 
+    font-family: 'Roboto', sans-serif; /* Set the font family for h2 elements */
+    text-align: left; /* Align text to the left */
+    font-size: 2em; /* Set the font size for h2 elements */
+}
+
+/* Content container styles */
 .content {
-    text-align: left;
+    text-align: left; /* Align text to the left */
 }
 
+/* Specific content section styles */
 .specific-content {
-    margin-top: 50px;
-    background-color: #ddd;
-    color: black;
+    margin-top: 50px; /* Add top margin */
+    background-color: #ddd; /* Set background color */
+    color: black; /* Set text color */
 }
 
+/* Button container styles within content */
 .content .button-container {
-    display: flex;
-    justify-content: flex-start;
-    gap: 10px;
-    font-size: 0.9em;
-    color: #555;
+    display: flex; /* Use flexbox for layout */
+    justify-content: flex-start; /* Align items to the start */
+    gap: 10px; /* Add space between items */
+    font-size: 0.9em; /* Set font size */
+    color: #555; /* Set text color */
 }
 
+/* Select option styles */
 select option {
-    width: auto;
+    width: auto; /* Set width to auto */
 }
-.error { border: 2px solid red; }
 
+/* Error border styles */
+.error { 
+    border: 2px solid red; /* Add red border for error indication */
+}
+
+/* Top bar styles */
 .top-bar {
-    background-color: #3b5c99;
-    overflow: hidden;
+    background-color: #3b5c99; /* Set background color */
+    overflow: hidden; /* Hide overflow */
 }
 
+/* Top bar link styles */
 .top-bar a {
-    float: left;
-    display: block;
-    color: white;
-    text-align: center;
-    padding: 14px 16px;
-    text-decoration: none;
+    float: left; /* Float links to the left */
+    display: block; /* Display as block elements */
+    color: white; /* Set text color to white */
+    text-align: center; /* Center align text */
+    padding: 14px 16px; /* Add padding */
+    text-decoration: none; /* Remove underline */
     border-right: 1px solid white; /* Add horizontal lines between links */
 }
 
+/* Remove border from the last link in the top bar */
 .top-bar a:last-child {
     border-right: none; /* Remove the border from the last link */
 }
 
+/* Hover effect for top bar links */
 .top-bar a:hover {
     background-color: #555; /* Change background color on hover */
     color: white; /* Ensure text color remains white on hover */
 }
 
+/* Table styles */
 table { 
-    width: 100%; border-collapse: collapse; margin-bottom: 20px; 
+    width: 100%; /* Set table width to 100% */
+    border-collapse: collapse; /* Collapse borders */
+    margin-bottom: 20px; /* Add bottom margin */
 }
+
+/* Table header and cell styles */
 th, td { 
-    border: 1px solid #ddd; 
-    padding: 8px; 
-    text-align: left; 
-    font-family: 'Roboto', sans-serif; 
+    border: 1px solid #ddd; /* Add border */
+    padding: 8px; /* Add padding */
+    text-align: left; /* Align text to the left */
+    font-family: 'Roboto', sans-serif; /* Set font family */
 }
 
-th { background-color: #f2f2f2; }
+/* Table header background color */
+th { 
+    background-color: #f2f2f2; /* Set background color */
+}
 
+/* Even row background color */
 tr:nth-child(even) { 
-    background-color: #f9f9f9; 
+    background-color: #f9f9f9; /* Set background color */
 }
 
+/* Row hover effect */
 tr:hover { 
-    background-color: #f1f1f1; 
+    background-color: #f1f1f1; /* Set background color on hover */
 }
 
+/* Input and select styles */
 input, select { 
-    width: 100%; 
-    box-sizing: border-box; 
+    width: 100%; /* Set width to 100% */
+    box-sizing: border-box; /* Include padding and border in element's total width and height */
 }
 
+/* Button styles */
 button { 
-    padding: 5px 10px; 
-    margin-top: 10px; 
+    padding: 5px 10px; /* Add padding */
+    margin-top: 10px; /* Add top margin */
 }
 
-select {
-    width: 100%;
-}
-
-select {
-    width: auto;
-    display: inline-block;
-    margin-right: 10px;
-}
+/* Dropdown content styles */
 .dropdown-content {
-    display: none;
-    position: absolute;
-    background-color: #f9f9f9;
-    min-width: 160px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    z-index: 1;
+    display: none; /* Hide by default */
+    position: absolute; /* Position absolutely */
+    background-color: #f9f9f9; /* Set background color */
+    min-width: 160px; /* Set minimum width */
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); /* Add shadow */
+    z-index: 1; /* Set z-index */
 }
 
+/* Dropdown item styles */
 .dropdown-content div {
-    color: black;
-    padding: 12px 16px;
-    text-decoration: none;
-    display: block;
-    cursor: pointer;
+    color: black; /* Set text color */
+    padding: 12px 16px; /* Add padding */
+    text-decoration: none; /* Remove underline */
+    display: block; /* Display as block elements */
+    cursor: pointer; /* Set cursor to pointer */
 }
 
+/* Dropdown item hover effect */
 .dropdown-content div:hover {
-    background-color: #f1f1f1;
+    background-color: #f1f1f1; /* Set background color on hover */
 }
 
+/* Dropdown container styles */
 .dropdown {
-    position: relative;
-    display: inline-block;
+    position: relative; /* Position relatively */
+    display: inline-block; /* Display as inline-block */
 }
 
+/* Form group styles */
 .form-group {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    display: flex; /* Use flexbox for layout */
+    align-items: center; /* Align items to the center */
+    gap: 10px; /* Add space between items */
 }
 
+/* Form group label styles */
 .form-group label {
-    margin-right: 10px;
+    margin-right: 10px; /* Add right margin */
 }
 
+/* Remove button styles */
 .remove-button {
-    cursor: pointer;
-    color: red;
+    cursor: pointer; /* Set cursor to pointer */
+    color: red; /* Set text color to red */
 }
 
+/* Edit button styles */
 .edit-button {
-    cursor: pointer;
-    color: blue;
+    cursor: pointer; /* Set cursor to pointer */
+    color: blue; /* Set text color to blue */
 }
 
+/* Corrected name container styles */
 .corrected-name-container {
-    display: flex;
-    align-items: center;
+    display: flex; /* Use flexbox for layout */
+    align-items: center; /* Align items to the center */
 }
 
+/* Corrected name span styles */
 .corrected-name-container span {
-    flex-grow: 1;
+    flex-grow: 1; /* Allow span to grow */
 }
 
+/* Button container styles */
 .button-container {
-    display: flex;
-    align-items: center;
-    margin-top: 10px;
+    display: flex; /* Use flexbox for layout */
+    align-items: center; /* Align items to the center */
+    margin-top: 10px; /* Add top margin */
 }
 
+/* Separator styles */
 .separator {
-    border-top: 3px solid black;
-    margin: 20px 0;
+    border-top: 3px solid black; /* Add top border */
+    margin: 20px 0; /* Add top and bottom margin */
 }
 
+/* Right align container styles */
 .right-align-container {
-    text-align: right;
+    text-align: right; /* Align text to the right */
 }
 
+/* Generate CSV button styles */
 .generate-csv-button { 
-    margin-top: 10px; 
+    margin-top: 10px; /* Add top margin */
 }
 
+/* CSV name input styles */
 .csv-name-input { 
-    margin-top: 10px; 
-    width: 120px; 
+    margin-top: 10px; /* Add top margin */
+    width: 120px; /* Set width */
 }
