@@ -233,7 +233,7 @@ EOF
 #SBATCH --time=96:00:00
 num_cores=\$(nproc)
 cd $outs
-apptainer run -B /fast,/data "$container" cellranger multi --id "${library}" --csv "${project_libraries}/${library}.csv" --localcores "\$num_cores"
+apptainer run -B /data "$container" cellranger multi --id "${library}" --csv "${project_libraries}/${library}.csv" --localcores "\$num_cores"
 rm -r $outs/$library/SC_MULTI_CS $outs/$library/_*
 EOF
         fi
