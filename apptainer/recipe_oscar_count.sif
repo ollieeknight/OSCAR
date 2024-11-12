@@ -13,10 +13,12 @@ From: ubuntu:latest
 %environment
     export LC_ALL=C
     export LC_NUMERIC=en_GB.UTF-8
-    export PATH="/opt/cellranger-8.0.1:/opt/cellranger-atac-2.1.0:/opt/kallisto/:$PATH"
+	export PATH="/opt/cellranger-atac-2.1.0:/opt/cellranger-8.0.1:/opt/kallisto/:$PATH"
 
 %runscript
-    exec "$@"
+        alias featuremap='/opt/kite/featuremap/featuremap.py'
+        alias ASAP_to_KITE='/opt/asap_to_kite/asap_to_kite_v2.py'
+        eval ${@}
 
 %post
     # Update and upgrade the package lists
@@ -73,6 +75,3 @@ From: ubuntu:latest
     # Ensure the conda environment is activated when the container starts
     echo ". /opt/miniforge3/etc/profile.d/conda.sh" >> $SINGULARITY_ENVIRONMENT
     echo "conda activate oscar_count" >> $SINGULARITY_ENVIRONMENT
-
-    # Add the extracted directories to the PATH environment variable
-    echo "export PATH=/opt/cellranger-8.0.1:/opt/cellranger-atac-2.1.0:/opt/kallisto/:$PATH" >> $SINGULARITY_ENVIRONMENT

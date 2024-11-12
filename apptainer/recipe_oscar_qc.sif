@@ -14,11 +14,11 @@ From: ubuntu:latest
     # Set environment variables
     export LC_ALL=C
     export LC_NUMERIC=en_GB.UTF-8
-    alias amulet='/opt/AMULET/AMULET.sh'
+    export PATH="/opt/AMULET/:$PATH"
 
 %runscript
-    # Define the default command to run when the container starts
-    exec "$@"
+    alias AMULET='/opt/AMULET/AMULET.sh'
+    eval "${@}"
 
 %post
     # Update and upgrade the package lists and install necessary packages
@@ -71,4 +71,3 @@ From: ubuntu:latest
     # Ensure the conda environment is activated when the container starts
     echo ". /opt/miniforge3/etc/profile.d/conda.sh" >> $SINGULARITY_ENVIRONMENT
     echo "conda activate oscar_qc" >> $SINGULARITY_ENVIRONMENT
-    echo "export PATH=/opt/AMULET/:$PATH" >> $SINGULARITY_ENVIRONMENT
