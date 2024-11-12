@@ -152,12 +152,18 @@ button {
     display: flex; /* Use flexbox for layout */
     align-items: center; /* Align items to the center */
     gap: 10px; /* Add space between items */
-    width: max-content; /* Scale to the width of the longest child */
+    width: 100%; /* Ensure the form group takes full width */
 }
 
 /* Form group label styles */
 .form-group label {
     margin-right: 10px; /* Add right margin */
+    white-space: nowrap; /* Prevent label text from wrapping */
+}
+
+/* Form group select styles */
+.form-group select {
+    flex-grow: 1; /* Allow the select element to grow and take available space */
 }
 
 /* Remove button styles */

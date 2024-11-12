@@ -136,44 +136,45 @@
         }
 
         function showDropdown() {
-            const search = document.getElementById('search').value.toLowerCase();
-            const dropdown = document.getElementById('dropdown-content');
-            dropdown.innerHTML = '';
-            if (search) {
-                const filteredMarkers = markersData.filter(marker => 
-                    marker.catalogue_number.toLowerCase().includes(search) ||
-                    marker.marker.toLowerCase().includes(search) ||
-                    marker.clone.toLowerCase().includes(search)
-                );
-                let maxWidth = 0;
-                filteredMarkers.forEach(marker => {
-                    const div = document.createElement('div');
-                    const text = `${marker.marker}: ${marker.clone}: ${marker.catalogue_number}`;
-                    div.textContent = text;
-                    div.onclick = () => {
-                        addRow(marker.marker, marker.catalogue_number, marker.clone, marker.reactivity, marker.barcode);
-                        document.getElementById('search').value = '';
-                        dropdown.innerHTML = '';
-                    };
-                    dropdown.appendChild(div);
-                    // Measure the width of the text
-                    const tempSpan = document.createElement('span');
-                    tempSpan.style.visibility = 'hidden';
-                    tempSpan.style.position = 'absolute';
-                    tempSpan.textContent = text;
-                    document.body.appendChild(tempSpan);
-                    const width = tempSpan.offsetWidth;
-                    document.body.removeChild(tempSpan);
-                    if (width > maxWidth) {
-                        maxWidth = width;
-                    }
-                });
-                dropdown.style.display = 'block';
-                dropdown.style.width = `${maxWidth}px`;
-            } else {
-                dropdown.style.display = 'none';
-            }
+        const search = document.getElementById('search').value.toLowerCase();
+        const dropdown = document.getElementById('dropdown-content');
+        dropdown.innerHTML = '';
+        if (search) {
+            const filteredMarkers = markersData.filter(marker => 
+                marker.catalogue_number.toLowerCase().includes(search) ||
+                marker.marker.toLowerCase().includes(search) ||
+                marker.clone.toLowerCase().includes(search)
+            );
+            let maxWidth = 0;
+            filteredMarkers.forEach(marker => {
+                const div = document.createElement('div');
+                const text = `${marker.marker}, clone ${marker.clone}, catalogue number ${marker.catalogue_number}`;
+                const highlightedText = text.replace(new RegExp(search, 'gi'), match => `<strong>${match}</strong>`);
+                div.innerHTML = highlightedText;
+                div.onclick = () => {
+                    addRow(marker.marker, marker.catalogue_number, marker.clone, marker.reactivity, marker.barcode);
+                    document.getElementById('search').value = '';
+                    dropdown.innerHTML = '';
+                };
+                dropdown.appendChild(div);
+                // Measure the width of the text
+                const tempSpan = document.createElement('span');
+                tempSpan.style.visibility = 'hidden';
+                tempSpan.style.position = 'absolute';
+                tempSpan.innerHTML = highlightedText;
+                document.body.appendChild(tempSpan);
+                const width = tempSpan.offsetWidth;
+                document.body.removeChild(tempSpan);
+                if (width > maxWidth) {
+                    maxWidth = width;
+                }
+            });
+            dropdown.style.display = 'block';
+            dropdown.style.width = `${maxWidth}px`;
+        } else {
+            dropdown.style.display = 'none';
         }
+    }
 
         function confirmReset(type) {
             const speciesElement = document.getElementById('species');
