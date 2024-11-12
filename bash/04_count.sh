@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 
 # Default values
 oscar_dir=$(dirname "${BASH_SOURCE[0]}")
@@ -25,7 +25,8 @@ check_project_id
 project_dir="${dir_prefix}/${project_id}"
 project_scripts="${project_dir}/${project_id}_scripts"
 project_indices="${project_scripts}/indices"
-fastq_dir=${output_project_dir}/${output_project_id}_fastq
+output_project_dir="${project_dir}/output"
+fastq_dir=${output_project_dir}/${project_id}_fastq
 
 # Check if metadata file exists
 metadata_file="${project_scripts}/metadata/${metadata_file_name}"
@@ -48,7 +49,7 @@ metadata_file="${project_dir}/${project_id}_scripts/metadata/metadata.csv"
 
 # Take the csv files into a list and remove the .csv suffix
 libraries=($(ls "$library_folder" | awk -F/ '{print $NF}' | awk -F. '{print $1}'))
-outs=${project_dir}/${output_project_id}_outs/
+outs=${project_dir}/${project_id}_outs/
 mkdir -p ${outs}/
 
 # Iterate over each library file to submit counting jobs
@@ -88,8 +89,8 @@ extra_arguments=$(count_check_dogma "$library_folder" "$library")
             job_id=$(sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name ${library}
-#SBATCH --output $outs/logs/$cellranger_{library}.out
-#SBATCH --error $outs/logs/$cellranger_{library}.out
+#SBATCH --output $outs/logs/cellranger_${library}.out
+#SBATCH --error $outs/logs/cellranger_${library}.out
 #SBATCH --ntasks=32
 #SBATCH --mem=64000
 #SBATCH --time=72:00:00
