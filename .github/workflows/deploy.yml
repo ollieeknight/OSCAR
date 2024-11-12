@@ -13,7 +13,6 @@ jobs:
       id-token: write
       contents: read
       pages: write
-      pages: write
 
     steps:
       - name: Checkout repository
@@ -45,9 +44,6 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
