@@ -1,10 +1,10 @@
 // functions.js
+
 function includeTopBar() {
-    fetch('helpers/topbar.html')
+    fetch('https://ollieeknight.github.io/OSCAR/docs/helpers/topbar.html')
         .then(response => response.text())
         .then(data => {
             document.getElementById('topbar-placeholder').innerHTML = data;
-            // Set the href attributes
             document.getElementById('home-link').href = 'index.html';
             document.getElementById('metadata-link').href = 'pages/metadata_generator.html';
             document.getElementById('adt-link').href = 'pages/adt_generator.html';
@@ -14,6 +14,7 @@ function includeTopBar() {
             console.error('Error fetching topbar:', error);
         });
 }
+
 
 function fetchLastCommitDate(owner, repo) {
     const url = `https://api.github.com/repos/${owner}/${repo}/commits`;

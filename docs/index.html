@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="helpers/styles.css">
-    <script src="helpers/functions.js"></script>
+    <link rel="stylesheet" href="https://ollieeknight.github.io/OSCAR/docs/helpers/styles.css">
+    <script src="https://ollieeknight.github.io/OSCAR/docs/helpers/functions.js"></script>
     <title>OSCAR</title>
 </head>
 <body>
@@ -15,8 +15,10 @@
         <div class="last-updated" id="last-updated" data-placeholder="Last updated: Loading..."></div>
     </div>
     <script>
-        // Include the top bar
-        includeTopBar();
+        // Wait for the DOM to load before including the top bar
+        document.addEventListener('DOMContentLoaded', () => {
+            includeTopBar();
+        });
 
         const repoOwner = 'ollieeknight';
         const repoName = 'OSCAR';
