@@ -22,10 +22,10 @@ function pagesIncludeTopBar() {
         .then(data => {
             document.getElementById('topbar-placeholder').innerHTML = data;
             document.getElementById('home-link').href = 'index.html';
-            document.getElementById('metadata-link').href = 'pages/metadata_generator.html';
-            document.getElementById('adt-link').href = 'pages/adt_generator.html';
-            document.getElementById('functions-link').href = 'pages/oscar_functions.html';
-            document.getElementById('references-link').href = 'pages/references.html';
+            document.getElementById('metadata-link').href = 'metadata_generator.html';
+            document.getElementById('adt-link').href = 'adt_generator.html';
+            document.getElementById('functions-link').href = 'oscar_functions.html';
+            document.getElementById('references-link').href = 'references.html';
         })
         .catch(error => {
             console.error('Error fetching topbar:', error);
