@@ -15,9 +15,14 @@
         <section>
             <p>
                 This page allows you to generate a feature barcode file for <a href="https://www.10xgenomics.com/support/software/cell-ranger/latest" target="_blank">Cell Ranger</a> and (<a href="https://github.com/pachterlab/kite" target="_blank">Kallisto Indexing and Tag Extractor (KITE)</a>).<br>
-                Antibody lists are taken directly from the <a href="https://www.biolegend.com/en-gb/totalseq/barcode-lookup" target="_blank">BioLegend barcode lookup </a> website and slightly reformatted in order to search for the correct names. In a few cases, markers will have been renamed to their CD numbers (<a href="https://www.thefcn.org/mouse-cd-list" target="_blank">mouse </a> and <a href="https://en.wikipedia.org/wiki/List_of_human_clusters_of_differentiation" target="_blank">human</a>), but in any case you can search for the antibody clone and catalogue number on the <a href="https://www.biolegend.com/en-gb/search-results?Applications=PG" target="_blank">BioLegend website</a>.<br>
-                If you're running a 10x scRNA-seq experiment (3prime, 5prime, DOGMA), please select the 'Cellranger' output format. If you're running an ASAP-seq experiment, you'll want the 'Kallisto' output format.
+                Antibody lists are taken directly from the <a href="https://www.biolegend.com/en-gb/totalseq/barcode-lookup" target="_blank">BioLegend barcode lookup</a> website and slightly reformatted in order to search for the correct names. In a few cases, markers will have been renamed to their CD numbers (<a href="https://www.thefcn.org/mouse-cd-list" target="_blank">mouse</a> and <a href="https://en.wikipedia.org/wiki/List_of_human_clusters_of_differentiation" target="_blank">human</a>), but in any case you can search for the antibody clone and catalogue number on the <a href="https://www.biolegend.com/en-gb/search-results?Applications=PG" target="_blank">BioLegend website</a>.<br>
+                Format choices:
             </p>
+            <ul>
+                <li>For processing a 10x scRNA-seq experiment (3prime, 5prime, DOGMA), please select the 'Cellranger' output format.</li>
+                <li>For an ASAP-seq experiment, you'll process your ADT FASTQ files with Kallisto.</li>
+                <li>For uploading tapestri FASTQ files, please select the 'Tapestri' output format.</li>
+            </ul>
         </section>
 
         <form id="csvForm">
@@ -176,40 +181,47 @@
         }
     }
 
-        function confirmReset(type) {
-            const speciesElement = document.getElementById('species');
-            const formatElement = document.getElementById('format');
-            const outputFormatElement = document.getElementById('output-format');
+    function confirmReset(type) {
+        const speciesElement = document.getElementById('species');
+        const formatElement = document.getElementById('format');
+        const outputFormatElement = document.getElementById('output-format');
+        const table = document.getElementById('your-table-id'); // Replace 'your-table-id' with the actual ID of your table
 
-            let currentValue;
-            if (type === 'species') {
-                currentValue = speciesElement.value;
-                if (!speciesSelected) {
-                    speciesSelected = true;
-                    filterMarkers();
-                    return;
-                }
-            } else if (type === 'format') {
-                currentValue = formatElement.value;
-                if (!formatSelected) {
-                    formatSelected = true;
-                    filterMarkers();
-                    return;
-                }
-            } else if (type === 'output-format') {
-                currentValue = outputFormatElement.value;
-                if (!outputFormatSelected) {
-                    outputFormatSelected = true;
-                    return;
-                }
+        let currentValue;
+        if (type === 'species') {
+            currentValue = speciesElement.value;
+            if (!speciesSelected) {
+                speciesSelected = true;
+                filterMarkers();
+                return;
             }
+        } else if (type === 'format') {
+            currentValue = formatElement.value;
+            if (!formatSelected) {
+                formatSelected = true;
+                filterMarkers();
+                return;
+            }
+        } else if (type === 'output-format') {
+            currentValue = outputFormatElement.value;
+            if (!outputFormatSelected) {
+                outputFormatSelected = true;
+                return;
+            }
+        }
 
-            if (currentValue !== '') {
-                const confirmed = confirm('Changing this will reset all choices. Is this alright?');
-                if (!confirmed) {
-                    return;
-                }
+        // Check if there are any rows in the table (excluding the header row)
+        const hasEntries = table.getElementsByTagName('tr').length > 1;
+
+        if (currentValue !== '' && hasEntries) {
+            const confirmed = confirm('Changing this will reset all choices. Is this alright?');
+            if (!confirmed) {
+                return;
             }
+        }
+
+        // Reset logic here if confirmed or no entries
+    }
 
             document.getElementById('rowsContainer').innerHTML = '';
             speciesElement.disabled = false;
