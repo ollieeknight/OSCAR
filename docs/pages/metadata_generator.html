@@ -5,19 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Metadata file generator</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../styles.css">
-</head>
+    <link rel="stylesheet" href="../helpers/styles.css">
+    <script src="../helpers/functions.js"></script></head>
 <body>
-    <div id="topbar-placeholder"></div> <!-- Placeholder for the top bar -->
+    <div id="topbar-placeholder"></div>
     <div class="container">
         <h1>Metadata file generator</h1>    
-
-        <!-- <section>
-            <p>
-                This page allows you to generate a metadata file for use with the <a href="https://github.com/ollieeknight/OSCAR" target="_blank">Romagnani lab OSCAR pipeline</a>.<br>
-                This pipeline takes raw sequencing data and performs cellranger counting, as well as quality control, doublet detection, and donor genotype deconvolution, as detailed <a href="https://github.com/ollieeknight/OSCAR" target="_blank">here</a>.
-            </p>
-        </section>         -->
         
         <section>
             <p>Several input variables are required to make the metadata file. These are detailed below:</p>
@@ -64,102 +57,17 @@
 
     <script>
 
-        // Function to fetch the row template from an external HTML file
-        async function fetchRowTemplate() {
-            const response = await fetch('../pages/row_template.html');
-            const template = await response.text();
-            return template;
-        }
-
-        // Function to add a new row to the table
-        async function addRow() {
-            const container = document.getElementById('rowsContainer');
-            const template = await fetchRowTemplate();
-            const newRow = document.createElement('tr');
-            newRow.innerHTML = template;
-            container.appendChild(newRow);
-        }
-
         // Event listener for DOMContentLoaded to set up initial rows and event listeners
         document.addEventListener('DOMContentLoaded', async () => {
-            document.querySelector('.add-row-button').addEventListener('click', addRow); // Add row button event listener
-            document.querySelector('.generate-csv-button').addEventListener('click', generateCSV); // Generate CSV button event listener
+            document.querySelector('.add-row-button').addEventListener('click', metadataAddRow); // Add row button event listener
+            document.querySelector('.generate-csv-button').addEventListener('click', metadataGenerateCSV); // Generate CSV button event listener
             const container = document.getElementById('rowsContainer');
-            const template = await fetchRowTemplate();
+            const template = await metadataFetchRowTemplate();
             const firstRow = document.createElement('tr');
             firstRow.innerHTML = template;
             container.appendChild(firstRow); // Add the first row on page load
         });
 
-        // Function to generate the CSV content from the table rows
-        function generateCSV() {
-            const rows = document.querySelectorAll('#rowsContainer tr');
-            let csvContent = 'assay,experiment_id,historical_number,replicate,modality,chemistry,index_type,index,species,n_donors,adt_file\n';
-            let allValid = true;
-
-            rows.forEach(row => {
-                const { rowValid, values } = validateRow(row);
-                if (!rowValid) {
-                    allValid = false;
-                } else {
-                    csvContent += values.join(',') + '\n';
-                }
-            });
-
-            if (allValid) {
-                downloadCSV(csvContent); // Download the CSV if all rows are valid
-            } else {
-                alert('Please complete all fields before generating the CSV.'); // Alert if any row is invalid
-            }
-        }
-
-        // Function to validate a row and collect its values
-        function validateRow(row) {
-            const inputs = row.querySelectorAll('input, select');
-            const values = Array.from(inputs).map(input => input.value || 'NA');
-            let rowValid = true;
-
-            inputs.forEach(input => {
-                if (input.value === '') {
-                    input.classList.add('error'); // Add error class if input is empty
-                    rowValid = false;
-                } else {
-                    input.classList.remove('error'); // Remove error class if input is not empty
-                }
-            });
-
-            return { rowValid, values }; // Return validation status and values
-        }
-
-        // Function to download the generated CSV content
-        function downloadCSV(csvContent) {
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'metadata.csv'; // Output file name
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-        // Determine the base path
-        const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
-
-        // JavaScript to include the top bar
-        fetch(basePath + 'topbar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('topbar-placeholder').innerHTML = data;
-                // Set the href attributes
-                document.getElementById('home-link').href = basePath + 'index.html';
-                document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
-                document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
-                document.getElementById('references-link').href = basePath + 'pages/references.html';
-            })
-            .catch(error => {
-                console.error('Error fetching topbar:', error);
-            });
 
     </script>
     <div class="right-align-container">
