@@ -6,30 +6,28 @@ From: ubuntu:latest
     email "oliver.knight@charite.de"
 
 %files
-    cellranger-8.0.0.tar.gz /opt/
+    cellranger-8.0.1.tar.gz /opt/
     cellranger-atac-2.1.0.tar.gz /opt/
     ../conda/oscar_count.yml /opt/environment.yml
 
 %environment
     export LC_ALL=C
     export LC_NUMERIC=en_GB.UTF-8
-    export PATH="/opt/cellranger-atac-2.1.0:/opt/cellranger-8.0.0:/opt/kallisto/:$PATH"
+    export PATH="/opt/cellranger-8.0.1:/opt/cellranger-atac-2.1.0:/opt/kallisto/:$PATH"
 
 %runscript
-    alias featuremap='/opt/kite/featuremap/featuremap.py'
-    alias ASAP_to_KITE='/opt/asap_to_kite/asap_to_kite_v2.py'
-    "$@"
+    exec "$@"
 
 %post
     # Update and upgrade the package lists
     apt-get update -qq
     apt-get upgrade -y -qq
-    apt-get --allow-releaseinfo-change update && apt-get install -y curl git unzip tar nano build-essential && apt-get clean
+    apt-get install -y curl git unzip tar nano build-essential bash && apt-get clean
 
     # Extract cellranger tarballs and remove the tarballs
-    tar -xf /opt/cellranger-8.0.0.tar.gz -C /opt/
+    tar -xf /opt/cellranger-8.0.1.tar.gz -C /opt/
     tar -xf /opt/cellranger-atac-2.1.0.tar.gz -C /opt/
-    rm /opt/cellranger-8.0.0.tar.gz /opt/cellranger-atac-2.1.0.tar.gz
+    rm /opt/cellranger-8.0.1.tar.gz /opt/cellranger-atac-2.1.0.tar.gz
 
     # Download and extract kallisto, then remove the tarball
     mkdir -p /opt/kallisto/
@@ -37,9 +35,6 @@ From: ubuntu:latest
     tar -xf /opt/kallisto_linux-v0.46.1.tar.gz -C /opt/
     rm /opt/kallisto_linux-v0.46.1.tar.gz
     chmod -R +x /opt/kallisto/
-    
-    # Add the extracted directories to the PATH environment variable
-    echo "export PATH=/opt/cellranger-atac-2.1.0:/opt/cellranger-8.0.0:/opt/kallisto/:$PATH" >> $SINGULARITY_ENVIRONMENT
 
     # Clone the ASAP_to_KITE repository and add a shebang to the Python script
     mkdir -p /opt/asap_to_kite/
@@ -53,28 +48,31 @@ From: ubuntu:latest
     chmod -R +x /opt/kite/
 
     # Install Miniforge if it is not already installed
-    if [ ! -d "/opt/miniforge3" ]; then
-        curl -L https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -o Miniforge3-Linux-x86_64.sh
-        bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3"
-        rm Miniforge3-Linux-x86_64.sh
-    fi
-
-    # Activate conda, upgrade all packages, and set the solver to libmamba
-    . /opt/miniforge3/etc/profile.d/conda.sh
-    conda upgrade --all -y
-    conda config --set solver libmamba
+    [ ! -d "/opt/miniforge3" ] && curl -L https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -o Miniforge3-Linux-x86_64.sh && bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3" && rm Miniforge3-Linux-x86_64.sh
     
-    # Create the conda environment from the YAML file
+    # Source the conda profile script
+    . /opt/miniforge3/etc/profile.d/conda.sh
+    
+    # Upgrade all conda packages
+    conda upgrade --all -y
+
+    # Create the conda environment from the environment file
     conda env create -f /opt/environment.yml
 
-    # Activate the conda environment and clean up
+    # Activate the conda environment
     conda activate oscar_count
+
+    # Clean up conda and pip caches
     conda clean -y -a
     pip cache purge
 
-    # Clean up apt cache
+    # Clean up apt caches and remove unnecessary packages
     apt-get clean
+    apt-get autoremove
 
-    # Ensure conda environment is activated in the Singularity environment
+    # Ensure the conda environment is activated when the container starts
     echo ". /opt/miniforge3/etc/profile.d/conda.sh" >> $SINGULARITY_ENVIRONMENT
     echo "conda activate oscar_count" >> $SINGULARITY_ENVIRONMENT
+
+    # Add the extracted directories to the PATH environment variable
+    echo "export PATH=/opt/cellranger-8.0.1:/opt/cellranger-atac-2.1.0:/opt/kallisto/:$PATH" >> $SINGULARITY_ENVIRONMENT

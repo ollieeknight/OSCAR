@@ -14,16 +14,17 @@ From: ubuntu:latest
     # Set environment variables
     export LC_ALL=C
     export LC_NUMERIC=en_GB.UTF-8
-    export PATH="/opt/AMULET/:$PATH"
+    alias amulet='/opt/AMULET/AMULET.sh'
 
 %runscript
     # Define the default command to run when the container starts
-    /opt/AMULET/AMULET.sh "${@}"
-    eval "${@}"
+    exec "$@"
 
 %post
     # Update and upgrade the package lists and install necessary packages
-    apt-get update && apt-get upgrade -y && apt-get --allow-releaseinfo-change install -y curl git unzip tar nano build-essential wget
+    apt-get update -qq
+    apt-get upgrade -y -qq
+    apt-get install -y curl git unzip tar nano build-essential wget && apt-get clean
 
     # Create directories for SNP and AMULET
     mkdir -p /opt/SNP/ /opt/AMULET/
@@ -32,7 +33,7 @@ From: ubuntu:latest
     curl -L -o /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz "https://www.dropbox.com/scl/fi/qpsdse6dqqjnje53mtyps/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz?rlkey=cxfnlxp8d4zref5eixg0x9uah&st=h5bxgja6&dl=1"
     
     # Clone the AMULET repository
-    git clone https://github.com/ollieeknight/AMULET /opt/AMULET/
+    git clone https://github.com/UcarLab/AMULET /opt/AMULET/
     
     # Set the SNP URL and download the SNP file again (seems redundant)
     SNP_URL="https://www.dropbox.com/scl/fi/qpsdse6dqqjnje53mtyps/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz?rlkey=cxfnlxp8d4zref5eixg0x9uah&st=h5bxgja6&dl=1"
@@ -69,5 +70,5 @@ From: ubuntu:latest
 
     # Ensure the conda environment is activated when the container starts
     echo ". /opt/miniforge3/etc/profile.d/conda.sh" >> $SINGULARITY_ENVIRONMENT
-    echo "conda activate oscar_qc" | tee -a "$SINGULARITY_ENVIRONMENT"
     echo "conda activate oscar_qc" >> $SINGULARITY_ENVIRONMENT
+    echo "export PATH=/opt/AMULET/:$PATH" >> $SINGULARITY_ENVIRONMENT
