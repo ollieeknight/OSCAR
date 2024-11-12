@@ -52,7 +52,7 @@ validate_mode "${mode}"
 metadata_file="${project_dir}/${project_id}_scripts/metadata/metadata.csv"
 
 # Take the csv files into a list and remove the .csv suffix
-libraries=($(ls "${project_librares}" | awk -F/ '{print $NF}' | awk -F. '{print $1}'))
+libraries=($(ls "${project_libraries}" | awk -F/ '{print $NF}' | awk -F. '{print $1}'))
 outs=${project_dir}/${project_id}_outs/
 mkdir -p ${outs}/
 
@@ -60,18 +60,18 @@ mkdir -p ${outs}/
 for library in "${libraries[@]}"; do
     echo "Processing library ${library}"
 
-if grep -q '.*ADT.*ASAP_.*' "${project_librares}/${library}.csv"; then
+if grep -q '.*ADT.*ASAP_.*' "${project_libraries}/${library}.csv"; then
     echo "Library ${library} is an ADT file for ASAP, processing later"
-elif grep -q '.*HTO.*ASAP_.*' "${project_librares}/${library}.csv"; then
+elif grep -q '.*HTO.*ASAP_.*' "${project_libraries}/${library}.csv"; then
     echo "Library ${library} is an HTO file for ASAP, processing later"
-    elif grep -q '.*ATAC.*' "${project_librares}/${library}.csv"; then
+    elif grep -q '.*ATAC.*' "${project_libraries}/${library}.csv"; then
     echo "Processing ${library} as an ATAC run"
 fastq_names=""
 fastq_dirs=""
 
-read fastq_names fastq_dirs < <(count_read_csv "${project_librares}" "$library")
+read fastq_names fastq_dirs < <(count_read_csv "${project_libraries}" "$library")
 
-extra_arguments=$(count_check_dogma "${project_librares}" "$library")
+extra_arguments=$(count_check_dogma "${project_libraries}" "$library")
 
 
         echo ""
@@ -125,7 +125,7 @@ EOF
 
 ADT_file=$(count_read_metadata "$metadata_file" "$library")
 
-read fastq_dirs fastq_libraries < <(count_read_adt_csv "${project_librares}" "$library")
+read fastq_dirs fastq_libraries < <(count_read_adt_csv "${project_libraries}" "$library")
 
         echo ""
         echo "For ${library}, the following ASAP FASTQ files will be converted to KITE-compatible FASTQ files:"
@@ -202,14 +202,14 @@ EOF
         fastqs=""
     fi
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
-    elif grep -q '.*GEX*' "${project_librares}/${library}.csv"; then
+    elif grep -q '.*GEX*' "${project_libraries}/${library}.csv"; then
     echo "Processing ${library} as an CITE/GEX run"
         echo ""
         echo "For library $library"
         echo ""
-        cat ${project_librares}/${library}.csv
+        cat ${project_libraries}/${library}.csv
         echo ""
-        echo "cellranger multi --id $library --csv ${project_librares}/${library}.csv --localcores $num_cores"
+        echo "cellranger multi --id $library --csv ${project_libraries}/${library}.csv --localcores $num_cores"
         echo "(number of cores will change upon submission)"
 
         # Ask the user if they want to submit the indices for FASTQ generation
@@ -233,7 +233,7 @@ EOF
 #SBATCH --time=96:00:00
 num_cores=\$(nproc)
 cd $outs
-apptainer run -B /fast,/data "$container" cellranger multi --id "${library}" --csv "${project_librares}/${library}.csv" --localcores "\$num_cores"
+apptainer run -B /fast,/data "$container" cellranger multi --id "${library}" --csv "${project_libraries}/${library}.csv" --localcores "\$num_cores"
 rm -r $outs/$library/SC_MULTI_CS $outs/$library/_*
 EOF
         fi
