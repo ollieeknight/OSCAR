@@ -6,7 +6,8 @@
     <title>Metadata file generator</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../helpers/styles.css">
-    <body>
+</head>
+<body>
     <div id="topbar-placeholder"></div>
     <div class="container">
         <h1>Metadata file generator</h1>    
@@ -55,28 +56,26 @@
     </div>
 
     <script>
+        // Wait for the DOM to load before executing setup functions
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Include the top bar
+            pagesIncludeTopBar();
 
-// Wait for the DOM to load before executing setup functions
-document.addEventListener('DOMContentLoaded', async () => {
-    // Include the top bar
-    pagesIncludeTopBar();
+            // Set up event listeners for add row and generate CSV buttons
+            document.querySelector('.add-row-button').addEventListener('click', metadataAddRow); 
+            document.querySelector('.generate-csv-button').addEventListener('click', metadataGenerateCSV);
 
-    // Set up event listeners for add row and generate CSV buttons
-    document.querySelector('.add-row-button').addEventListener('click', metadataAddRow); 
-    document.querySelector('.generate-csv-button').addEventListener('click', metadataGenerateCSV);
-
-    // Add the first row to the table on page load
-    const container = document.getElementById('rowsContainer');
-    const template = await metadataFetchRowTemplate();
-    const firstRow = document.createElement('tr');
-    firstRow.innerHTML = template;
-    container.appendChild(firstRow);
-});
-
+            // Add the first row to the table on page load
+            const container = document.getElementById('rowsContainer');
+            const template = await metadataFetchRowTemplate();
+            const firstRow = document.createElement('tr');
+            firstRow.innerHTML = template;
+            container.appendChild(firstRow);
+        });
     </script>
-<div class="right-align-container">
-    <button class="generate-csv-button">Download metadata.csv</button> <!-- Button to generate and download the CSV -->
-</div>
-<script src="./helpers/functions.js"></script>
+    <div class="right-align-container">
+        <button class="generate-csv-button">Download metadata.csv</button> <!-- Button to generate and download the CSV -->
+    </div>
+    <script src="../helpers/functions.js"></script>
 </body>
 </html>

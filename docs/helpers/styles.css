@@ -51,8 +51,24 @@ select option {
 
 /* Top bar styles */
 .top-bar {
+    position: relative;
+
     background-color: #3b5c99; /* Set background color */
     overflow: hidden; /* Hide overflow */
+}
+
+.github-link {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.github-link svg {
+    fill: white; /* Adjust the color as needed */
 }
 
 /* Top bar link styles */
@@ -130,6 +146,11 @@ button {
     display: inline-block; /* Display as inline-block */
 }
 
+.dynamic-width-dropdown {
+    width: auto;
+    box-sizing: border-box;
+}
+
 /* Input field styles */
 #search {
     width: auto; /* Scale input field to fit content */
@@ -159,11 +180,6 @@ button {
 .form-group label {
     margin-right: 10px; /* Add right margin */
     white-space: nowrap; /* Prevent label text from wrapping */
-}
-
-/* Form group select styles */
-.form-group select {
-    flex-grow: 1; /* Allow the select element to grow and take available space */
 }
 
 /* Remove button styles */

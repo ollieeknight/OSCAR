@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Feature barcode reference generator</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../helpers/styles.css">
 </head>
 <body>
     <div id="topbar-placeholder"></div>
@@ -28,7 +28,7 @@
         <form id="csvForm">
             <div class="form-group">
                 <label for="species">Species</label>
-                <select id="species" onchange="confirmReset('species')">
+                <select id="species" class="dynamic-width-dropdown" onchange="adtConfirmReset('species')">
                     <option value="" selected disabled>Unselected</option>
                     <option value="Human">Human (hs)</option>
                     <option value="Mouse">Mouse (mm)</option>
@@ -36,7 +36,7 @@
             </div>
             <div class="form-group">
                 <label for="format">TotalSeq format</label>
-                <select id="format" onchange="confirmReset('format')">
+                <select id="format" class="dynamic-width-dropdown" onchange="adtConfirmReset('format')">
                     <option value="" selected disabled>Unselected</option>
                     <option value="../files/totalseq_a.csv">TotalSeq-A</option>
                     <option value="../files/totalseq_b.csv">TotalSeq-B</option>
@@ -46,7 +46,7 @@
             </div>
             <div class="form-group">
                 <label for="output-format">CSV output format</label>
-                <select id="output-format">
+                <select id="output-format" class="dynamic-width-dropdown">
                     <option value="" selected disabled>Unselected</option>
                     <option value="cellranger">Cellranger (for CITE-, DOGMA-seq)</option>
                     <option value="kallisto">Kallisto (for ASAP-seq)</option>
@@ -56,15 +56,16 @@
             <br><br>
             <label for="search">Search</label>
             <div class="dropdown">
-                <input type="text" id="search" placeholder="Marker, clone, or catalogue number" oninput="showDropdown()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="width: auto;">
+                <input type="text" id="search" placeholder="Marker, clone, or catalogue number" oninput="adtShowDropdown()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="width: auto;">
                 <div id="dropdown-content" class="dropdown-content"></div>
             </div>
             <br><br>
-            <table>
+            <table id="csvTable">
                 <thead>
                     <tr>
                         <th>Marker</th>
                         <th>Export name</th>
+                        <th>TotalSeq ID</th>
                         <th>BioLegend catalogue number</th>
                         <th>Antibody clone</th>
                         <th>Species reactivity</th>
@@ -86,299 +87,17 @@
         let formatSelected = false;
         let outputFormatSelected = false;
 
-        async function fetchCSV(file) {
-            const response = await fetch(file);
-            const data = await response.text();
-            return data;
-        }
-
-        function parseCSV(data) {
-            const rows = data.split('\n').slice(1);
-            return rows.map(row => {
-                const [catalogue_number, id, marker, clone, reactivity, barcode] = row.split(',');
-                return { catalogue_number, id, marker, clone, reactivity, barcode };
-            });
-        }
-
-        async function filterMarkers() {
-            const format = document.getElementById('format').value;
-            const species = document.getElementById('species').value;
-            const data = await fetchCSV(format);
-            markersData = parseCSV(data);
-
-            if (species === 'Human') {
-                markersData = markersData.filter(marker => ['Human', 'Human and mouse', 'Isotype control', 'Epitope'].includes(marker.reactivity));
-            } else if (species === 'Mouse') {
-                markersData = markersData.filter(marker => ['Mouse', 'Human and mouse', 'Isotype control', 'Epitope'].includes(marker.reactivity));
-            }
-        }
-
-        function addRow(name, catalogueNumber, clone, reactivity, barcode) {
-            const container = document.getElementById('rowsContainer');
-            const correctedName = substituteCharacters(name);
-            const newRow = document.createElement('tr');
-            newRow.innerHTML = `
-                <td>${name}</td>
-                <td>
-                    <div class="corrected-name-container">
-                        <span class="corrected-name">${correctedName}</span>
-                        <input type="text" class="edit-input" value="${correctedName}" style="display:none;">
-                        <button class="edit-button" onclick="editRow(event, this)">Edit</button>
-                        <button class="save-btn" onclick="saveRow(event, this)" style="display:none;">Save</button>
-                    </div>
-                </td>
-                <td>${catalogueNumber}</td>
-                <td>${clone}</td>
-                <td>${reactivity}</td>
-                <td>${barcode}</td>
-                <td><span class="remove-button" onclick="removeRow(this)">Remove</span></td>`;
-            container.appendChild(newRow);
-        }
-
-        function removeRow(element) {
-            const row = element.parentElement.parentElement;
-            row.remove();
-        }
-
-        function showDropdown() {
-        const search = document.getElementById('search').value.toLowerCase();
-        const dropdown = document.getElementById('dropdown-content');
-        dropdown.innerHTML = '';
-        if (search) {
-            const filteredMarkers = markersData.filter(marker => 
-                marker.catalogue_number.toLowerCase().includes(search) ||
-                marker.marker.toLowerCase().includes(search) ||
-                marker.clone.toLowerCase().includes(search)
-            );
-            let maxWidth = 0;
-            filteredMarkers.forEach(marker => {
-                const div = document.createElement('div');
-                const text = `${marker.marker}, clone ${marker.clone}, catalogue number ${marker.catalogue_number}`;
-                const highlightedText = text.replace(new RegExp(search, 'gi'), match => `<strong>${match}</strong>`);
-                div.innerHTML = highlightedText;
-                div.onclick = () => {
-                    addRow(marker.marker, marker.catalogue_number, marker.clone, marker.reactivity, marker.barcode);
-                    document.getElementById('search').value = '';
-                    dropdown.innerHTML = '';
-                };
-                dropdown.appendChild(div);
-                // Measure the width of the text
-                const tempSpan = document.createElement('span');
-                tempSpan.style.visibility = 'hidden';
-                tempSpan.style.position = 'absolute';
-                tempSpan.innerHTML = highlightedText;
-                document.body.appendChild(tempSpan);
-                const width = tempSpan.offsetWidth;
-                document.body.removeChild(tempSpan);
-                if (width > maxWidth) {
-                    maxWidth = width;
-                }
-            });
-            dropdown.style.display = 'block';
-            dropdown.style.width = `${maxWidth}px`;
-        } else {
-            dropdown.style.display = 'none';
-        }
-    }
-
-    function confirmReset(type) {
-        const speciesElement = document.getElementById('species');
-        const formatElement = document.getElementById('format');
-        const outputFormatElement = document.getElementById('output-format');
-        const table = document.getElementById('your-table-id'); // Replace 'your-table-id' with the actual ID of your table
-
-        let currentValue;
-        if (type === 'species') {
-            currentValue = speciesElement.value;
-            if (!speciesSelected) {
-                speciesSelected = true;
-                filterMarkers();
-                return;
-            }
-        } else if (type === 'format') {
-            currentValue = formatElement.value;
-            if (!formatSelected) {
-                formatSelected = true;
-                filterMarkers();
-                return;
-            }
-        } else if (type === 'output-format') {
-            currentValue = outputFormatElement.value;
-            if (!outputFormatSelected) {
-                outputFormatSelected = true;
-                return;
-            }
-        }
-
-        // Check if there are any rows in the table (excluding the header row)
-        const hasEntries = table.getElementsByTagName('tr').length > 1;
-
-        if (currentValue !== '' && hasEntries) {
-            const confirmed = confirm('Changing this will reset all choices. Is this alright?');
-            if (!confirmed) {
-                return;
-            }
-        }
-
-        // Reset logic here if confirmed or no entries
-    }
-
-            document.getElementById('rowsContainer').innerHTML = '';
-            speciesElement.disabled = false;
-            formatElement.disabled = false;
-            outputFormatElement.disabled = false;
-
-            if (type === 'species' || type === 'format') {
-                filterMarkers();
-            }
-        }
-
-        function substituteCharacters(text) {
-            return text
-                .replace(/alpha/gi, 'a')
-                .replace(/beta/gi, 'b')
-                .replace(/gamma/gi, 'g')
-                .replace(/delta/gi, 'd')
-                .replace(/γ/gi, 'g')
-                .replace(/δ/gi, 'd')
-                .replace(/\s+/g, '')
-                .replace(/\//g, '-')
-                .replace(/\./g, '_')
-                .replace(/,/g, '_');
-        }
-
-        function editRow(event, button) {
-            event.preventDefault();
-            const row = button.closest('td');
-            const span = row.querySelector('.corrected-name');
-            const input = row.querySelector('.edit-input');
-            const saveButton = row.querySelector('.save-button');
-
-            span.style.display = 'none';
-            input.style.display = 'inline';
-            button.style.display = 'none';
-            saveButton.style.display = 'inline';
-        }
-
-        function saveRow(event, button) {
-            event.preventDefault();
-            const row = button.closest('td');
-            const span = row.querySelector('.corrected-name');
-            const input = row.querySelector('.edit-input');
-            const editButton = row.querySelector('.edit-button');
-
-            span.textContent = input.value;
-            span.style.display = 'inline';
-            input.style.display = 'none';
-            button.style.display = 'none';
-            editButton.style.display = 'inline';
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelector('.generate-csv-button').addEventListener('click', generateCSV);
-            filterMarkers();
+        document.addEventListener('DOMContentLoaded', async () => {
+            pagesIncludeTopBar();
+            document.querySelector('.generate-csv-button').addEventListener('click', adtGenerateCSV);
         });
-
-        function generateCSV() {
-            const outputFormat = document.getElementById('output-format').value;
-            if (!outputFormat) {
-                alert('Please select an output format.');
-                return;
-            }
-
-            const rows = Array.from(document.querySelectorAll('#rowsContainer tr'));
-            const csvName = document.querySelector('.csv-name-input').value || 'adt_list';
-            let csvContent = '';
-
-            // Separate rows with 'Hashtag' in the marker column
-            const hashtagRows = rows.filter(row => row.querySelector('td').textContent.includes('Hashtag'));
-            const nonHashtagRows = rows.filter(row => !row.querySelector('td').textContent.includes('Hashtag'));
-
-            // Sort non-hashtag rows alphabetically by the first column (marker)
-            nonHashtagRows.sort((a, b) => {
-                const markerA = a.querySelector('td').textContent.toLowerCase();
-                const markerB = b.querySelector('td').textContent.toLowerCase();
-                return markerA.localeCompare(markerB);
-            });
-
-            // Combine sorted non-hashtag rows and hashtag rows
-            const sortedRows = nonHashtagRows.concat(hashtagRows);
-
-            const format = document.getElementById('format').value;
-
-            if (outputFormat === 'cellranger') {
-                csvContent = 'id,name,read,pattern,sequence,feature_type\n';
-                sortedRows.forEach(row => {
-                    const cells = row.querySelectorAll('td');
-                    const marker = substituteCharacters(cells[0].textContent);
-                    const correctedName = cells[1].querySelector('.corrected-name').textContent;
-                    const barcode = cells[5].textContent;
-                    let pattern = '';
-
-                    csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
-
-                    if (format.includes('totalseq_a')) {
-                        pattern = '5P(BC)';
-                    } else if (format.includes('totalseq_b')) {
-                        pattern = '5PNNNNNNNNNN(BC)';
-                    } else if (format.includes('totalseq_c')) {
-                        pattern = '5PNNNNNNNNNN(BC)';
-                    }
-                });
-            } else if (outputFormat === 'kallisto') {
-                csvContent = 'Feature Barcode name,Feature Barcode sequence\n';
-                sortedRows.forEach(row => {
-                    const cells = row.querySelectorAll('td');
-                    const correctedName = cells[1].querySelector('.corrected-name').textContent;
-                    const barcode = cells[5].textContent;
-                    csvContent += `${correctedName},${barcode}\n`;
-                });
-            } else if (outputFormat === 'tapestri' && format.includes('totalseq_d')) {
-                csvContent = 'ID,Name,Sequence\n';
-                sortedRows.forEach(row => {
-                    const cells = row.querySelectorAll('td');
-                    const marker = substituteCharacters(cells[0].textContent);
-                    const totalseqId = cells[1].textContent;
-                    const barcode = cells[5].textContent;
-                    csvContent += `D${totalseqId},${marker},${barcode}\n`;
-                });
-            } else {
-                alert('Something went wrong - please check options. TotalSeq-D format is only available for Tapestri output.');
-                return;
-            }
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${csvName}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-        // Determine the base path
-        const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
-
-        // JavaScript to include the top bar
-        fetch(basePath + 'topbar.html')
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('topbar-placeholder').innerHTML = data;
-                // Set the href attributes
-                document.getElementById('home-link').href = basePath + 'index.html';
-                document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
-                document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
-                document.getElementById('references-link').href = basePath + 'pages/references.html';
-            })
-            .catch(error => {
-                console.error('Error fetching topbar:', error);
-            });
     </script>
 
     <div class="right-align-container">
         <input type="text" class="csv-name-input" placeholder="File name">
         <button class="generate-csv-button">Download .csv</button>
     </div>
+    <script src="../helpers/functions.js"></script>
 
 </body>
 </html>
