@@ -58,7 +58,7 @@
                     <!-- Rows will be dynamically added here -->
                 </tbody>
             </table>
-            <button type="button" class="add-row-btn">Add row</button>
+            <button type="button" class="add-row-button">Add row</button>
         </form>
     </div>
 
@@ -78,8 +78,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            document.querySelector('.add-row-btn').addEventListener('click', addRow);
-            document.querySelector('.generate-csv-btn').addEventListener('click', generateCSV);
+            document.querySelector('.add-row-button').addEventListener('click', addRow);
+            document.querySelector('.generate-csv-button').addEventListener('click', generateCSV);
             const container = document.getElementById('rowsContainer');
             const template = await fetchRowTemplate();
             const firstRow = document.createElement('tr');
@@ -154,6 +154,11 @@
             .catch(error => {
                 console.error('Error fetching topbar:', error);
             });
+
+            document.addEventListener('DOMContentLoaded', () => {
+            filterMarkers();
+        });
+
     </script>
 <div class="right-align-container">
     <button class="generate-csv-button">Download metadata.csv</button>

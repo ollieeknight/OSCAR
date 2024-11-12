@@ -19,7 +19,7 @@
                 If you're running a 10x scRNA-seq experiment (3prime, 5prime, DOGMA), please select the 'Cellranger' output format. If you're running an ASAP-seq experiment, you'll want the 'Kallisto' output format.
             </p>
         </section>
-                     
+
         <form id="csvForm">
             <div class="form-group">
                 <label for="species">Species</label>
@@ -238,13 +238,14 @@
             const row = button.closest('td');
             const span = row.querySelector('.corrected-name');
             const input = row.querySelector('.edit-input');
-            const saveButton = row.querySelector('.save-btn');
+            const saveButton = row.querySelector('.save-button');
 
             span.style.display = 'none';
             input.style.display = 'inline';
             button.style.display = 'none';
             saveButton.style.display = 'inline';
         }
+
         function saveRow(event, button) {
             event.preventDefault();
             const row = button.closest('td');
@@ -262,75 +263,75 @@
         document.querySelector('.generate-csv-button').addEventListener('click', generateCSV);
 
         function generateCSV() {
-    const outputFormat = document.getElementById('output-format').value;
-    if (!outputFormat) {
-        alert('Please select an output format.');
-        return;
-    }
+            const outputFormat = document.getElementById('output-format').value;
+            if (!outputFormat) {
+                alert('Please select an output format.');
+                return;
+            }
 
-    const rows = Array.from(document.querySelectorAll('#rowsContainer tr'));
-    const csvName = document.getElementById('csvName').value || 'adt_list';
-    let csvContent = '';
+            const rows = Array.from(document.querySelectorAll('#rowsContainer tr'));
+            const csvName = document.querySelector('.csv-name-input').value || 'adt_list';
+            let csvContent = '';
 
-    // Separate rows with 'Hashtag' in the marker column
-    const hashtagRows = rows.filter(row => row.querySelector('td').textContent.includes('Hashtag'));
-    const nonHashtagRows = rows.filter(row => !row.querySelector('td').textContent.includes('Hashtag'));
+            // Separate rows with 'Hashtag' in the marker column
+            const hashtagRows = rows.filter(row => row.querySelector('td').textContent.includes('Hashtag'));
+            const nonHashtagRows = rows.filter(row => !row.querySelector('td').textContent.includes('Hashtag'));
 
-    // Sort non-hashtag rows alphabetically by the first column (marker)
-    nonHashtagRows.sort((a, b) => {
-        const markerA = a.querySelector('td').textContent.toLowerCase();
-        const markerB = b.querySelector('td').textContent.toLowerCase();
-        return markerA.localeCompare(markerB);
-    });
+            // Sort non-hashtag rows alphabetically by the first column (marker)
+            nonHashtagRows.sort((a, b) => {
+                const markerA = a.querySelector('td').textContent.toLowerCase();
+                const markerB = b.querySelector('td').textContent.toLowerCase();
+                return markerA.localeCompare(markerB);
+            });
 
-    // Combine sorted non-hashtag rows and hashtag rows
-    const sortedRows = nonHashtagRows.concat(hashtagRows);
+            // Combine sorted non-hashtag rows and hashtag rows
+            const sortedRows = nonHashtagRows.concat(hashtagRows);
 
-    const format = document.getElementById('format').value;
+            const format = document.getElementById('format').value;
 
-if (outputFormat === 'cellranger') {
-    csvContent = 'id,name,read,pattern,sequence,feature_type\n';
-    sortedRows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        const marker = substituteCharacters(cells[0].textContent);
-        const correctedName = cells[1].querySelector('.corrected-name').textContent;
-        const barcode = cells[5].textContent;
-        let pattern = '';
+            if (outputFormat === 'cellranger') {
+                csvContent = 'id,name,read,pattern,sequence,feature_type\n';
+                sortedRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    const marker = substituteCharacters(cells[0].textContent);
+                    const correctedName = cells[1].querySelector('.corrected-name').textContent;
+                    const barcode = cells[5].textContent;
+                    let pattern = '';
 
-        if (format.includes('totalseq_a')) {
-            pattern = '5P(BC)';
-            csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
-        } else if (format.includes('totalseq_b')) {
-            pattern = '5PNNNNNNNNNN(BC)';
-            csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
-        } else if (format.includes('totalseq_c')) {
-            pattern = '5PNNNNNNNNNN(BC)';
-            csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
-        } else if (format.includes('totalseq_d')) {
-            csvContent = 'ID,Name,Sequence\n';
-            const totalseqId = cells[1].textContent;
-            csvContent += `D${totalseqId},${marker},${barcode}\n`;
+                    if (format.includes('totalseq_a')) {
+                        pattern = '5P(BC)';
+                        csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
+                    } else if (format.includes('totalseq_b')) {
+                        pattern = '5PNNNNNNNNNN(BC)';
+                        csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
+                    } else if (format.includes('totalseq_c')) {
+                        pattern = '5PNNNNNNNNNN(BC)';
+                        csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
+                    } else if (format.includes('totalseq_d')) {
+                        csvContent = 'ID,Name,Sequence\n';
+                        const totalseqId = cells[1].textContent;
+                        csvContent += `D${totalseqId},${marker},${barcode}\n`;
+                    }
+                });
+            } else if (outputFormat === 'kallisto') {
+                csvContent = 'Feature Barcode name,Feature Barcode sequence\n';
+                sortedRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    const correctedName = cells[1].querySelector('.corrected-name').textContent;
+                    const barcode = cells[5].textContent;
+                    csvContent += `${correctedName},${barcode}\n`;
+                });
+            }
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${csvName}.csv`;
+            document.body.appendChild(a);
+            a.click();
         }
-    });
-} else if (outputFormat === 'kallisto') {
-    csvContent = 'Feature Barcode name,Feature Barcode sequence\n';
-    sortedRows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        const correctedName = cells[1].querySelector('.corrected-name').textContent;
-        const barcode = cells[5].textContent;
-        csvContent += `${correctedName},${barcode}\n`;
-    });
-}
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${csvName}.csv`;
-    document.body.appendChild(a);
-    a.click();
-}
-        
         // JavaScript to include the top bar
         fetch('topbar.html')
             .then(response => response.text())
@@ -349,16 +350,16 @@ if (outputFormat === 'cellranger') {
             .catch(error => {
                 console.error('Error fetching topbar:', error);
             });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            filterMarkers();
+        });
     </script>
 
-document.addEventListener('DOMContentLoaded', () => {
-    filterMarkers();
-});
-
-<div class="right-align-container">
-    <input type="text" class="csv-name-input" placeholder="File name (without .csv)">
-    <button class="generate-csv-button">Download .csv</button>
-</div>
+    <div class="right-align-container">
+        <input type="text" class="csv-name-input" placeholder="File name">
+        <button class="generate-csv-button">Download .csv</button>
+    </div>
 
 </body>
 </html>
