@@ -57,16 +57,23 @@
 
     <script>
 
-        // Event listener for DOMContentLoaded to set up initial rows and event listeners
-        document.addEventListener('DOMContentLoaded', async () => {
-            document.querySelector('.add-row-button').addEventListener('click', metadataAddRow); // Add row button event listener
-            document.querySelector('.generate-csv-button').addEventListener('click', metadataGenerateCSV); // Generate CSV button event listener
-            const container = document.getElementById('rowsContainer');
-            const template = await metadataFetchRowTemplate();
-            const firstRow = document.createElement('tr');
-            firstRow.innerHTML = template;
-            container.appendChild(firstRow); // Add the first row on page load
-        });
+// Wait for the DOM to load before executing setup functions
+document.addEventListener('DOMContentLoaded', async () => {
+    // Include the top bar
+    pagesIncludeTopBar();
+
+    // Set up event listeners for add row and generate CSV buttons
+    document.querySelector('.add-row-button').addEventListener('click', metadataAddRow); 
+    document.querySelector('.generate-csv-button').addEventListener('click', metadataGenerateCSV);
+
+    // Add the first row to the table on page load
+    const container = document.getElementById('rowsContainer');
+    const template = await metadataFetchRowTemplate();
+    const firstRow = document.createElement('tr');
+    firstRow.innerHTML = template;
+    container.appendChild(firstRow);
+});
+
 
 
     </script>
