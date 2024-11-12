@@ -119,25 +119,6 @@ button {
     margin-top: 10px; /* Add top margin */
 }
 
-/* Dropdown content styles */
-.dropdown-content {
-    display: none; /* Hide by default */
-    position: absolute; /* Position absolutely */
-    background-color: #f9f9f9; /* Set background color */
-    min-width: 160px; /* Set minimum width */
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); /* Add shadow */
-    z-index: 1; /* Set z-index */
-}
-
-/* Dropdown item styles */
-.dropdown-content div {
-    color: black; /* Set text color */
-    padding: 12px 16px; /* Add padding */
-    text-decoration: none; /* Remove underline */
-    display: block; /* Display as block elements */
-    cursor: pointer; /* Set cursor to pointer */
-}
-
 /* Dropdown item hover effect */
 .dropdown-content div:hover {
     background-color: #f1f1f1; /* Set background color on hover */
@@ -149,11 +130,29 @@ button {
     display: inline-block; /* Display as inline-block */
 }
 
+/* Input field styles */
+#search {
+    width: auto; /* Scale input field to fit content */
+    min-width: 300px; /* Set a minimum width if needed */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+/* Dropdown content styles */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
 /* Form group styles */
 .form-group {
     display: flex; /* Use flexbox for layout */
     align-items: center; /* Align items to the center */
     gap: 10px; /* Add space between items */
+    width: max-content; /* Scale to the width of the longest child */
 }
 
 /* Form group label styles */
