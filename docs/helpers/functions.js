@@ -48,7 +48,7 @@ function fetchLastCommitDate(owner, repo) {
 // Function to fetch the row template from an external HTML file
 async function metadataFetchRowTemplate() {
     try {
-        const response = await fetch('../pages/row_template.html');
+        const response = await fetch('../helpers/row_template.html');
         if (!response.ok) throw new Error('Failed to load row template');
         const template = await response.text();
         return template;
