@@ -45,6 +45,7 @@
                     <option value="" selected disabled>Unselected</option>
                     <option value="cellranger">Cellranger (for CITE-, DOGMA-seq)</option>
                     <option value="kallisto">Kallisto (for ASAP-seq)</option>
+                    <option value="tapestri">Tapestri (DNA + protein)</option>
                 </select>
             </div>
             <br><br>
@@ -301,19 +302,14 @@
                     const barcode = cells[5].textContent;
                     let pattern = '';
 
+                    csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
+
                     if (format.includes('totalseq_a')) {
                         pattern = '5P(BC)';
-                        csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
                     } else if (format.includes('totalseq_b')) {
                         pattern = '5PNNNNNNNNNN(BC)';
-                        csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
                     } else if (format.includes('totalseq_c')) {
                         pattern = '5PNNNNNNNNNN(BC)';
-                        csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
-                    } else if (format.includes('totalseq_d')) {
-                        csvContent = 'ID,Name,Sequence\n';
-                        const totalseqId = cells[1].textContent;
-                        csvContent += `D${totalseqId},${marker},${barcode}\n`;
                     }
                 });
             } else if (outputFormat === 'kallisto') {
@@ -324,8 +320,19 @@
                     const barcode = cells[5].textContent;
                     csvContent += `${correctedName},${barcode}\n`;
                 });
+            } else if (outputFormat === 'tapestri' && format.includes('totalseq_d')) {
+                csvContent = 'ID,Name,Sequence\n';
+                sortedRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    const marker = substituteCharacters(cells[0].textContent);
+                    const totalseqId = cells[1].textContent;
+                    const barcode = cells[5].textContent;
+                    csvContent += `D${totalseqId},${marker},${barcode}\n`;
+                });
+            } else {
+                alert('Invalid format and output format combination.');
+                return;
             }
-
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');

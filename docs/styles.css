@@ -1,5 +1,4 @@
 body { 
-    font-family: 'Roboto', sans-serif; 
     text-align: left; 
 }
 
@@ -12,13 +11,21 @@ body {
 }
 
 h1 { 
+    font-family: 'Roboto', sans-serif; 
     text-align: left; 
-    font-size: 3em;
+    font-size: 3em; /* 3 times the size of the parent element's font size */
 }
 
 h2 { 
+    font-family: 'Roboto', sans-serif; 
     text-align: left; 
-    font-size: 2em;
+    font-size: 2em; /* 2 times the size of the parent element's font size */
+}
+
+body {
+    font-family: 'Roboto', sans-serif; 
+    text-align: left; 
+    font-size: 1em; /* Normal text size, same as the parent element's font size */
 }
 
 .content {
@@ -56,6 +63,16 @@ select option {
     text-align: center;
     padding: 14px 16px;
     text-decoration: none;
+    border-right: 1px solid white; /* Add horizontal lines between links */
+}
+
+.top-bar a:last-child {
+    border-right: none; /* Remove the border from the last link */
+}
+
+.top-bar a:hover {
+    background-color: #555; /* Change background color on hover */
+    color: white; /* Ensure text color remains white on hover */
 }
 
 table { 
