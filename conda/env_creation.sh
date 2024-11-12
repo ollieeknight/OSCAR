@@ -22,11 +22,8 @@ conda activate oscar_count
 # Install the 'bio' package using pip
 pip install bio
 
-# Create a directory named 'conda' if it doesn't exist
-mkdir -p conda
-
 # Export the 'oscar_count' environment to a YAML file
-conda env export > conda/oscar_count.yml
+conda env export > oscar_count.yml
 
 # Create a new conda environment named 'oscar_qc' with specified packages from the 'nvidia' channel
 conda create -y -n oscar_qc -c nvidia \
@@ -51,11 +48,8 @@ conda activate oscar_qc
 # Install additional packages using pip
 pip install vireoSNP cellbender mgatk
 
-# Create a directory named 'conda' if it doesn't exist (already created earlier, but this ensures it exists)
-mkdir -p conda
-
 # Export the 'oscar_qc' environment to a YAML file
-conda env export > conda/oscar_qc.yml
+conda env export > oscar_qc.yml
 
 # Deactivate the current conda environment
 conda deactivate
