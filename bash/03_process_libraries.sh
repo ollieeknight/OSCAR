@@ -10,17 +10,34 @@ vdj_options=""
 adt_options=""
 mode=""
 
+# Function to display help message
+display_help() {
+  echo "Usage: $0 [options]"
+  echo ""
+  echo "Options:"
+  echo "  --project-id <id>                             Set the project ID. Can be multiple (comma-separated)"
+  echo "  --dir-prefix <path>                           Set the directory prefix (default: ${HOME}/scratch/ngs)"
+  echo "  --gene-expression-options <id1,id2>           Define options for gene expression processing (comma-separated)"
+  echo "  --vdj-options <id1,id2>                       Define options for VDJ processing (comma-separated)"
+  echo "  --adt-options <id1,id2>                       Define options for ADT processing (comma-separated)"
+  echo "  --metadata-file-name <name>                   Set the metadata file name (default: metadata.csv)"
+  echo "  --help                                        Display this help message"
+  exit 0
+}
+
 # Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
-    if [[ "$1" == --* ]]; then
-        var_name="${1#--}"
-        var_name="${var_name//-/_}"
-        declare "$var_name"="$2"
-        shift 2
-    else
-        echo "Invalid option: $1"
-        exit 1
+  if [[ "$1" == --* ]]; then
+    if [[ "$1" == "--help" ]]; then
+      display_help  # Display help message and exit
     fi
+    var_name=$(echo "$1" | sed 's/--//; s/-/_/')
+    declare "$var_name"="$2"
+    shift 2
+  else
+    echo "Invalid option: $1"
+    exit 1
+  fi
 done
 
 check_project_id

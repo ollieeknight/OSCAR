@@ -8,9 +8,24 @@ source "${oscar_dir}/functions.sh"
 dir_prefix="${HOME}/scratch/ngs"
 metadata_file_name="metadata.csv"
 
+# Function to display help message
+display_help() {
+  echo "Usage: $0 [options]"
+  echo ""
+  echo "Options:"
+  echo "  --project-id <id>          Set the project ID"
+  echo "  --dir-prefix <path>        Set the directory prefix (default: ${HOME}/scratch/ngs)"
+  echo "  --metadata-file-name <name> Set the metadata file name (default: metadata.csv)"
+  echo "  --help                     Display this help message"
+  exit 0
+}
+
 # Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
   if [[ "$1" == --* ]]; then
+    if [[ "$1" == "--help" ]]; then
+      display_help  # Display help message and exit
+    fi
     var_name=$(echo "$1" | sed 's/--//; s/-/_/')
     declare "$var_name"="$2"
     shift 2
