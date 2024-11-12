@@ -28,7 +28,7 @@ check_project_id
 project_dir="${dir_prefix}/${project_id}"
 project_outs="${project_dir}/${project_id}_outs"
 
-check_folder_exists "${project_scripts}/${project_id}_outs"
+check_folder_exists "${project_outs}"
 
 # Pull necessary OSCAR containers
 check_and_pull_oscar_containers
@@ -36,13 +36,13 @@ qc_container=${TMPDIR}/OSCAR/oscar-qc_latest.sif
 
 metadata_file="${project_dir}/${project_id}_scripts/metadata/metadata.csv"
 
-libraries=($(find ${prefix}/$project_id/${project_id}_outs/ -maxdepth 1 -mindepth 1 -type d -not -name 'logs' -exec basename {} \;))
+libraries=($(find ${project_outs}/ -maxdepth 1 -mindepth 1 -type d -not -name 'logs' -exec basename {} \;))
 
 for library in "${libraries[@]}"; do
 
     read assay experiment_id historical_number replicate < <(extract_variables "$library")
 
-    read n_donors ADT_file < <(search_metadata "$library" "$assay" "$experiment_id" "$historical_number" "$replicate" project_ids[@] "$prefix")
+    read n_donors ADT_file < <(search_metadata "$library" "$assay" "$experiment_id" "$historical_number" "$replicate" project_ids[@] "$dir_prefix")
 
     feature_matrix_path=$(find "${project_outs}/${library}/" -type f -name "raw_feature_bc_matrix.h5" -print -quit)
     peak_matrix_path=$(find "${project_outs}/${library}/" -type f -name "raw_peak_bc_matrix.h5" -print -quit)
@@ -58,8 +58,8 @@ for library in "${libraries[@]}"; do
 job_id=$(sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name cellbender_${experiment_id}
-#SBATCH --output $outs/logs/cellbender_${library}.out
-#SBATCH --error $outs/logs/cellbender_${library}.out
+#SBATCH --output ${project_outs}/logs/cellbender_${library}.out
+#SBATCH --error ${project_outs}/logs/cellbender_${library}.out
 #SBATCH --ntasks 1
 #SBATCH --partition "gpu"
 #SBATCH --gres gpu:1
@@ -89,8 +89,8 @@ EOF
 sbatch --dependency=afterok:$job_id <<EOF
 #!/bin/bash
 #SBATCH --job-name vireo_${experiment_id}
-#SBATCH --output $outs/logs/vireo_${library}.out
-#SBATCH --error $outs/logs/vireo_${library}.out
+#SBATCH --output ${project_outs}/logs/vireo_${library}.out
+#SBATCH --error ${project_outs}/logs/vireo_${library}.out
 #SBATCH --ntasks=32
 #SBATCH --mem=32000
 #SBATCH --time=96:00:00
@@ -146,8 +146,8 @@ EOF
 sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name geno_${experiment_id}
-#SBATCH --output $outs/logs/geno_${library}.out
-#SBATCH --error $outs/logs/geno_${library}.out
+#SBATCH --output ${project_outs}/logs/geno_${library}.out
+#SBATCH --error ${project_outs}/logs/geno_${library}.out
 #SBATCH --ntasks=16
 #SBATCH --mem=128000
 #SBATCH --time=96:00:00
@@ -211,3 +211,5 @@ EOF
         exit 1
     fi
 done
+
+set +x
