@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="../styles.css">
 </head>
 <body>
-    <div id="topbar-placeholder"></div> <!-- Placeholder for the top bar -->
+    <div id="topbar-placeholder"></div>
     <div class="container">
         <h1>Feature barcode reference generator</h1>
 
@@ -81,23 +81,20 @@
         let formatSelected = false;
         let outputFormatSelected = false;
 
-        // Function to fetch the CSV file
         async function fetchCSV(file) {
             const response = await fetch(file);
             const data = await response.text();
             return data;
         }
 
-        // Function to parse the CSV data
         function parseCSV(data) {
-            const rows = data.split('\n').slice(1); // Split the data into rows and remove the header
+            const rows = data.split('\n').slice(1);
             return rows.map(row => {
                 const [catalogue_number, id, marker, clone, reactivity, barcode] = row.split(',');
                 return { catalogue_number, id, marker, clone, reactivity, barcode };
             });
         }
 
-        // Function to filter markers based on species and format
         async function filterMarkers() {
             const format = document.getElementById('format').value;
             const species = document.getElementById('species').value;
@@ -111,7 +108,6 @@
             }
         }
 
-        // Function to add a new row to the table
         function addRow(name, catalogueNumber, clone, reactivity, barcode) {
             const container = document.getElementById('rowsContainer');
             const correctedName = substituteCharacters(name);
@@ -134,13 +130,11 @@
             container.appendChild(newRow);
         }
 
-        // Function to remove a row from the table
         function removeRow(element) {
             const row = element.parentElement.parentElement;
             row.remove();
         }
 
-        // Function to show the dropdown with filtered markers
         function showDropdown() {
             const search = document.getElementById('search').value.toLowerCase();
             const dropdown = document.getElementById('dropdown-content');
@@ -181,7 +175,6 @@
             }
         }
 
-        // Function to confirm reset when changing species or format
         function confirmReset(type) {
             const speciesElement = document.getElementById('species');
             const formatElement = document.getElementById('format');
@@ -227,7 +220,6 @@
             }
         }
 
-        // Function to substitute characters in the text
         function substituteCharacters(text) {
             return text
                 .replace(/alpha/gi, 'a')
@@ -242,7 +234,6 @@
                 .replace(/,/g, '_');
         }
 
-        // Function to edit a row
         function editRow(event, button) {
             event.preventDefault();
             const row = button.closest('td');
@@ -256,7 +247,6 @@
             saveButton.style.display = 'inline';
         }
 
-        // Function to save a row after editing
         function saveRow(event, button) {
             event.preventDefault();
             const row = button.closest('td');
@@ -271,13 +261,11 @@
             editButton.style.display = 'inline';
         }
 
-        // Event listener for DOMContentLoaded to set up initial rows and event listeners
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelector('.generate-csv-button').addEventListener('click', generateCSV);
             filterMarkers();
         });
 
-        // Function to generate the CSV content from the table rows
         function generateCSV() {
             const outputFormat = document.getElementById('output-format').value;
             if (!outputFormat) {
@@ -314,19 +302,14 @@
                     const barcode = cells[5].textContent;
                     let pattern = '';
 
+                    csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
+
                     if (format.includes('totalseq_a')) {
                         pattern = '5P(BC)';
-                        csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
                     } else if (format.includes('totalseq_b')) {
                         pattern = '5PNNNNNNNNNN(BC)';
-                        csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
                     } else if (format.includes('totalseq_c')) {
                         pattern = '5PNNNNNNNNNN(BC)';
-                        csvContent += `${correctedName},${correctedName},R2,${pattern},${barcode},Antibody Capture\n`;
-                    } else if (format.includes('totalseq_d')) {
-                        csvContent = 'ID,Name,Sequence\n';
-                        const totalseqId = cells[1].textContent;
-                        csvContent += `D${totalseqId},${marker},${barcode}\n`;
                     }
                 });
             } else if (outputFormat === 'kallisto') {
@@ -337,8 +320,19 @@
                     const barcode = cells[5].textContent;
                     csvContent += `${correctedName},${barcode}\n`;
                 });
+            } else if (outputFormat === 'tapestri' && format.includes('totalseq_d')) {
+                csvContent = 'ID,Name,Sequence\n';
+                sortedRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    const marker = substituteCharacters(cells[0].textContent);
+                    const totalseqId = cells[1].textContent;
+                    const barcode = cells[5].textContent;
+                    csvContent += `D${totalseqId},${marker},${barcode}\n`;
+                });
+            } else {
+                alert('Something went wrong - please check options. TotalSeq-D format is only available for Tapestri output.');
+                return;
             }
-
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -349,36 +343,36 @@
             document.body.removeChild(a);
         }
 
-        // JavaScript to include the top bar
-        fetch('./topbar.html')  // Fetch the top bar HTML
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.text();
-            })
-            .then(data => {
-                console.log('Topbar content loaded'); // Debug logging
-                document.getElementById('topbar-placeholder').innerHTML = data;
+    // JavaScript to include the top bar
+    fetch('./topbar.html')  // Changed to reference same directory
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.text();
+        })
+        .then(data => {
+            console.log('Topbar content loaded'); // Debug logging
+            document.getElementById('topbar-placeholder').innerHTML = data;
 
-                // Determine the base path
-                const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
+            // Determine the base path
+            const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
 
-                // Set the href attributes
-                document.getElementById('home-link').href = basePath + 'index.html';
-                document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
-                document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
-                document.getElementById('references-link').href = basePath + 'pages/references.html';
-            })
-            .catch(error => {
-                console.error('Error loading topbar:', error);
-                document.getElementById('topbar-placeholder').innerHTML = '<p>Error loading navigation</p>';
-            });
+            // Set the href attributes
+            document.getElementById('home-link').href = basePath + 'index.html';
+            document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
+            document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
+            document.getElementById('references-link').href = basePath + 'pages/references.html';
+        })
+        .catch(error => {
+            console.error('Error loading topbar:', error);
+            document.getElementById('topbar-placeholder').innerHTML = '<p>Error loading navigation</p>';
+        });
     </script>
 
     <div class="right-align-container">
         <input type="text" class="csv-name-input" placeholder="File name">
-        <button class="generate-csv-button">Download .csv</button> <!-- Button to generate and download the CSV -->
+        <button class="generate-csv-button">Download .csv</button>
     </div>
 
 </body>
