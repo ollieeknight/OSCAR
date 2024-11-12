@@ -63,16 +63,16 @@
             </ul>
         </section>
     </div>
+    
     <script>
+        // Determine the base path
+        const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
+
         // JavaScript to include the top bar
-        fetch('topbar.html')
+        fetch(basePath + 'topbar.html')
             .then(response => response.text())
             .then(data => {
                 document.getElementById('topbar-placeholder').innerHTML = data;
-
-                // Determine the base path
-                const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
-
                 // Set the href attributes
                 document.getElementById('home-link').href = basePath + 'index.html';
                 document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';

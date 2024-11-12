@@ -143,21 +143,14 @@
             document.body.removeChild(a);
         }
 
+        // Determine the base path
+        const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
+
         // JavaScript to include the top bar
-        fetch('./topbar.html')  // Fetch the top bar HTML
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.text();
-            })
+        fetch(basePath + 'topbar.html')
+            .then(response => response.text())
             .then(data => {
-                console.log('Topbar content loaded'); // Debug logging
                 document.getElementById('topbar-placeholder').innerHTML = data;
-
-                // Determine the base path
-                const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
-
                 // Set the href attributes
                 document.getElementById('home-link').href = basePath + 'index.html';
                 document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
@@ -165,8 +158,7 @@
                 document.getElementById('references-link').href = basePath + 'pages/references.html';
             })
             .catch(error => {
-                console.error('Error loading topbar:', error);
-                document.getElementById('topbar-placeholder').innerHTML = '<p>Error loading navigation</p>';
+                console.error('Error fetching topbar:', error);
             });
 
     </script>

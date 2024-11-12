@@ -356,31 +356,23 @@
             document.body.removeChild(a);
         }
 
-    // JavaScript to include the top bar
-    fetch('./topbar.html')  // Changed to reference same directory
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.text();
-        })
-        .then(data => {
-            console.log('Topbar content loaded'); // Debug logging
-            document.getElementById('topbar-placeholder').innerHTML = data;
+        // Determine the base path
+        const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
 
-            // Determine the base path
-            const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
-
-            // Set the href attributes
-            document.getElementById('home-link').href = basePath + 'index.html';
-            document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
-            document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
-            document.getElementById('references-link').href = basePath + 'pages/references.html';
-        })
-        .catch(error => {
-            console.error('Error loading topbar:', error);
-            document.getElementById('topbar-placeholder').innerHTML = '<p>Error loading navigation</p>';
-        });
+        // JavaScript to include the top bar
+        fetch(basePath + 'topbar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('topbar-placeholder').innerHTML = data;
+                // Set the href attributes
+                document.getElementById('home-link').href = basePath + 'index.html';
+                document.getElementById('metadata-link').href = basePath + 'pages/metadata_generator.html';
+                document.getElementById('adt-link').href = basePath + 'pages/adt_generator.html';
+                document.getElementById('references-link').href = basePath + 'pages/references.html';
+            })
+            .catch(error => {
+                console.error('Error fetching topbar:', error);
+            });
     </script>
 
     <div class="right-align-container">
