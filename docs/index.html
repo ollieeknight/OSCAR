@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href=/helpers/styles.css">
+    <link rel="stylesheet" href="/docs/helpers/styles.css">
     <title>OSCAR</title>
-    <script src="/helpers/functions.js"></script>
+    <script src="/docs/helpers/functions.js"></script>
 </head>
 <body>
     <div id="topbar-placeholder"></div>
@@ -15,11 +15,8 @@
         <div class="last-updated" id="last-updated" data-placeholder="Last updated: Loading..."></div>
     </div>
     <script>
-        // Determine the base path
-        const basePath = window.location.pathname.includes('/pages/') ? '../' : '';
-
         // Include the top bar
-        includeTopBar(basePath);
+        includeTopBar();
 
         const repoOwner = 'ollieeknight';
         const repoName = 'OSCAR';
