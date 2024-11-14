@@ -18,6 +18,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: List files in repository
+        run: ls -la
+
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
@@ -48,9 +51,3 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: github-pages
-          path: ./docs
-
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
