@@ -1,5 +1,0 @@
-id,name,read,pattern,sequence,feature_type
-CD16,CD16,R2,^(BC),AAGTTCACTCTTTGC,Antibody Capture
-CD56,CD56,R2,^(BC),TTCGCCGCATTGAGT,Antibody Capture
-Hashtag1,Hashtag1,R2,^(BC),ACCCACCAGTAAGAC,Antibody Capture
-Hashtag2,Hashtag2,R2,^(BC),GGTCGAGAGCATTCA,Antibody Capture

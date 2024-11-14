@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>References</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../helpers/styles.css">
+</head>
+<body>
+    <div id="topbar-placeholder"></div>
+    <div class="container">
+        <h1>References</h1>
+        <section>
+            <h2>Packages used:</h2>
+            <ul>
+                <li><strong>Cell Ranger</strong>
+                    <br>10x Genomics. (2024). <a href="https://www.10xgenomics.com/support/software/cell-ranger/downloads" target="_blank">Cell Ranger Software Suite</a>.
+                </li>
+                <li><strong>Cell Ranger ATAC</strong>
+                    <br>10x Genomics. (2024). <a href="https://support.10xgenomics.com/single-cell-atac/software/downloads/latest" target="_blank">Cell Ranger ATAC Software Suite</a>.
+                </li>
+                <li><strong>FastQC</strong>
+                    <br>Andrews, S. (2010). <a href="https://www.bioinformatics.babraham.ac.uk/projects/fastqc/" target="_blank">FastQC: A Quality Control Tool for High Throughput Sequence Data</a>.
+                    <br><a href="https://github.com/s-andrews/FastQC" target="_blank">https://github.com/s-andrews/FastQC</a><br>
+                </li>
+                <li><strong>MultiQC</strong>
+                    <br>Ewels, Philip, et al. (2016). <a href="https://doi.org/10.1093/bioinformatics/btw354" target="_blank">MultiQC: summarize analysis results for multiple tools and samples in a single report</a>. Bioinformatics, 32(19), 3047-3048.
+                    <br><a href="https://github.com/MultiQC/MultiQC" target="_blank">https://github.com/MultiQC/MultiQC</a><br>
+                </li>
+                <li><strong>CellBender</strong>
+                    <br>Fleming, Stephen J., et al. (2023). <a href="https://doi.org/10.1038/s41592-023-01634-8" target="_blank">Unsupervised removal of systematic background noise from droplet-based single-cell experiments using CellBender</a>. Nature Methods, 20(9), 1323-1335.
+                    <br><a href="https://github.com/broadinstitute/CellBender" target="_blank">https://github.com/broadinstitute/CellBender</a><br>
+                </li>
+                <li><strong>cellsnp-lite</strong>
+                    <br>Huang, Xianjie, and Yuanhua Huang. (2021). <a href="https://doi.org/10.1093/bioinformatics/btab178" target="_blank">Cellsnp-lite: an efficient tool for genotyping single cells</a>. Bioinformatics, 37(23), 4569-4571.
+                    <br><a href="https://github.com/single-cell-genetics/cellsnp-lite" target="_blank">https://github.com/single-cell-genetics/cellsnp-lite</a><br>
+                </li>
+                <li><strong>Vireo</strong>
+                    <br>Sinha, R., et al. (2020). <a href="https://doi.org/10.1093/bioinformatics/btaa668" target="_blank">Vireo: a scalable approach to analyze single-cell RNA-seq data</a>. Bioinformatics, 36(14), 4247-4249.
+                    <br><a href="https://github.com/single-cell-genetics/vireo" target="_blank">https://github.com/single-cell-genetics/vireo</a><br>
+                </li>
+                <li><strong>AMULET</strong>
+                    <br>Thibodeau, Asa, et al. (2021). <a href="https://doi.org/10.1186/s13059-021-01336-w" target="_blank">AMULET: a novel read count-based method for effective multiplet detection from single nucleus ATAC-seq data</a>. Genome Biology, 22(1), 1-19.
+                    <br><a href="https://github.com/UcarLab/AMULET" target="_blank">https://github.com/UcarLab/AMULET</a><br>
+                </li>
+                <li><strong>mgatk</strong>
+                    <br>Lareau, Caleb A., et al. (2021). <a href="https://doi.org/10.1038/s41587-021-00844-4" target="_blank">Massively parallel single-cell mitochondrial DNA genotyping and chromatin profiling</a>. Nature Biotechnology, 39(4), 451-461.
+                    <br><a href="https://github.com/caleblareau/mgatk" target="_blank">https://github.com/caleblareau/mgatk</a><br>
+                </li>
+                <li><strong>KITE</strong>  
+                    <br>Gehring, Jase, et al. (2020). <a href="https://doi.org/10.1038/s41587-019-0392-3" target="_blank">Highly multiplexed single-cell RNA-seq by DNA oligonucleotide tagging of cellular proteins</a>. Nature Biotechnology, 38(1), 35-38.
+                    <br><a href="https://github.com/pachterlab/kite" target="_blank">https://github.com/pachterlab/kite</a><br>
+                </li>
+            </ul>
+            <h2>Extended reading:</h2>
+            <ul>
+                <li><a href="https://immunologie.charite.de/forschung/ag_romagnani/" target="_blank">AG Romagnani group page</a></li>
+                <li><a href="https://teichlab.github.io/scg_lib_structs/" target="_blank">A really informative resource on single-cell assay library structures</a></li>
+                <li><a href="https://github.com/NBISweden/workshop-scRNAseq/" target="_blank">A great tutorial on learning basic scRNA-seq analysis, following preprocessing</a></li>
+                <li><a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-024-03322-7" target="_blank">A very useful scRNA-seq processing pipeline by the Dendrou lab in Oxford</a></li>
+                <li><a href="https://nf-co.re/scrnaseq/latest" target="_blank">Another very useful scRNA-seq processing pipeline by the Nextflow community</a></li>
+            </ul>
+        </section>
+    </div>
+    <script>
+        // Wait for the DOM to load before executing setup functions
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Include the top bar
+            pagesIncludeTopBar();
+        });
+    </script>
+    <script src="../helpers/functions.js"></script>
+</body>
+</html>

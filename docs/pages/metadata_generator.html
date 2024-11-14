@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metadata file generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../helpers/styles.css">
+</head>
+<body>
+    <div id="topbar-placeholder"></div>
+    <div class="container">
+        <h1>Metadata file generator</h1>    
+        <div class="pagescontent">
+
+        <section>
+            <p>Several input variables are required to make the metadata file. These are detailed below:</p>
+            <ul>
+                <li>Assay type: The type of assay used (e.g., CITE, DOGMA, etc.)</li>
+                <li>Experiment ID: A unique identifier for the experiment</li>
+                <li>Historical number: A unique identifier, likely for the pool of cells loaded onto the 10x chip. For example, if you have two pools and load the first onto two GEMs and the second onto one, the first experiment would have a historical number of 1 and replicate names of A and B, and the second pool would have a historical number of 2 and a replicate name of A.</li>
+                <li>Replicate: The replicate number for the experiment: see above.</li>
+                <li>Modality: The modality of the experiment (e.g., Gene expression, ATAC, ADT, etc.)</li>
+                <li>Chemistry: The chemistry used for the experiment (e.g., 3' v2, 3' v3, etc.). For more information see <a href="https://kb.10xgenomics.com/hc/en-us/articles/115003764132-How-does-Cell-Ranger-auto-detect-chemistry" target="_blank">here</a>.</li>
+                <li>Index type: The type of index used (Single index or dual index). Refer to the assay used, and the plate or primers used to index your library.</li>
+                <li>Index: The index used for the experiment. This is the barcode used to identify the sample.</li>
+                <li>Species: The species of the sample (Human or mouse)</li>
+                <li>Number of donors: The number of donors in this GEM well, used for donor deconvolution. Human only.</li>
+                <li>ADT file name: The name of the ADT file used for the experiment. Exclude .csv suffix. This is the name of the file that contains ADT barcodes. The format must match the format for your experiment, detailed <a href="https://github.com/ollieeknight/OSCAR/tree/main/templates" target="_blank">here</a>.</li>
+            </ul>
+        </section>        
+    </div>
+    <hr> <!-- Horizontal line to separate sections -->
+    <br>
+
+        <div id="messageContainer" style="color: red; display: none;"></div> <!-- Container for error messages -->
+        <form id="csvForm">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Assay type</th>
+                        <th>Experiment ID</th>
+                        <th>Historical number</th>
+                        <th>Replicate</th>
+                        <th>Modality</th>
+                        <th>Chemistry</th>
+                        <th>Index type</th>
+                        <th>Index</th>
+                        <th>Species</th>
+                        <th>Number of donors</th>
+                        <th>ADT .csv name</th>
+                    </tr>
+                </thead>
+                <tbody id="rowsContainer">
+                    <!-- Rows will be dynamically added here -->
+                </tbody>
+            </table>
+            <button type="button" class="add-row-button">Add row</button> <!-- Button to add new rows -->
+        </form>
+    </div>
+
+    <script>
+        // Wait for the DOM to load before executing setup functions
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Include the top bar
+            pagesIncludeTopBar();
+
+            // Set up event listeners for add row and generate CSV buttons
+            document.querySelector('.add-row-button').addEventListener('click', metadataAddRow); 
+            document.querySelector('.generate-csv-button').addEventListener('click', metadataGenerateCSV);
+
+            // Add the first row to the table on page load
+            const container = document.getElementById('rowsContainer');
+            const template = await metadataFetchRowTemplate();
+            const firstRow = document.createElement('tr');
+            firstRow.innerHTML = template;
+            container.appendChild(firstRow);
+        });
+    </script>
+    <div class="right-align-container">
+        <button class="generate-csv-button">Download metadata.csv</button> <!-- Button to generate and download the CSV -->
+    </div>
+    <script src="../helpers/functions.js"></script>
+</body>
+</html>

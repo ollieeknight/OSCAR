@@ -1,242 +1,125 @@
 #!/bin/bash
 
-# Define default values
+# Set the directory of the current script
 oscar_dir=$(dirname "${BASH_SOURCE[0]}")
-dir_prefix="$HOME/scratch/ngs"
+# Source the functions script
+source "${oscar_dir}/functions.sh"
+# Set default directory prefix and metadata file name
+dir_prefix="${HOME}/scratch/ngs"
+metadata_file_name="metadata.csv"
 
-# Parse command line arguments using getopts_long function
+# Function to display help message
+display_help() {
+  echo "Usage: $0 [options]"
+  echo ""
+  echo "Options:"
+  echo "  --project-id <id>          Set the project ID"
+  echo "  --dir-prefix <path>        Set the directory prefix (default: ${HOME}/scratch/ngs)"
+  echo "  --metadata-file-name <name> Set the metadata file name (default: metadata.csv)"
+  echo "  --help                     Display this help message"
+  exit 0
+}
+
+# Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
-  case "$1" in
-    --project-id)
-      project_id="$2"
-      shift 2
-      ;;
-    --dir_prefix)
-      dir_prefix="$2"
-      shift 2
-      ;;
-    *)      echo "Invalid option: $1"
-      exit 1
-      ;;
-  esac
+  if [[ "$1" == --* ]]; then
+    if [[ "$1" == "--help" ]]; then
+      display_help  # Display help message and exit
+    fi
+    var_name=$(echo "$1" | sed 's/--//; s/-/_/')
+    declare "$var_name"="$2"
+    shift 2
+  else
+    echo "Invalid option: $1"
+    exit 1
+  fi
 done
 
-# Check if project_id is empty
-if [ -z "${project_id}" ]; then
-    echo -e "\033[0;31mERROR:\033[0m Please provide a project_id using the --project-id option."
-    exit 1
-fi
+check_project_id
 
-read_length=$(awk -F '"' '/<Read Number="1"/ {print $4}' ${dir_prefix}/${project_id}/${project_id}_bcl/RunInfo.xml)
-if [ "${read_length}" -gt 45 ]; then
-    run_type="ATAC"
-elif [ "${read_length}" -lt 45 ]; then
-    run_type="GEX"
-else
-    echo -e "\033[0;31mERROR:\033[0m Cannot determine run type, please check ${project_dir}/${project_id}_bcl/RunInfo.xml"
-    exit 1
-fi
-
-echo ""
-echo -e "\033[34mINFO:\033[0m ${project_id} is an ${run_type} run, processing appropriately"
-
-project_dir="${dir_prefix}/$project_id"
+# Set project directories
+project_dir="${dir_prefix}/${project_id}"
 project_scripts="${project_dir}/${project_id}_scripts"
-project_fastq=${project_dir}/${project_id}_fastq
-mkdir -p ${project_fastq}/logs
+project_indices="${project_scripts}/indices"
 
-# Check if indices folder does not exist, and exit if it's not present
-if [ ! -d "${project_scripts}/indices" ]; then
-    echo -e "\033[0;31mERROR:\033[0m Indices folder does not exist, please run the process_metadata script"
-    exit 1
-fi
+# Check if metadata file exists
+metadata_file="${project_scripts}/metadata/${metadata_file_name}"
+check_metadata_file "${metadata_file}"
 
-if [ ! -d "$HOME/group" ]; then
-    ln -s /fast/work/groups/ag_romagnani/ $HOME/group
-fi
+# Determine the run type
+run_type=$(check_run_type "${project_id}" "${dir_prefix}")
 
-container=${TMPDIR}/oscar-count_latest.sif
+# Check if indices folder exists
+check_folder_exists "${project_scripts}/indices"
 
-# Check that the singularity container is available
-if [ ! -f "${container}" ]; then
-    echo "oscar-count_latest.sif singularity file not found, pulling..."
-    mkdir -p ${TMPDIR}
-    apptainer pull --dir ${TMPDIR} library://romagnanilab/default/oscar-count:latest
-fi
+# Pull necessary OSCAR containers
+check_and_pull_oscar_containers
 
-# Define base masks
-xml_file=${project_dir}/${project_id}_bcl/RunInfo.xml
-if [ ! -f "${xml_file}" ]; then
-  echo "Sequencing run RunInfo.xml file not found under ${project_dir}/${project_id}_bcl/. This is required to determine base masks"
-  exit 1
-fi
-if [[ -f "${xml_file}" ]]; then
-    if grep -q '<Reads>' "${xml_file}" && grep -q '</Reads>' "${xml_file}"; then
-        num_reads=$(grep -o '<Read Number="' "${xml_file}" | wc -l)
-        if [ "${num_reads}" -eq 3 ]; then
-            reads=3
-            elif [ "${num_reads}" -eq 4 ]; then
-                reads=4
-            fi
-    fi
-else
-    echo -e "\033[0;31mERROR:\033[0m RunInfo.xml contains unexpected reads, please check the file"
-    exit 1
-fi
+# Check base masks for step 1 and step 2
+check_base_masks_step1
+check_base_masks_step2
 
-# Define base reads, essentially for whether it is a single or dual index sequencing run
-if [[ ${reads} == 3 ]]; then
-        base_mask_SI_3prime_GEX='Y28n*,I8n*,Y90n*'
-        base_mask_DI_3prime_GEX='Y28n*,I8n*,Y90n*'
-        base_mask_SI_3prime_ADT='Y28n*,I8n*,Y90n*'
-        base_mask_DOGMA_ADT='Y28n*,I8n*,Y90n*'
-elif [[ ${reads} == 4 ]]; then
-        base_mask_SI_3prime_GEX='Y28n*,I8n*,N*,Y90n*'
-        base_mask_SI_5prime_GEX='Y26n*,I10n*,I10n*,Y90n*'
-        base_mask_DI_3prime_GEX='Y28n*,I8n*,I8n*,Y90n*'
-        base_mask_DI_5prime_GEX='Y26n*,I10n*,I10n*,Y90n*'
-        base_mask_SI_3prime_ADT='Y28n*,I8n*,N*,Y90n*'
-        base_mask_DI_5prime_ADT='Y26n*,I10n*,I10n*,Y90n*'
-        base_mask_DOGMA_GEX='Y28n*,I10n*,I10n*,Y90n*'
-        base_mask_DOGMA_ATAC='Y100n*,I8n*,Y24n*,Y100n*'
-        base_mask_DOGMA_ADT='Y28n*,I8n*,N*,Y90n*'
-        base_mask_ATAC_ATAC='Y100n*,I8n*,Y16n*,Y100n*'
-        base_mask_ASAP_ATAC='Y100n*,I8n*,Y16n*,Y100n*'
-        base_mask_ASAP_ADT='Y100n*,I8n*,Y16n*,Y100n*'
-        base_mask_ASAP_GENO='Y100n*,I8n*,Y16n*,Y100n*'
-else
-    echo -e "\033[0;31mERROR:\033[0m Cannot determine number of reads, check RunInfo.xml file"
-        exit 1
-fi
-
-# List the index files to demultiplex
+# List index files and extract flowcell ID from RunInfo.xml
 index_files=($(ls "${project_dir}/${project_id}_scripts/indices"))
+flowcell_id=$(grep "<Flowcell>" "${project_dir}/${project_id}_bcl/RunInfo.xml" | sed -e 's|.*<Flowcell>\(.*\)</Flowcell>.*|\1|')
 
-# Iterate over the index files
+# Loop through each index file
 for file in "${index_files[@]}"; do
-    echo ""
-    echo "-------------"
-    echo ""
-    # Extract the file name without extension
     index_file="${file%.*}"
-    if [[ ${file} == CITE* ]]; then
-        cellranger_command='cellranger mkfastq'
-        if [[ ${file} == *_SI_* ]]; then
-            index_type='SI'
-            filter_option='--filter-single-index'
-            if [[ ${file} == *_GEX* ]]; then
-                base_mask=$base_mask_SI_3prime_GEX
-            elif [[ ${file} == *_ADT* ]] || [[ ${file} == *_HTO* ]]; then
-                base_mask=$base_mask_SI_3prime_ADT
-            fi
-        elif [[ ${file} == *_DI_* ]]; then
-            index_type='DI'
-            filter_option='--filter-dual-index'
-            if [[ ${file} == *_3prime* ]]; then
-                if [[ ${file} == *_GEX* ]]; then
-                    base_mask=$base_mask_DI_3prime_GEX
-                elif [[ ${file} == *_ADT* ]] || [[ ${file} == *_HTO* ]]; then
-                    base_mask=$base_mask_DI_3prime_ADT
-                fi
-            elif [[ ${file} == *_5prime* ]]; then
-                if [[ ${file} == *_GEX* ]] || [[ ${file} == *_VDJ-T* ]] || [[ ${file} == *_VDJ-B* ]]; then
-                    base_mask=$base_mask_DI_5prime_GEX
-                elif [[ ${file} == *_ADT* ]] || [[ ${file} == *_HTO* ]]; then
-                    base_mask=$base_mask_DI_5prime_ADT
-                fi
-            fi
-        fi
-    elif [[ ${file} == GEX* ]]; then
-        cellranger_command='cellranger mkfastq'
-        if [[ ${file} == *_SI* ]]; then
-        index_type='SI'
-            filter_option='--filter-single-index'
-            if [[ ${file} == *_GEX* ]]; then
-                base_mask=$base_mask_SI_3prime_GEX
-            fi
-        elif [[ ${file} == *_DI* ]]; then
-        index_type='DI'
-        filter_option='--filter-dual-index'
-            if [[ ${file} == *_3prime* ]]; then
-                if [[ ${file} == *_GEX* ]]; then
-                    base_mask=$base_mask_DI_3prime_GEX
-                fi
-            elif [[ ${file} == *_5prime* ]]; then
-                if [[ ${file} == *_GEX* ]]; then
-                    base_mask=$base_mask_DI_5prime_GEX
-                fi
-            fi
-        fi
-    elif [[ ${file} == DOGMA* ]]; then
-        index_type='DI'
-        filter_option='--filter-dual-index'
-        if [[ ${file} == *_GEX* ]]; then
-            cellranger_command='cellranger mkfastq'
-            base_mask=$base_mask_DOGMA_GEX
-        elif [[ ${file} == *_ADT* ]] || [[ ${file} == *_HTO* ]]; then
-                base_mask=$base_mask_DOGMA_ADT
-                if [[ ${run_type} == 'ATAC' ]]; then
-                        cellranger_command='cellranger-atac mkfastq'
-                else
-                        cellranger_command='cellranger mkfastq'
-                fi
-        elif [[ ${file} == *_ATAC* ]]; then
-            cellranger_command='cellranger-atac mkfastq'
-            base_mask=$base_mask_DOGMA_ATAC
-        fi
-    elif [[ ${file} == ASAP* ]]; then
-        cellranger_command='cellranger-atac mkfastq'
-        index_type='DI'
-        filter_option='--filter-dual-index'
-        if [[ ${file} == *_ATAC* ]]; then
-            base_mask=$base_mask_ASAP_ATAC
-        elif [[ ${file} == *_ADT* ]] || [[ ${file} == *_HTO* ]]; then
-            base_mask=$base_mask_ASAP_ADT
-        elif [[ ${file} == *_GENO* ]]; then
-            base_mask=$base_mask_ASAP_GENO
-        fi
-    elif [[ ${file} == ATAC* ]]; then                                                                                           cellranger_command='cellranger-atac mkfastq'
-        index_type='DI'
-        filter_option='--filter-dual-index'
-        if [[ ${file} == *_ATAC ]]; then
-            base_mask=$base_mask_ASAP_ATAC
-        fi
-    else
-        echo -e "\033[0;31mERROR:\033[0m Cannot determine base mask for ${index_file}, please check path"
-        exit 1
-    fi
 
-    echo "For index file ${index_file}, the following FASTQ demultiplexing script will be run:"
+    # Check base masks for step 3 and parse the command, index type, filter option, and base mask
+    read -r cellranger_command index_type filter_option base_mask < <(check_base_masks_step3 "$file" "$run_type")
+    cellranger_command="${cellranger_command//./ }"
+    index_type="${index_type//./ }"
+    filter_option="${filter_option//./ }"
+    base_mask="${base_mask//./ }"
+
+    # Print the command to be executed
     echo ""
-    echo "${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}"
+    echo "apptainer run -B /data ${container} ${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}"
     echo ""
 
-    # Ask the user if they want to submit the indices for FASTQ generation
+    # Prompt the user for confirmation
     echo -e "\033[0;33mINPUT REQUIRED:\033[0m Is this alright? (Y/N)"
     read -r choice
     while [[ ! $choice =~ ^[YyNn]$ ]]; do
         echo "Invalid input. Please enter y or n"
         read -r choice
     done
-    # Process choices
+
+    # If user confirms, submit the job to SLURM
     if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
+
+        # Create logs directory
+        mkdir -p "${project_dir}/${project_id}_fastq/logs/"
+
+        # Submit the job to SLURM
         sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name ${project_id}
-#SBATCH --output ${project_fastq}/logs/${index_file}_FASTQ.out
-#SBATCH --error ${project_fastq}/logs/${index_file}_FASTQ.out
-#SBATCH --ntasks=32
+#SBATCH --output ${project_dir}/${project_id}_fastq/logs/${index_file}.out
+#SBATCH --error ${project_dir}/${project_id}_fastq/logs/${index_file}.out
+#SBATCH --ntasks=16
 #SBATCH --mem=64000
-#SBATCH --time=3:00:00
-cd ${project_fastq}
-echo ""
-echo "${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}"
-echo ""
-apptainer run -B /data,/fast ${container} ${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}
-mkdir -p ${project_fastq}/${index_file}/fastqc
-find "${index_file}/outs/fastq_path/H"* -name "*.fastq.gz" | parallel -j 16 "apptainer run -B /fast,/data ${container} fastqc {} --outdir ${index_file}/fastqc"
-apptainer run -B /data,/fastq ${container} multiqc "${project_fastq}/${index_file}" -o "${project_fastq}/${index_file}/multiqc"
-rm -r ${project_fastq}/${index_file}/_* ${project_fastq}/${index_file}/MAKE*
+#SBATCH --time=12:00:00
+
+# Change to the fastq directory
+cd ${project_dir}/${project_id}_fastq/
+
+# Run the cellranger command
+apptainer run -B /data ${container} ${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}
+
+# Create fastqc directory
+mkdir -p ${project_dir}/${project_id}_fastq/${index_file}/fastqc
+
+# Run fastqc on all fastq.gz files in parallel
+find "${project_dir}/${project_id}_fastq/${index_file}/outs/fastq_path/${flowcell_id}"* -name "*.fastq.gz" | parallel -j $(nproc) "apptainer run -B /data ${container} fastqc {} --outdir ${project_dir}/${project_id}_fastq/${index_file}/fastqc"
+
+# Run multiqc to aggregate fastqc reports
+apptainer run -B /data ${container} multiqc "${project_dir}/${project_id}_fastq/${index_file}" -o "${project_dir}/${project_id}_fastq/${index_file}/multiqc"
+
+# Clean up temporary files
+rm -r ${project_dir}/${project_id}_fastq/${index_file}/_* ${project_dir}/${project_id}_fastq/${index_file}/MAKE*
 EOF
     elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
         :

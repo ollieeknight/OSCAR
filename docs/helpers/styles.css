@@ -1,0 +1,276 @@
+/* General body styles */
+
+/* Container styles */
+.container {
+    padding: 0 10px; /* Reduce padding on the left and right */
+    margin: 0 auto; /* Center the container */
+    width: 95%; /* Use percentage-based width to allow scaling */
+    max-width: 1500px; /* Optional: Set a maximum width for the container */
+}
+
+body {
+    font-family: 'Roboto', sans-serif; /* Set the font family for the entire document */
+    text-align: left; /* Align text to the left */
+    font-size: 1.2em; /* Set the base font size */
+}
+
+/* Heading 1 (h1) styles */
+h1 { 
+    text-align: left; /* Align text to the left */
+    font-size: 2.2em; /* Set the font size for h1 elements */
+}
+
+/* Heading 2 (h2) styles */
+h2 { 
+    font-family: 'Roboto', sans-serif; /* Set the font family for h2 elements */
+    text-align: left; /* Align text to the left */
+    font-size: 1.5em; /* Set the font size for h2 elements */
+}
+
+/* List item styles */
+ul li {
+    margin-bottom: 5px; /* Increase space between bullet points */
+}
+
+/* Content container styles */
+.indexcontent {
+    text-align: left; /* Align text to the left */
+    max-width: 80%; /* Set maximum width to 60% of the container */
+    word-wrap: break-word; /* Ensure long words are wrapped */
+    overflow-wrap: break-word; /* Ensure long words are wrapped */
+}
+
+code, pre {
+    background-color: #f5f5f5; /* Light grey background */
+    padding: 5px; /* Add some padding */
+    border-radius: 4px; /* Optional: Add rounded corners */
+    display: inline-block; /* Ensure code blocks take up only the necessary width */
+    white-space: pre-wrap; /* Ensure long lines wrap */
+}
+
+/* Content container styles */
+.pagescontent {
+    text-align: left; /* Align text to the left */
+    max-width: 70%; /* Set maximum width to 60% of the container */
+    word-wrap: break-word; /* Ensure long words are wrapped */
+    overflow-wrap: break-word; /* Ensure long words are wrapped */
+}
+
+/* Specific content section styles */
+.specific-content {
+    margin-top: 50px; /* Add top margin */
+    background-color: #ddd; /* Set background color */
+    color: black; /* Set text color */
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.last-updated {
+    text-align: right;
+}
+
+/* Button container styles within content */
+.content .button-container {
+    display: flex; /* Use flexbox for layout */
+    justify-content: flex-start; /* Align items to the start */
+    gap: 10px; /* Add space between items */
+    font-size: 0.9em; /* Set font size */
+    color: #555; /* Set text color */
+}
+
+/* Select option styles */
+select option {
+    width: auto; /* Set width to auto */
+}
+
+/* Error border styles */
+.error { 
+    border: 2px solid red; /* Add red border for error indication */
+}
+
+/* Top bar styles */
+.top-bar {
+    position: relative;
+    background-color: #3b5c99; /* Set background color */
+    overflow: hidden; /* Hide overflow */
+}
+
+
+/* Top bar link styles */
+.top-bar a {
+    float: left; /* Float links to the left */
+    display: block; /* Display as block elements */
+    color: white; /* Set text color to white */
+    text-align: center; /* Center align text */
+    padding: 14px 16px; /* Add padding */
+    text-decoration: none; /* Remove underline */
+    border-right: 1px solid white; /* Add horizontal lines between links */
+}
+
+/* Remove border from the last link in the top bar */
+.top-bar a:last-child {
+    border-right: none; /* Remove the border from the last link */
+}
+
+/* Hover effect for top bar links */
+.top-bar a:hover {
+    background-color: #555; /* Change background color on hover */
+    color: white; /* Ensure text color remains white on hover */
+}
+
+/* Table styles */
+table { 
+    width: 100%; /* Set table width to 100% */
+    border-collapse: collapse; /* Collapse borders */
+    margin-bottom: 20px; /* Add bottom margin */
+}
+
+/* Table header and cell styles */
+th, td { 
+    border: 1px solid #ddd; /* Add border */
+    padding: 8px; /* Add padding */
+    text-align: left; /* Align text to the left */
+    font-family: 'Roboto', sans-serif; /* Set font family */
+}
+
+/* Table header background color */
+th { 
+    background-color: #f2f2f2; /* Set background color */
+}
+
+/* Even row background color */
+tr:nth-child(even) { 
+    background-color: #f9f9f9; /* Set background color */
+}
+
+/* Row hover effect */
+tr:hover { 
+    background-color: #f1f1f1; /* Set background color on hover */
+}
+
+/* Input and select styles */
+input, select { 
+    width: 100%; /* Set width to 100% */
+    box-sizing: border-box; /* Include padding and border in element's total width and height */
+}
+
+/* Button styles */
+button { 
+    padding: 5px 10px; /* Add padding */
+    margin-top: 10px; /* Add top margin */
+}
+
+/* Dropdown item hover effect */
+.dropdown-content div:hover {
+    background-color: #f1f1f1; /* Set background color on hover */
+}
+
+/* Dropdown container styles */
+.dropdown {
+    position: relative; /* Position relatively */
+    display: inline-block; /* Display as inline-block */
+}
+
+.dynamic-width-dropdown {
+    width: auto;
+    box-sizing: border-box;
+}
+
+/* Input field styles */
+#search {
+    width: auto; /* Scale input field to fit content */
+    min-width: 300px; /* Set a minimum width if needed */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+/* Dropdown content styles */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+/* Form group styles */
+.form-group {
+    display: flex; /* Use flexbox for layout */
+    align-items: center; /* Align items to the center */
+    gap: 10px; /* Add space between items */
+    width: 100%; /* Ensure the form group takes full width */
+}
+
+/* Form group label styles */
+.form-group label {
+    margin-right: 10px; /* Add right margin */
+    white-space: nowrap; /* Prevent label text from wrapping */
+}
+
+/* Button container styles */
+.button-container {
+    display: flex; /* Use flexbox for layout */
+    align-items: center; /* Align items to the center */
+    margin-top: 10px; /* Add top margin */
+}
+
+/* Separator styles */
+.separator {
+    border-top: 3px solid black; /* Add top border */
+    margin: 20px 0; /* Add top and bottom margin */
+}
+
+/* Right align container styles */
+.right-align-container {
+    text-align: right; /* Align text to the right */
+}
+
+/* Generate CSV button styles */
+.generate-csv-button { 
+    margin-top: 10px; /* Add top margin */
+}
+
+/* CSV name input styles */
+.csv-name-input { 
+    margin-top: 10px; /* Add top margin */
+    width: 120px; /* Set width */
+}
+
+.edit-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Space between text and buttons */
+    width: 100%;
+}
+
+.corrected-name {
+    flex: 1;
+    text-align: left; /* Ensure text is left-aligned */
+}
+
+.edit-input {
+    flex: 1;
+    box-sizing: border-box;
+}
+
+.edit-button, .save-button {
+    margin-left: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.remove-button {
+    background-color: white;
+    color: red;
+    border: ridge;
+    padding: 5px 10px;
+    cursor: pointer;
+}
