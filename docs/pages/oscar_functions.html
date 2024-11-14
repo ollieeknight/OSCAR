@@ -10,17 +10,68 @@
 <body>
     <div id="topbar-placeholder"></div>
     <div class="container">
-        <h1>OSCAR tutorial and function explanations</h1>
+        <h1>OSCAR function explanations</h1>
+        <div class="pagescontent">
         <section>
-            <h2>Packages used:</h2>
-            <h2>Extended reading:</h2>
-            <ul>
-                <li><a href="https://immunologie.charite.de/forschung/ag_romagnani/" target="_blank">AG Romagnani group page</a></li>
-                <li><a href="https://teichlab.github.io/scg_lib_structs/" target="_blank">A really informative resource on single-cell assay library structures</a></li>
-                <li><a href="https://github.com/NBISweden/workshop-scRNAseq/" target="_blank">A great tutorial on learning basic scRNA-seq analysis, following preprocessing</a></li>
-                <li><a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-024-03322-7" target="_blank">A very useful scRNA-seq processing pipeline by the Dendrou lab in Oxford</a></li>
-                <li><a href="https://nf-co.re/scrnaseq/latest" target="_blank">Another very useful scRNA-seq processing pipeline by the Nextflow community</a></li>
-            </ul>
+            <body>
+                        <h2>01_process_metadata.sh</h2>
+                            <p><strong>Description:</strong> This script processes the metadata file for a given project. It reads the metadata file, determines the run type, and creates index files for each library based on the metadata.</p>
+                            <p><strong>Inputs:</strong></p>
+                            <ul>
+                                <li><code>--project-id</code>: The project ID.</li>
+                                <li><code>--dir-prefix</code>: The directory prefix (default: <code>${HOME}/scratch/ngs</code>).</li>
+                                <li><code>--metadata-file-name</code>: The metadata file name (default: <code>metadata.csv</code>).</li>
+                            </ul>
+                            <p><strong>Outputs:</strong> Index files for each library in the <code>indices</code> folder.</p>
+                            <hr> <!-- Horizontal line to separate sections -->
+
+                        <h2>02_fastq.sh</h2>
+                            <p><strong>Description:</strong> This script performs FASTQ demultiplexing for a given project. It uses the index files created by <code>01_process_metadata.sh</code> to run the cellranger command and generate FASTQ files.</p>
+                            <p><strong>Inputs:</strong></p>
+                            <ul>
+                                <li><code>--project-id</code>: The project ID.</li>
+                                <li><code>--dir-prefix</code>: The directory prefix (default: <code>${HOME}/scratch/ngs</code>).</li>
+                                <li><code>--metadata-file-name</code>: The metadata file name (default: <code>metadata.csv</code>).</li>
+                            </ul>
+                            <p><strong>Outputs:</strong> FASTQ files and quality control reports in the <code>fastq</code> folder.</p>
+                            <hr> <!-- Horizontal line to separate sections -->
+
+                        <h2>03_process_libraries.sh</h2>
+                            <p><strong>Description:</strong> This script processes the libraries for a given project. It reads the metadata file, determines the run type, and handles different modes (GEX or ATAC) to prepare the libraries for counting.</p>
+                            <p><strong>Inputs:</strong></p>
+                            <ul>
+                                <li><code>--project-id</code>: The project ID.</li>
+                                <li><code>--dir-prefix</code>: The directory prefix (default: <code>${HOME}/scratch/ngs</code>).</li>
+                                <li><code>--gene-expression-options</code>: Options for gene expression processing (comma-separated).</li>
+                                <li><code>--vdj-options</code>: Options for VDJ processing (comma-separated).</li>
+                                <li><code>--adt-options</code>: Options for ADT processing (comma-separated).</li>
+                                <li><code>--metadata-file-name</code>: The metadata file name (default: <code>metadata.csv</code>).</li>
+                            </ul>
+                            <p><strong>Outputs:</strong> Prepared libraries for counting in the <code>libraries</code> folder.</p>
+                            <hr> <!-- Horizontal line to separate sections -->
+
+                        <h2>04_count.sh</h2>
+                            <p><strong>Description:</strong> This script submits counting jobs for each library in a given project. It reads the library files, determines the run type, and submits the appropriate counting jobs to SLURM.</p>
+                            <p><strong>Inputs:</strong></p>
+                            <ul>
+                                <li><code>--project-id</code>: The project ID.</li>
+                                <li><code>--dir-prefix</code>: The directory prefix (default: <code>${HOME}/scratch/ngs</code>).</li>
+                                <li><code>--metadata-file-name</code>: The metadata file name (default: <code>metadata.csv</code>).</li>
+                            </ul>
+                            <p><strong>Outputs:</strong> Counting job submissions and logs in the <code>outs</code> folder.</p>
+                            <hr> <!-- Horizontal line to separate sections -->
+
+                        <h2>05_quality_control.sh</h2>
+                            <p><strong>Description:</strong> This script performs quality control for a given project. It checks the necessary OSCAR containers, submits jobs for ambient RNA removal, genotyping, and other quality control tasks.</p>
+                            <p><strong>Inputs:</strong></p>
+                            <ul>
+                                <li><code>--project-id</code>: The project ID.</li>
+                                <li><code>--dir-prefix</code>: The directory prefix (default: <code>${HOME}/scratch/ngs</code>).</li>
+                                <li><code>--metadata-file-name</code>: The metadata file name (default: <code>metadata.csv</code>).</li>
+                            </ul>
+                            <p><strong>Outputs:</strong> Quality control job submissions and logs in the <code>outs</code> folder.</p>
+                    </div>
+            
         </section>
     </div>
     <script>
