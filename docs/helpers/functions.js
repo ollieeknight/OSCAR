@@ -319,6 +319,7 @@ function adtEditRow(event, button) {
     const input = row.querySelector('.edit-input');
     const saveButton = row.querySelector('.save-button');
 
+    input.value = span.textContent; // Set input value to current span text
     span.style.display = 'none';
     input.style.display = 'inline';
     button.style.display = 'none';
@@ -337,6 +338,31 @@ function adtSaveRow(event, button) {
     input.style.display = 'none';
     button.style.display = 'none';
     editButton.style.display = 'inline';
+}
+
+function adtAddRow(marker, totalseq_id, catalogue_number, clone, reactivity, barcode) {
+    const tableBody = document.getElementById('rowsContainer');
+    const row = document.createElement('tr');
+
+    row.innerHTML = `
+        <td>${marker}</td>
+        <td>
+            <div class="edit-container">
+                <span class="corrected-name">${marker}</span>
+                <input type="text" class="edit-input" style="display:none;">
+                <button class="edit-button" onclick="adtEditRow(event, this)">Edit</button>
+                <button class="save-button" style="display:none;" onclick="adtSaveRow(event, this)">Save</button>
+            </div>
+        </td>
+        <td>${totalseq_id}</td>
+        <td>${catalogue_number}</td>
+        <td>${clone}</td>
+        <td>${reactivity}</td>
+        <td>${barcode}</td>
+        <td><button class="remove-button" onclick="adtRemoveRow(this)">Remove</button></td>
+    `;
+
+    tableBody.appendChild(row);
 }
 
 function adtGenerateCSV() {

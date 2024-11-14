@@ -1,26 +1,59 @@
 /* General body styles */
+
+/* Container styles */
+.container {
+    padding: 0 10px; /* Reduce padding on the left and right */
+    margin: 0 auto; /* Center the container */
+    width: 95%; /* Use percentage-based width to allow scaling */
+    max-width: 1500px; /* Optional: Set a maximum width for the container */
+}
+
 body {
     font-family: 'Roboto', sans-serif; /* Set the font family for the entire document */
     text-align: left; /* Align text to the left */
-    font-size: 1em; /* Set the base font size */
+    font-size: 1.2em; /* Set the base font size */
 }
 
 /* Heading 1 (h1) styles */
 h1 { 
     text-align: left; /* Align text to the left */
-    font-size: 3em; /* Set the font size for h1 elements */
+    font-size: 2.2em; /* Set the font size for h1 elements */
 }
 
 /* Heading 2 (h2) styles */
 h2 { 
     font-family: 'Roboto', sans-serif; /* Set the font family for h2 elements */
     text-align: left; /* Align text to the left */
-    font-size: 2em; /* Set the font size for h2 elements */
+    font-size: 1.5em; /* Set the font size for h2 elements */
+}
+
+/* List item styles */
+ul li {
+    margin-bottom: 5px; /* Increase space between bullet points */
 }
 
 /* Content container styles */
-.content {
+.indexcontent {
     text-align: left; /* Align text to the left */
+    max-width: 80%; /* Set maximum width to 60% of the container */
+    word-wrap: break-word; /* Ensure long words are wrapped */
+    overflow-wrap: break-word; /* Ensure long words are wrapped */
+}
+
+code, pre {
+    background-color: #f5f5f5; /* Light grey background */
+    padding: 5px; /* Add some padding */
+    border-radius: 4px; /* Optional: Add rounded corners */
+    display: inline-block; /* Ensure code blocks take up only the necessary width */
+    white-space: pre-wrap; /* Ensure long lines wrap */
+}
+
+/* Content container styles */
+.pagescontent {
+    text-align: left; /* Align text to the left */
+    max-width: 70%; /* Set maximum width to 60% of the container */
+    word-wrap: break-word; /* Ensure long words are wrapped */
+    overflow-wrap: break-word; /* Ensure long words are wrapped */
 }
 
 /* Specific content section styles */
@@ -28,6 +61,16 @@ h2 {
     margin-top: 50px; /* Add top margin */
     background-color: #ddd; /* Set background color */
     color: black; /* Set text color */
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.last-updated {
+    text-align: right;
 }
 
 /* Button container styles within content */
@@ -52,24 +95,10 @@ select option {
 /* Top bar styles */
 .top-bar {
     position: relative;
-
     background-color: #3b5c99; /* Set background color */
     overflow: hidden; /* Hide overflow */
 }
 
-.github-link {
-    position: absolute;
-    top: 0;
-    right: 0;
-    padding: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.github-link svg {
-    fill: white; /* Adjust the color as needed */
-}
 
 /* Top bar link styles */
 .top-bar a {
@@ -182,29 +211,6 @@ button {
     white-space: nowrap; /* Prevent label text from wrapping */
 }
 
-/* Remove button styles */
-.remove-button {
-    cursor: pointer; /* Set cursor to pointer */
-    color: red; /* Set text color to red */
-}
-
-/* Edit button styles */
-.edit-button {
-    cursor: pointer; /* Set cursor to pointer */
-    color: blue; /* Set text color to blue */
-}
-
-/* Corrected name container styles */
-.corrected-name-container {
-    display: flex; /* Use flexbox for layout */
-    align-items: center; /* Align items to the center */
-}
-
-/* Corrected name span styles */
-.corrected-name-container span {
-    flex-grow: 1; /* Allow span to grow */
-}
-
 /* Button container styles */
 .button-container {
     display: flex; /* Use flexbox for layout */
@@ -232,4 +238,39 @@ button {
 .csv-name-input { 
     margin-top: 10px; /* Add top margin */
     width: 120px; /* Set width */
+}
+
+.edit-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Space between text and buttons */
+    width: 100%;
+}
+
+.corrected-name {
+    flex: 1;
+    text-align: left; /* Ensure text is left-aligned */
+}
+
+.edit-input {
+    flex: 1;
+    box-sizing: border-box;
+}
+
+.edit-button, .save-button {
+    margin-left: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.remove-button {
+    background-color: white;
+    color: red;
+    border: ridge;
+    padding: 5px 10px;
+    cursor: pointer;
 }

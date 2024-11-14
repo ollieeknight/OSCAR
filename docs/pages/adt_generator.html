@@ -11,19 +11,40 @@
     <div id="topbar-placeholder"></div>
     <div class="container">
         <h1>Feature barcode reference generator</h1>
+        <div class="pagescontent">
 
         <section>
             <p>
-                This page allows you to generate a feature barcode file for <a href="https://www.10xgenomics.com/support/software/cell-ranger/latest" target="_blank">Cell Ranger</a> and (<a href="https://github.com/pachterlab/kite" target="_blank">Kallisto Indexing and Tag Extractor (KITE)</a>).<br>
-                Antibody lists are taken directly from the <a href="https://www.biolegend.com/en-gb/totalseq/barcode-lookup" target="_blank">BioLegend barcode lookup</a> website and slightly reformatted in order to search for the correct names. In a few cases, markers will have been renamed to their CD numbers (<a href="https://www.thefcn.org/mouse-cd-list" target="_blank">mouse</a> and <a href="https://en.wikipedia.org/wiki/List_of_human_clusters_of_differentiation" target="_blank">human</a>), but in any case you can search for the antibody clone and catalogue number on the <a href="https://www.biolegend.com/en-gb/search-results?Applications=PG" target="_blank">BioLegend website</a>.<br>
-                Format choices:
+                Supported formats include:
             </p>
             <ul>
-                <li>For processing a 10x scRNA-seq experiment (3prime, 5prime, DOGMA), please select the 'Cellranger' output format.</li>
-                <li>For an ASAP-seq experiment, you'll process your ADT FASTQ files with Kallisto.</li>
-                <li>For uploading tapestri FASTQ files, please select the 'Tapestri' output format.</li>
+                <li>
+                    <a href="https://www.10xgenomics.com/support/software/cell-ranger/latest" target="_blank">Cell Ranger</a> (for 10x Genomics scRNA-seq experiments such as 3' and 5' assays, and DOGMA-seq).
+                </li>
+                <li>
+                    <a href="https://github.com/pachterlab/kite" target="_blank">Kallisto Indexing and Tag Extractor (KITE)</a> (for ASAP-seq experiments).
+                </li>
+                <li>
+                    Tapestri (for DNA and protein sequencing experiments).
+                </li>
             </ul>
+            <p>
+                Antibody lists are sourced directly from the 
+                <a href="https://www.biolegend.com/en-gb/totalseq/barcode-lookup" target="_blank">BioLegend barcode lookup</a> website and are slightly reformatted to facilitate accurate searches. In some cases, markers have been renamed to their CD numbers for consistency:
+            </p>
+            <ul>
+                <li><a href="https://www.thefcn.org/mouse-cd-list" target="_blank">Mouse CD List</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/List_of_human_clusters_of_differentiation" target="_blank">Human CD List</a></li>
+            </ul>
+            <p>
+                You can search for the antibody clone and catalogue number on the 
+                <a href="https://www.biolegend.com/en-gb/search-results?Applications=PG" target="_blank">BioLegend website</a>.
+            </p>
         </section>
+    </div>
+    <br>
+        <hr> <!-- Horizontal line to separate sections -->
+        <br>
 
         <form id="csvForm">
             <div class="form-group">
@@ -74,8 +95,13 @@
                     </tr>
                 </thead>
                 <tbody id="rowsContainer">
+                    <!-- Rows will be added here dynamically -->
                 </tbody>
             </table>
+            <div class="right-align-container">
+                <input type="text" class="csv-name-input" placeholder="File name">
+                <button type="button" class="generate-csv-button">Download .csv</button>
+            </div>
         </form>
 
         <div class="separator"></div>
@@ -91,12 +117,13 @@
             pagesIncludeTopBar();
             document.querySelector('.generate-csv-button').addEventListener('click', adtGenerateCSV);
         });
+
+        function adtRemoveRow(button) {
+            const row = button.closest('tr');
+            row.remove();
+        }
     </script>
 
-    <div class="right-align-container">
-        <input type="text" class="csv-name-input" placeholder="File name">
-        <button class="generate-csv-button">Download .csv</button>
-    </div>
     <script src="../helpers/functions.js"></script>
 
 </body>
