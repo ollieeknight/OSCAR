@@ -139,8 +139,8 @@ async function adtFetchCSV(file) {
 function adtParseCSV(data) {
     const rows = data.split('\n').slice(1);
     return rows.map(row => {
-        const [catalogue_number, totalseq_id, marker, clone, reactivity, barcode] = row.split(',');
-        return { catalogue_number, totalseq_id, marker, clone, reactivity, barcode };
+        const [catalogue_number, totalseq_id, marker, clone, reactivity, barcode_sequence] = row.split(',');
+        return { catalogue_number, totalseq_id, marker, clone, reactivity, barcode_sequence };
     });
 }
 
@@ -157,7 +157,7 @@ async function adtFilterMarkers() {
     }
 
     // Call adtShowDropdown after data is filtered
-    adtShowDropdown(); 
+    adtShowDropdown(format); 
 }
 
 function adtAddRow(name, totalseq_id, catalogueNumber, clone, reactivity, barcode) {
@@ -165,6 +165,7 @@ function adtAddRow(name, totalseq_id, catalogueNumber, clone, reactivity, barcod
     const correctedName = adtSubstituteCharacters(name);
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
+        <td>${totalseq_id}</td>
         <td>${name}</td>
         <td>
             <div class="corrected-name-container">
@@ -174,7 +175,6 @@ function adtAddRow(name, totalseq_id, catalogueNumber, clone, reactivity, barcod
                 <button class="save-btn" onclick="adtSaveRow(event, this)" style="display:none;">Save</button>
             </div>
         </td>
-        <td>${totalseq_id}</td>
         <td>${catalogueNumber}</td>
         <td>${clone}</td>
         <td>${reactivity}</td>
@@ -188,7 +188,7 @@ function adtRemoveRow(element) {
     row.remove();
 }
 
-function adtShowDropdown() {
+function adtShowDropdown(format) {
     const search = document.getElementById('search').value.toLowerCase();
     const dropdown = document.getElementById('dropdown-content');
     dropdown.innerHTML = '';
@@ -197,17 +197,19 @@ function adtShowDropdown() {
         const filteredMarkers = markersData.filter(marker => 
             marker.catalogue_number.toLowerCase().includes(search) ||
             marker.marker.toLowerCase().includes(search) ||
-            marker.clone.toLowerCase().includes(search)
+            marker.clone.toLowerCase().includes(search) ||
+            marker.totalseq_id.toLowerCase().includes(search)
         );
         let maxWidth = 0;
         filteredMarkers.forEach(marker => {
             const div = document.createElement('div');
-            const text = `${marker.marker}, clone ${marker.clone}, catalogue number ${marker.catalogue_number}`;
+            const formatLetter = format.match(/totalseq_(\w)/i)[1].toUpperCase();
+            const text = `TotalSeq-${formatLetter}${marker.totalseq_id}, ${marker.marker}, ${marker.clone}`;
             const highlightedText = text.replace(new RegExp(search, 'gi'), match => `<strong>${match}</strong>`);
             div.innerHTML = highlightedText;
             div.onclick = () => {
-                adtAddRow(marker.marker, marker.totalseq_id, marker.catalogue_number, marker.clone, marker.reactivity, marker.barcode);
-                document.getElementById('search').value = '';
+                adtAddRow(marker.marker, marker.totalseq_id, marker.catalogue_number, marker.clone, marker.reactivity, marker.barcode_sequence);
+                document.getElementById('search').value = `${formatLetter}${marker.totalseq_id}`;
                 dropdown.innerHTML = '';
             };
             dropdown.appendChild(div);
@@ -345,6 +347,7 @@ function adtAddRow(marker, totalseq_id, catalogue_number, clone, reactivity, bar
     const row = document.createElement('tr');
 
     row.innerHTML = `
+        <td>${totalseq_id}</td>
         <td>${marker}</td>
         <td>
             <div class="edit-container">
@@ -354,7 +357,6 @@ function adtAddRow(marker, totalseq_id, catalogue_number, clone, reactivity, bar
                 <button class="save-button" style="display:none;" onclick="adtSaveRow(event, this)">Save</button>
             </div>
         </td>
-        <td>${totalseq_id}</td>
         <td>${catalogue_number}</td>
         <td>${clone}</td>
         <td>${reactivity}</td>
@@ -393,8 +395,8 @@ function adtGenerateCSV() {
         csvContent = 'id,name,read,pattern,sequence,feature_type\n';
         sortedRows.forEach(row => {
             const cells = row.querySelectorAll('td');
-            const marker = adtSubstituteCharacters(cells[0].textContent);
-            const correctedName = cells[1].querySelector('.corrected-name').textContent;
+            const marker = adtSubstituteCharacters(cells[1].textContent);
+            const correctedName = cells[2].querySelector('.corrected-name').textContent;
             const barcode = cells[6].textContent.trim();  // Remove leading/trailing spaces
             let pattern = '';
 
@@ -410,7 +412,7 @@ function adtGenerateCSV() {
         csvContent = 'Feature Barcode name,Feature Barcode sequence\n';
         sortedRows.forEach(row => {
             const cells = row.querySelectorAll('td');
-            const correctedName = cells[1].querySelector('.corrected-name').textContent;
+            const correctedName = cells[2].querySelector('.corrected-name').textContent;
             const barcode = cells[6].textContent.trim();  // Remove leading/trailing spaces
             csvContent += `${correctedName},${barcode}\n`;
         });
@@ -418,8 +420,8 @@ function adtGenerateCSV() {
         csvContent = 'ID,Name,Sequence\n';
         sortedRows.forEach(row => {
             const cells = row.querySelectorAll('td');
-            const correctedName = cells[1].querySelector('.corrected-name').textContent.trim(); // Ensure correct cell and trim
-            const totalseq_id = cells[2].textContent.trim();  // Remove leading/trailing spaces
+            const correctedName = cells[2].querySelector('.corrected-name').textContent.trim(); // Ensure correct cell and trim
+            const totalseq_id = cells[0].textContent.trim();  // Remove leading/trailing spaces
             const barcode = cells[6].textContent.trim();  // Remove leading/trailing spaces
     
             const new_id = `D${totalseq_id}`;

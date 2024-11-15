@@ -7,6 +7,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../helpers/styles.css">
 </head>
+<div class="github-link">
+    <a href="https://github.com/ollieeknight/OSCAR" target="_blank">
+        <span>github.com/ollieeknight/OSCAR</span>
+        <img src="../files/github.png" alt="GitHub Repository">
+    </a>
+</div>
 <body>
     <div id="topbar-placeholder"></div>
     <div class="container">
@@ -55,6 +61,7 @@
                     <option value="Mouse">Mouse (mm)</option>
                 </select>
             </div>
+            <br>
             <div class="form-group">
                 <label for="format">TotalSeq format</label>
                 <select id="format" class="dynamic-width-dropdown" onchange="adtConfirmReset('format')">
@@ -65,6 +72,7 @@
                     <option value="../files/totalseq_d.csv">TotalSeq-D</option>
                 </select>
             </div>
+            <br>
             <div class="form-group">
                 <label for="output-format">CSV output format</label>
                 <select id="output-format" class="dynamic-width-dropdown">
@@ -74,22 +82,22 @@
                     <option value="tapestri">Tapestri (DNA + protein)</option>
                 </select>
             </div>
-            <br><br>
+            <br>
             <label for="search">Search</label>
             <div class="dropdown">
-                <input type="text" id="search" placeholder="Marker, clone, or catalogue number" oninput="adtShowDropdown()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="width: auto;">
+                <input type="text" id="search" placeholder="Marker, clone, or TotalSeq ID" oninput="adtShowDropdown(document.getElementById('format').value)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="width: auto;">
                 <div id="dropdown-content" class="dropdown-content"></div>
             </div>
             <br><br>
             <table id="csvTable">
                 <thead>
                     <tr>
+                        <th>TotalSeq ID</th>
                         <th>Marker</th>
                         <th>Export name</th>
-                        <th>TotalSeq ID</th>
                         <th>BioLegend catalogue number</th>
-                        <th>Antibody clone</th>
-                        <th>Species reactivity</th>
+                        <th>Clone</th>
+                        <th>Reactivity</th>
                         <th>Barcode</th>
                         <th></th>
                     </tr>
@@ -98,15 +106,14 @@
                     <!-- Rows will be added here dynamically -->
                 </tbody>
             </table>
-            <div class="right-align-container">
-                <input type="text" class="csv-name-input" placeholder="File name">
-                <button type="button" class="generate-csv-button">Download .csv</button>
-            </div>
         </form>
 
         <div class="separator"></div>
     </div>
-
+    <div class="adt-file-generate-container">
+        <input type="text" class="csv-name-input" placeholder="File name">
+        <button type="button" class="generate-csv-button" onclick="adtGenerateCSV()">Download .csv</button>
+    </div>
     <script>
         let markersData = [];
         let speciesSelected = false;
