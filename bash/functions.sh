@@ -357,9 +357,12 @@ write_fastq_files() {
             # Construct the final output file name
             output_file="${library_output%.csv}"
             if [[ ! "${output_file}" =~ ${suffix}$ ]]; then
-                output_file="${output_file}${suffix}.csv"
+                output_file="${output_file}${suffix}"
             fi
-            
+            if [[ ! "${output_file}" =~ \.csv$ ]]; then
+                output_file="${output_file}.csv"
+            fi
+
             if [ ! -v unique_lines["${line_identifier}"] ]; then
                 unique_lines["${line_identifier}"]=1
                 echo "${line_identifier}" >> "${output_file}"
