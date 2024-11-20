@@ -8,29 +8,29 @@ metadata_file_name="metadata.csv"
 
 # Function to display help message
 display_help() {
-  echo "Usage: $0 [options]"
-  echo ""
-  echo "Options:"
-  echo "  --project-id <id>                             Set the project ID. Can be multiple (comma-separated)"
-  echo "  --dir-prefix <path>                           Set the directory prefix (default: ${HOME}/scratch/ngs)"
-  echo "  --metadata-file-name <name>                   Set the metadata file name (default: metadata.csv)"
-  echo "  --help                                        Display this help message"
-  exit 0
+    echo "Usage: $0 [options]"
+    echo ""
+    echo "Options:"
+    echo "  --project-id <id>                             Set the project ID. Can be multiple (comma-separated)"
+    echo "  --dir-prefix <path>                           Set the directory prefix (default: ${HOME}/scratch/ngs)"
+    echo "  --metadata-file-name <name>                   Set the metadata file name (default: metadata.csv)"
+    echo "  --help                                        Display this help message"
+    exit 0
 }
 
 # Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
-  if [[ "$1" == --* ]]; then
-    if [[ "$1" == "--help" ]]; then
-      display_help  # Display help message and exit
+    if [[ "$1" == --* ]]; then
+        if [[ "$1" == "--help" ]]; then
+            display_help  # Display help message and exit
+        fi
+        var_name=$(echo "$1" | sed 's/--//; s/-/_/')
+        declare "$var_name"="$2"
+        shift 2
+    else
+        echo "Invalid option: $1"
+        exit 1
     fi
-    var_name=$(echo "$1" | sed 's/--//; s/-/_/')
-    declare "$var_name"="$2"
-    shift 2
-  else
-    echo "Invalid option: $1"
-    exit 1
-  fi
 done
 
 check_project_id
@@ -61,23 +61,19 @@ mkdir -p ${project_outs}/
 
 # Iterate over each library file to submit counting jobs
 for library in "${libraries[@]}"; do
-    echo "Processing library ${library}"
+    if grep -q '.*ADT.*ASAP_.*' "${project_libraries}/${library}.csv"; then
+        echo "Library ${library} is an ADT file for ASAP, processing later"
+    elif grep -q '.*HTO.*ASAP_.*' "${project_libraries}/${library}.csv"; then
+        echo "Library ${library} is an HTO file for ASAP, processing later"
+    else
+        echo "Processing ${library} as an ATAC run"
+        fastq_names=""
+        fastq_dirs=""
 
-if grep -q '.*ADT.*ASAP_.*' "${project_libraries}/${library}.csv"; then
-    echo "Library ${library} is an ADT file for ASAP, processing later"
-elif grep -q '.*HTO.*ASAP_.*' "${project_libraries}/${library}.csv"; then
-    echo "Library ${library} is an HTO file for ASAP, processing later"
-    elif grep -q '.*ATAC.*' "${project_libraries}/${library}.csv"; then
-    echo "Processing ${library} as an ATAC run"
-fastq_names=""
-fastq_dirs=""
+        read fastq_names fastq_dirs < <(count_read_csv "${project_libraries}" "$library")
 
-read fastq_names fastq_dirs < <(count_read_csv "${project_libraries}" "$library")
+        extra_arguments=$(count_check_dogma "${project_libraries}" "$library")
 
-extra_arguments=$(count_check_dogma "${project_libraries}" "$library")
-
-        echo ""
-        echo "cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $fastq_dirs --sample $fastq_names --localcores $num_cores $extra_arguments"
         echo "(number of cores will change upon submission)"
 
         # Ask the user if they want to submit the indices for FASTQ generation
@@ -89,7 +85,7 @@ extra_arguments=$(count_check_dogma "${project_libraries}" "$library")
         done
         # Process choices
         if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-                count_submitted='YES'
+            count_submitted='YES'
             mkdir -p ${project_outs}/logs
             # Submit the job to slurm for counting
             job_id=$(sbatch <<EOF
@@ -112,49 +108,58 @@ EOF
         else
             echo -e "\033[0;31mERROR:\033[0m Invalid choice. Exiting"
         fi
+    fi
+
     if [[ "$library" == *"ASAP"* ]]; then
-    # Ask the user if they want to queue ADT counting
-    echo "As this is an ASAP-seq run, would you like to queue ADT counting? (Y/N)"
-    read -r choice
-    while [[ ! $choice =~ ^[YyNn]$ ]]; do
-        echo "Invalid input. Please enter Y or N."
-        read -r choice
-    done
-    
-    if [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
-        continue
-    elif [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-
-ADT_file=$(count_read_metadata "$metadata_file" "$library")
-
-read fastq_dirs fastq_libraries < <(count_read_adt_csv "${project_libraries}" "$library")
-
-        echo ""
-        echo "For ${library}, the following ASAP FASTQ files will be converted to KITE-compatible FASTQ files:"
-        echo $fastq_libraries
-        echo "In the directories:"
-        echo $fastq_dirs
-        echo ""
-        echo "With the ADT file:"
-        echo ${ADT_file}
-        echo ""
-
-        # Ask the user if they want to submit with or without dependency
-        echo "Do you want to submit with dependency on previous job? (Y/N)"
+        # Ask the user if they want to queue ADT counting
+        echo "As this is an ASAP-seq run, would you like to queue ADT counting? (Y/N)"
         read -r choice
         while [[ ! $choice =~ ^[YyNn]$ ]]; do
             echo "Invalid input. Please enter Y or N."
             read -r choice
         done
-        
-        if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-            sbatch_dependency="--dependency=afterok:$job_id"
-        else
-            sbatch_dependency=""
-        fi
-        
-        # Submit the job
-        sbatch $sbatch_dependency <<EOF
+
+        if [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
+            continue
+        elif [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
+            ADT_file=$(count_read_metadata "$metadata_file" "$library")
+
+            # Determine the correct ADT CSV file name
+            adt_csv="${library}_ADT.csv"
+
+            if [[ ! -f "${project_libraries}/${adt_csv}" ]]; then
+                echo "ERROR: ${project_libraries}/${adt_csv} not found."
+                exit 1
+            fi
+
+            read fastq_dirs fastq_libraries < <(count_read_adt_csv "${project_libraries}" "$adt_csv")
+
+            echo ""
+            echo "For ${library}, the following ASAP FASTQ files will be converted to KITE-compatible FASTQ files:"
+            echo $fastq_libraries
+            echo "In the directories:"
+            echo $fastq_dirs
+            echo ""
+            echo "With the ADT file:"
+            echo ${ADT_file}
+            echo ""
+
+            # Ask the user if they want to submit with or without dependency
+            echo "Do you want to submit with dependency on previous job? (Y/N)"
+            read -r choice
+            while [[ ! $choice =~ ^[YyNn]$ ]]; do
+                echo "Invalid input. Please enter Y or N."
+                read -r choice
+            done
+
+            if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
+                sbatch_dependency="--dependency=afterok:$job_id"
+            else
+                sbatch_dependency=""
+            fi
+
+            # Submit the job
+            sbatch $sbatch_dependency <<EOF
 #!/bin/bash
 #SBATCH --job-name ${library}_ADT
 #SBATCH --output ${project_outs}/logs/kite_${library}.out
@@ -198,52 +203,9 @@ rm -r ${ADT_index_folder}
 EOF
 
         fi
-        
+
         # Reset the fastqs variable
         job_id=""
         fastqs=""
     fi
-    # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
-    elif grep -q '.*GEX*' "${project_libraries}/${library}.csv"; then
-    echo "Processing ${library} as an CITE/GEX run"
-        echo ""
-        echo "For library $library"
-        echo ""
-        cat ${project_libraries}/${library}.csv
-        echo ""
-        echo "cellranger multi --id $library --csv ${project_libraries}/${library}.csv --localcores $num_cores"
-        echo "(number of cores will change upon submission)"
-
-        # Ask the user if they want to submit the indices for FASTQ generation
-        echo -e "\033[0;33mINPUT REQUIRED:\033[0m Is this alright? (Y/N)"
-        read -r choice
-        while [[ ! $choice =~ ^[YyNn]$ ]]; do
-            echo "Invalid input. Please enter Y or N."
-            read -r choice
-        done
-        # Process choices
-        if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-            mkdir -p ${project_outs}/logs/
-            # Submit the job to slurm for counting
-            sbatch <<EOF
-#!/bin/bash
-#SBATCH --job-name ${library}
-#SBATCH --output ${project_outs}/logs/cellranger_${library}.out
-#SBATCH --error ${project_outs}/logs/cellranger_${library}.out
-#SBATCH --ntasks=32
-#SBATCH --mem=96000
-#SBATCH --time=96:00:00
-num_cores=\$(nproc)
-cd ${project_outs}
-apptainer run -B /data "${count_container}" cellranger multi --id "${library}" --csv "${project_libraries}/${library}.csv" --localcores "\$num_cores"
-rm -r ${project_outs}/$library/SC_MULTI_CS ${project_outs}/$library/_*
-EOF
-        fi
-    else
-        echo -e "\033[0;31mERROR:\033[0m Cannot determine whether ${library} is a GEX or ATAC run. is 'GEX' or 'ATAC present in its library csv file?"
-        exit 1
-    fi
-    echo ""
-    echo "-------------"
-    echo ""
 done
