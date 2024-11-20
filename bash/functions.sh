@@ -474,6 +474,11 @@ count_read_adt_csv() {
     local fastq_dirs=''
     local fastq_libraries=''
 
+    if [[ ! -f "${library_csv}" ]]; then
+        echo "ERROR: ${library_csv} not found."
+        exit 1
+    fi
+
     while IFS= read -r line; do
         IFS=',' read -r -a parts <<< "$line"
         fastq_library="${parts[0]}"
