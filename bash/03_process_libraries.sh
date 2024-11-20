@@ -128,7 +128,7 @@ for project_id in "${project_ids[@]}"; do
                 fi
 
                 # Define the output file for the library
-                library_output=${output_project_libraries}/${library}
+                library_output=${output_project_libraries}/${library}.csv
 
                 # Handle different run types and modes
                 if [[ ${run_type} == 'GEX' && ${mode} == "GEX" ]]; then

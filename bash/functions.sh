@@ -340,23 +340,27 @@ write_fastq_files() {
         matching_fastq_files=($(find "${folder}" -type f -name "${library}*${modality}*" | sort -u))
         for fastq_file in "${matching_fastq_files[@]}"; do
             directory=$(dirname "${fastq_file}")
-            fastq_name=$(basename "${fastq_file}" | sed -E 's/\.fastq\.gz$//' | sed -E 's/(_S[0-9]+)?(_[SL][0-9]+_[IR][0-9]+)*$//')
+            fastq_name=$(basename "${fastq_file}" | sed -E 's/\.fastq\.gz$//' | sed -E 's/(_S[0-9]+)?(_[SL][0-9]+_[IR][0-9]+_[0-9]+)*$//')
             
+            # Define line_identifier and output suffix based on conditions
             if [[ "${modality}" == "ADT" && "${assay}" == "ASAP" ]]; then
                 line_identifier="${fastq_name},${directory}"
-                output_file_suffix="_ADT"
+                suffix="_ADT"
             elif [[ "${modality}" == "ATAC" || "${assay}" == "ASAP" ]]; then
                 line_identifier="${fastq_name},${directory},${full_modality}"
-                output_file_suffix="_ATAC"
+                suffix="_ATAC"
             else
                 line_identifier="${fastq_name},${directory},${full_modality}"
-                output_file_suffix=""
+                suffix=""
             fi
+
+            # Construct the final output file name
+            output_file="${library_output%.csv}${suffix}.csv"
 
             if [ ! -v unique_lines["${line_identifier}"] ]; then
                 unique_lines["${line_identifier}"]=1
-                echo "${line_identifier}" >> "${library_output}${output_file_suffix}.csv"
-                echo "Writing ${line_identifier} to ${library}${output_file_suffix}"
+                echo "${line_identifier}" >> "${output_file}"
+                echo "Writing ${line_identifier} to ${output_file}"
             fi
         done
     done
@@ -466,7 +470,7 @@ count_read_metadata() {
 count_read_adt_csv() {
     local library_folder=$1
     local library=$2
-    local library_csv="${library_folder}/${library}.csv"
+    local library_csv="${library_folder}/${library}_ADT.csv"
     local fastq_dirs=''
     local fastq_libraries=''
 
