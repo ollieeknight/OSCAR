@@ -129,14 +129,14 @@ EOF
             ADT_file=$(count_read_metadata "$metadata_file" "$library")
 
             # Determine the correct ADT CSV file name by replacing _ATAC with _ADT
-            adt_csv="${library/_ATAC/_ADT}.csv"
+            adt_csv="${library/_ATAC/_ADT}"
 
             if [[ ! -f "${project_libraries}/${adt_csv}" ]]; then
                 echo "ERROR: ${project_libraries}/${adt_csv} not found."
                 exit 1
             fi
 
-            read fastq_dirs fastq_libraries < <(count_read_adt_csv "${project_libraries}" "$adt_csv")
+            read fastq_dirs fastq_libraries < <(count_read_adt_csv "${project_libraries}" "${adt_csv}")
 
             echo ""
             echo "For ${library}, the following ASAP FASTQ files will be converted to KITE-compatible FASTQ files:"
