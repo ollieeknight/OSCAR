@@ -55,6 +55,8 @@ check_folder_exists "${project_scripts}/indices"
 # Pull necessary OSCAR containers
 check_and_pull_oscar_containers
 
+count_container=$TMPDIR/OSCAR/oscar-count_latest.sif
+
 # Check base masks for step 1 and step 2
 check_base_masks_step1
 check_base_masks_step2
@@ -76,7 +78,7 @@ for file in "${index_files[@]}"; do
 
     # Print the command to be executed
     echo ""
-    echo "apptainer run -B /data ${container} ${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}"
+    echo "apptainer run -B /data ${count_container} ${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}"
     echo ""
 
     # Prompt the user for confirmation
@@ -107,16 +109,16 @@ for file in "${index_files[@]}"; do
 cd ${project_dir}/${project_id}_fastq/
 
 # Run the cellranger command
-apptainer run -B /data ${container} ${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}
+apptainer run -B /data ${count_container} ${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}
 
 # Create fastqc directory
 mkdir -p ${project_dir}/${project_id}_fastq/${index_file}/fastqc
 
 # Run fastqc on all fastq.gz files in parallel
-find "${project_dir}/${project_id}_fastq/${index_file}/outs/fastq_path/${flowcell_id}"* -name "*.fastq.gz" | parallel -j $(nproc) "apptainer run -B /data ${container} fastqc {} --outdir ${project_dir}/${project_id}_fastq/${index_file}/fastqc"
+find "${project_dir}/${project_id}_fastq/${index_file}/outs/fastq_path/${flowcell_id}"* -name "*.fastq.gz" | parallel -j $(nproc) "apptainer run -B /data ${count_container} fastqc {} --outdir ${project_dir}/${project_id}_fastq/${index_file}/fastqc"
 
 # Run multiqc to aggregate fastqc reports
-apptainer run -B /data ${container} multiqc "${project_dir}/${project_id}_fastq/${index_file}" -o "${project_dir}/${project_id}_fastq/${index_file}/multiqc"
+apptainer run -B /data ${count_container} multiqc "${project_dir}/${project_id}_fastq/${index_file}" -o "${project_dir}/${project_id}_fastq/${index_file}/multiqc"
 
 # Clean up temporary files
 rm -r ${project_dir}/${project_id}_fastq/${index_file}/_* ${project_dir}/${project_id}_fastq/${index_file}/MAKE*
