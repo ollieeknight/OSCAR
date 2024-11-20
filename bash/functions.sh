@@ -342,21 +342,25 @@ write_fastq_files() {
             directory=$(dirname "${fastq_file}")
             fastq_name=$(basename "${fastq_file}" | sed -E 's/\.fastq\.gz$//' | sed -E 's/(_S[0-9]+)?(_[SL][0-9]+_[IR][0-9]+_[0-9]+)*$//')
             
+            # Define line_identifier and output suffix based on conditions
             if [[ "${modality}" == "ADT" && "${assay}" == "ASAP" ]]; then
                 line_identifier="${fastq_name},${directory}"
-                output_file_suffix="_ADT"
+                suffix="_ADT"
             elif [[ "${modality}" == "ATAC" || "${assay}" == "ASAP" ]]; then
                 line_identifier="${fastq_name},${directory},${full_modality}"
-                output_file_suffix="_ATAC"
+                suffix="_ATAC"
             else
                 line_identifier="${fastq_name},${directory},${full_modality}"
-                output_file_suffix=""
+                suffix=""
             fi
+
+            # Construct the final output file name
+            output_file="${library_output%.csv}${suffix}.csv"
 
             if [ ! -v unique_lines["${line_identifier}"] ]; then
                 unique_lines["${line_identifier}"]=1
-                echo "${line_identifier}" >> "${library_output}${output_file_suffix}.csv"
-                echo "Writing ${line_identifier} to ${library}${output_file_suffix}"
+                echo "${line_identifier}" >> "${output_file}"
+                echo "Writing ${line_identifier} to ${output_file}"
             fi
         done
     done
