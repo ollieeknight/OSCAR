@@ -64,10 +64,10 @@ while IFS=',' read -r assay experiment_id historical_number replicate modality c
     echo "${assay},${experiment_id},${historical_number},${replicate},${modality},${chemistry},${index_type},${index},${species},${n_donors},${adt_file}"
 
     # Determine the output file name based on chemistry
-    if [ "${chemistry}" != "NA" ]; then
-      sample="${project_indices}/${assay}_${index_type}_${modality}_${chemistry}"
+    if [ "${chemistry}" != "NA" ] && ( [ "${assay}" == "CITE" ] || [ "${assay}" == "GEX" ] ); then
+        sample="${project_indices}/${assay}_${index_type}_${modality}_${chemistry}"
     else
-      sample="${project_indices}/${assay}_${index_type}_${modality}"
+        sample="${project_indices}/${assay}_${index_type}_${modality}"
     fi
 
     output_file="${sample}.csv"
