@@ -128,8 +128,8 @@ EOF
         elif [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
             ADT_file=$(count_read_metadata "$metadata_file" "$library")
 
-            # Determine the correct ADT CSV file name
-            adt_csv="${library}.csv"
+            # Determine the correct ADT CSV file name by replacing _ATAC with _ADT
+            adt_csv="${library/_ATAC/_ADT}.csv"
 
             if [[ ! -f "${project_libraries}/${adt_csv}" ]]; then
                 echo "ERROR: ${project_libraries}/${adt_csv} not found."
