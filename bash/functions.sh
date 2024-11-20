@@ -470,7 +470,7 @@ count_read_metadata() {
 count_read_adt_csv() {
     local library_folder=$1
     local library=$2
-    local library_csv="${library_folder}/${library}"
+    local library_csv="${library_folder}/${library}_ADT.csv"
     local fastq_dirs=''
     local fastq_libraries=''
 
@@ -501,10 +501,8 @@ extract_variables() {
     remainder="${library#*_}"
     experiment_id="${remainder%%_exp*}"
     remainder="${remainder#*_}"
-    remainder="${remainder#*exp}"
     historical_number="${remainder%%_lib*}"
-    remainder="${remainder#*lib}"
-    replicate="${remainder}"
+    replicate="${remainder#*_lib}"
 
     echo "$assay" "$experiment_id" "$historical_number" "$replicate"
 }
