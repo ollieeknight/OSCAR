@@ -340,7 +340,7 @@ write_fastq_files() {
         matching_fastq_files=($(find "${folder}" -type f -name "${library}*${modality}*" | sort -u))
         for fastq_file in "${matching_fastq_files[@]}"; do
             directory=$(dirname "${fastq_file}")
-            fastq_name=$(basename "${fastq_file}" | sed -E 's/\.fastq\.gz$//' | sed -E 's/(_S[0-9]+)?(_[SL][0-9]+_[IR][0-9]+_[0-9]+)*$//')
+            fastq_name=$(basename "${fastq_file}" | sed -E 's/\.fastq\.gz$//' | sed -E 's/(_S[0-9]+)?(_[SL][0-9]+_[IR][0-9]+)*$//')
             
             if [[ "${modality}" == "ADT" && "${assay}" == "ASAP" ]]; then
                 line_identifier="${fastq_name},${directory}"
@@ -466,7 +466,7 @@ count_read_metadata() {
 count_read_adt_csv() {
     local library_folder=$1
     local library=$2
-    local library_csv="${library_folder}/${library}_ADT.csv"
+    local library_csv="${library_folder}/${library}.csv"
     local fastq_dirs=''
     local fastq_libraries=''
 
