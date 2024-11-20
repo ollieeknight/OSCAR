@@ -61,9 +61,13 @@ mkdir -p ${project_outs}/
 
 # Iterate over each library file to submit counting jobs
 for library in "${libraries[@]}"; do
-    if grep -q '.*ADT.*ASAP_.*' "${project_libraries}/${library}.csv"; then
-        echo "Library ${library} is an ADT file for ASAP, processing later"
-    elif grep -q '.*HTO.*ASAP_.*' "${project_libraries}/${library}.csv"; then
+    # Skip processing lines with 'ADT' in the library name
+    if [[ "$library" == *"ADT"* ]]; then
+        echo "Skipping ${library} as it is an ADT file"
+        continue
+    fi
+
+    if grep -q '.*HTO.*ASAP_.*' "${project_libraries}/${library}.csv"; then
         echo "Library ${library} is an HTO file for ASAP, processing later"
     else
         echo "Processing ${library} as an ATAC run"
@@ -125,7 +129,7 @@ EOF
             ADT_file=$(count_read_metadata "$metadata_file" "$library")
 
             # Determine the correct ADT CSV file name
-            adt_csv="${library}_ADT.csv"
+            adt_csv="${library}.csv"
 
             if [[ ! -f "${project_libraries}/${adt_csv}" ]]; then
                 echo "ERROR: ${project_libraries}/${adt_csv} not found."
