@@ -463,8 +463,10 @@ count_read_metadata() {
         replicate="${fields[3]}"
         expected_library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
 
+        echo "Debug: expected_library=$expected_library, library=$library"  # Debug statement
+
         if [ "$expected_library" == "$library" ]; then
-            ADT_file="${fields[11]}"
+            ADT_file="${fields[10]}"  # Corrected index for ADT file
             break
         fi
     done < "$metadata_file"
