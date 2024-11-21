@@ -40,7 +40,7 @@ project_dir="${dir_prefix}/${project_id}"
 project_scripts="${project_dir}/${project_id}_scripts"
 project_indices="${project_scripts}/indices"
 project_libraries="${project_scripts}/libraries"
-project_outs="${project_scripts}/outs"
+project_outs="${project_dir}/outs"
 
 # Check if metadata file exists
 metadata_file="${project_scripts}/metadata/${metadata_file_name}"
