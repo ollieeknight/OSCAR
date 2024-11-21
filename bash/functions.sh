@@ -461,7 +461,7 @@ count_read_metadata() {
         experiment_id="${fields[1]}"
         historical_number="${fields[2]}"
         replicate="${fields[3]}"
-        expected_library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
+        expected_library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_ATAC"
 
         echo "Debug: expected_library=$expected_library, library=$library"  # Debug statement
 
