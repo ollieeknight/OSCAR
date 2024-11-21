@@ -78,7 +78,7 @@ for library in "${libraries[@]}"; do
 
         extra_arguments=$(count_check_dogma "${project_libraries}" "$library")
 
-        echo "(number of cores will change upon submission)"
+        echo "apptainer run -B /data ${count_container} cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $fastq_dirs --sample $fastq_names --localcores 32 $extra_arguments"
 
         # Ask the user if they want to submit the indices for FASTQ generation
         echo -e "\033[0;33mINPUT REQUIRED:\033[0m Is this alright? (Y/N)"

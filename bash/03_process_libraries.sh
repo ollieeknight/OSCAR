@@ -114,10 +114,6 @@ for project_id in "${project_ids[@]}"; do
                         continue
                 fi
 
-                echo ""
-                echo "-------------"
-                echo ""
-
                 # Define the library name
                 library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
 
