@@ -273,7 +273,7 @@ determine_full_modality() {
 }
 
 write_human_reference() {
-    echo "Writing human reference files for ${library}"
+    echo -e "\033[0;33mWriting human reference files for ${library}\033[0m"
     echo "[gene-expression]" >> "${library_output}"
     echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/hs/GRCh38-hardmasked-optimised-arc" >> "${library_output}"
     echo "create-bam,true" >> "${library_output}"
@@ -298,6 +298,7 @@ write_human_reference() {
 }
 
 write_mouse_reference() {
+    echo -e "\033[0;33mWriting mouse reference files for ${library}\033[0m"
     echo "[gene-expression]" >> "${library_output}"
     echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/mm/GRCm38-hardmasked-optimised-arc" >> "${library_output}"
     echo "create-bam,true" >> "${library_output}"
@@ -365,7 +366,8 @@ write_fastq_files() {
             if [ ! -v unique_lines["${line_identifier}"] ]; then
                 unique_lines["${line_identifier}"]=1
                 echo "${line_identifier}" >> "${output_file}"
-                echo "Writing ${line_identifier} to ${output_file}"
+                echo -e "\033[0;33mWriting ${line_identifier} to\033[0m"
+                echo "${output_file}"
             fi
         done
     done
@@ -382,7 +384,7 @@ handle_gex_mode() {
             if [ "${adt_file}" != "NA" ]; then
                 write_adt_data
             fi
-            echo "Writing ${modality} for ${library}"
+            echo -e "\033[0;33mWriting ${modality} for ${library}\033[0m"
             echo "" >> "${library_output}"
             echo "[libraries]" >> "${library_output}"
             echo "fastq_id,fastqs,feature_types" >> "${library_output}"
