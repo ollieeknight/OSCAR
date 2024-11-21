@@ -77,7 +77,7 @@ for file in "${index_files[@]}"; do
     base_mask="${base_mask//./ }"
 
     # Print the command to be executed
-    echo ""
+    echo "Submission for ${index_file}:"
     echo "apptainer run -B /data ${count_container} ${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}"
     echo ""
 
