@@ -57,8 +57,6 @@ check_and_pull_oscar_containers() {
         echo "oscar-count_latest.sif singularity file not found, pulling..."
         mkdir -p "${TMPDIR}/OSCAR"
         apptainer pull --dir "${TMPDIR}/OSCAR" library://romagnanilab/oscar/oscar-count:latest
-    else
-        echo "oscar-count_latest.sif already exists."
     fi
 
     container_qc="${TMPDIR}/OSCAR/oscar-qc_latest.sif"
@@ -67,6 +65,9 @@ check_and_pull_oscar_containers() {
         echo "oscar-qc_latest.sif singularity file not found, pulling..."
         mkdir -p "${TMPDIR}/OSCAR"
         apptainer pull --dir "${TMPDIR}/OSCAR" library://romagnanilab/oscar/oscar-qc:latest
+        echo "All images are present under ${TMPDIR}/OSCAR/"
+        touch ${TMPDIR}/OSCAR/oscar-count_latest.sif
+        touch ${TMPDIR}/OSCAR/oscar-qc_latest.sif
     else
         echo "All images are present under ${TMPDIR}/OSCAR/"
         touch ${TMPDIR}/OSCAR/oscar-count_latest.sif
@@ -244,7 +245,7 @@ print_options() {
             echo "${option}"
         done
     else
-        echo "No options set for ${option_name}"
+        echo "No non-default options set for ${option_name}"
     fi
 }
 
@@ -463,7 +464,7 @@ count_read_metadata() {
         expected_library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
 
         if [ "$expected_library" == "$library" ]; then
-            ADT_file="${fields[10]}"
+            ADT_file="${fields[11]}"
             break
         fi
     done < "$metadata_file"
