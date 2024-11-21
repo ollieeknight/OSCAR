@@ -40,7 +40,7 @@ project_dir="${dir_prefix}/${project_id}"
 project_scripts="${project_dir}/${project_id}_scripts"
 project_indices="${project_scripts}/indices"
 project_libraries="${project_scripts}/libraries"
-project_outs="${project_dir}/outs"
+project_outs="${project_dir}/${project_id}_outs"
 
 # Check if metadata file exists
 metadata_file="${project_scripts}/metadata/${metadata_file_name}"
@@ -78,6 +78,7 @@ for library in "${libraries[@]}"; do
 
         extra_arguments=$(count_check_dogma "${project_libraries}" "$library")
 
+        echo "Output directory: ${project_outs}/"
         echo "apptainer run -B /data ${count_container} cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ --fastqs $fastq_dirs --sample $fastq_names --localcores 32 $extra_arguments"
 
         # Ask the user if they want to submit the indices for FASTQ generation
