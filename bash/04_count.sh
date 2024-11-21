@@ -131,10 +131,6 @@ EOF
             # Determine the correct ADT CSV file name by replacing _ATAC with _ADT
             adt_csv="${library/_ATAC/_ADT}.csv"
 
-            echo "DEBUG: adt_csv=${adt_csv}"
-            echo "DEBUG: project_libraries=${project_libraries}"
-            echo "DEBUG: full path=${project_libraries}/${adt_csv}"
-
             if [[ ! -f "${project_libraries}/${adt_csv}" ]]; then
                 echo "ERROR: ${project_libraries}/${adt_csv} not found."
                 exit 1
