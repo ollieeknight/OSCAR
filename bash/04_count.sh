@@ -141,20 +141,17 @@ EOF
 
             ADT_index_folder=${project_outs}/$library/adt_index
             corrected_fastq=${fastq_dirs[0]}/corrected_fastq
+            ADT_file="${project_scripts}/adt_files/${ADT_file}"
             
-            echo ""
-            echo -e "\033[0;33mFor ${library}, the following ASAP FASTQ files will be converted to KITE-compatible FASTQ files:\033[0m"
-            echo $fastq_libraries
-            echo -e "\033[0;33mIn the directories:\033[0m"
+            echo -e "\033[0;33mFor ${library}, ASAP FASTQ directories are:\033[0m"
             echo $fastq_dirs
-            echo ""
-            echo -e "\033[0;33mCorrected FASTQ files will be generated under:\033[0m"
+            echo -e "\033[0;33mWith FASTQ files:\033[0m"
+            echo $fastq_libraries
+            echo -e "\033[0;33mFiles will be corrected to:\033[0m"
             echo $corrected_fastq
-            echo ""
-            echo -e "\033[0;33mWith the ADT file:\033[0m"
+            echo -e "\033[0;33mAnd mapped to reference:\033[0m"
             echo ${ADT_file}
-            echo ""
-            echo -e "\033[0;33mADT index folder:\033[0m"
+            echo -e "\033[0;33mUnder:\033[0m"
             echo $ADT_index_folder
             
             # Ask the user if they want to submit with or without dependency
