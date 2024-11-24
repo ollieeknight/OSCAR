@@ -140,7 +140,7 @@ EOF
             read fastq_dirs fastq_libraries < <(count_read_adt_csv "${project_libraries}" "${adt_library_csv}")
 
             ADT_index_folder=${project_outs}/$library/adt_index
-            corrected_fastq=${fastq_dirs}[0]/corrected_fastq
+            corrected_fastq=${fastq_dirs[0]}/corrected_fastq
             
             echo ""
             echo -e "\033[0;33mFor ${library}, the following ASAP FASTQ files will be converted to KITE-compatible FASTQ files:\033[0m"
@@ -156,7 +156,7 @@ EOF
             echo ""
             echo -e "\033[0;33mADT index folder:\033[0m"
             echo $ADT_index_folder
-            echo ""
+            
             # Ask the user if they want to submit with or without dependency
             echo "Do you want to submit with dependency on previous job, with these options? (Y/N)"
             
