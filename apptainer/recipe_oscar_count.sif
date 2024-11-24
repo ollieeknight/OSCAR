@@ -44,10 +44,11 @@ From: ubuntu:latest
     sed -i '1s|^.*$|#!/opt/miniforge3/envs/oscar_count/bin/python\n&|' /opt/asap_to_kite/asap_to_kite_v2.py
     chmod -R +x /opt/asap_to_kite
 
-    # Clone the KITE repository and add a shebang to the featuremap.py script
-    git clone https://github.com/pachterlab/kite /opt/kite/
-    sed -i '1s|^.*$|#!/opt/miniforge3/envs/oscar_count/bin/python\n&|' /opt/kite/featuremap/featuremap.py
-    chmod -R +x /opt/kite/
+    # Clone the ASAP_to_KITE repository and add a shebang to the Python script
+    mkdir -p /opt/asap_to_kite/
+    git clone https://github.com/caleblareau/asap_to_kite /opt/asap_to_kite/
+    sed -i '1s|^.*$|#!/opt/miniconda3/envs/oscar_count/bin/python\n&|' /opt/asap_to_kite/asap_to_kite_v2.py
+    chmod -R +x /opt/asap_to_kite
 
     # Install Miniforge if it is not already installed
     [ ! -d "/opt/miniforge3" ] && curl -L https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -o Miniforge3-Linux-x86_64.sh && bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3" && rm Miniforge3-Linux-x86_64.sh
