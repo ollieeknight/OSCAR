@@ -141,7 +141,12 @@ EOF
 
             ADT_index_folder=${project_outs}/$library/adt_index
             corrected_fastq=${fastq_dirs[0]}/corrected_fastq
-            ADT_file="${project_scripts}/adt_files/${ADT_file}"
+            ADT_file="${project_scripts}/adt_files/${ADT_file}.csv"
+
+            if [[ ! -f "$ADT_file" ]]; then
+                echo -e "\033[0;31mERROR: File does not exist: $ADT_file. Check metadata and adt_files folder\033[0m"
+                exit 1
+            fi
             
             echo -e "\033[0;33mFor ${library}, ASAP FASTQ directories are:\033[0m"
             echo $fastq_dirs
