@@ -139,7 +139,7 @@ EOF
                 read fastq_dirs fastq_libraries < <(count_read_adt_csv "${project_libraries}" "${adt_library_csv}")
 
                 ADT_index_folder=${project_outs}/$library/adt_index
-                corrected_fastq=${fastq_dirs[0]}/corrected_fastq
+                corrected_fastq=${fastq_dirs[0]}/../../KITE_corrected
                 ADT_file="${project_scripts}/adt_files/${ADT_file}.csv"
 
                 if [[ ! -f "$ADT_file" ]]; then
