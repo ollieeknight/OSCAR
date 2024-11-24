@@ -26,16 +26,20 @@ display_help() {
 }
 
 # Parse command line arguments
-while [[ "$#" -gt 0 ]]; do
-  if [[ "$1" == --* ]]; then
-    if [[ "$1" == "--help" ]]; then
+while [[ "${#}" -gt 0 ]]; do
+  if [[ "${1}" == --* ]]; then
+    if [[ "${1}" == "--help" ]]; then
       display_help  # Display help message and exit
     fi
-    var_name=$(echo "$1" | sed 's/--//; s/-/_/')
-    declare "$var_name"="$2"
+    if [[ -z "${2}" ]]; then
+      echo "Error: Missing value for parameter ${1}"
+      exit 1
+    fi
+    var_name=$(echo "${1}" | sed 's/--//; s/-/_/')
+    declare "${var_name}"="${2}"
     shift 2
   else
-    echo "Invalid option: $1"
+    echo "Invalid option: ${1}"
     exit 1
   fi
 done
@@ -119,7 +123,8 @@ for project_id in "${project_ids[@]}"; do
 
                 # Determine the full modality
                 full_modality=$(determine_full_modality "${modality}" "${library}")
-                if [ $? -eq 1 ]; then
+                if [ ${?} -eq 1 ]; then
+
                         continue
                 fi
 

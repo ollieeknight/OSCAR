@@ -1,5 +1,21 @@
 #!/bin/bash
 
+# Function for formatted logging
+log() {
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "[$timestamp] $1"
+}
+
+# Function to check last command status and exit if failed
+check_status() {
+    if [ $? -eq 0 ]; then
+        log "✓ SUCCESS: $1"
+    else
+        log "❌ ERROR: $1 failed"
+        exit 1
+    fi
+}
+
 # Function to check if project_id is defined
 check_project_id() {
     if [ -z "${project_id}" ]; then

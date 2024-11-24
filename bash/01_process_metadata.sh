@@ -19,17 +19,21 @@ display_help() {
 }
 
 # Parse command line arguments
-while [[ "$#" -gt 0 ]]; do
-  if [[ "$1" == --* ]]; then
-    if [[ "$1" == "--help" ]]; then
+while [[ "${#}" -gt 0 ]]; do
+  if [[ "${1}" == --* ]]; then
+    if [[ "${1}" == "--help" ]]; then
       display_help  # Display help message and exit
     fi
-    var_name=$(echo "$1" | sed 's/--//; s/-/_/')  # Convert --option-name to option_name
-    declare "$var_name"="$2"  # Declare the variable with the given value
-    shift 2  # Shift to the next pair of arguments
+    if [[ -z "${2}" ]]; then
+      echo "Error: Missing value for parameter ${1}"
+      exit 1
+    fi
+    var_name=$(echo "${1}" | sed 's/--//; s/-/_/')
+    declare "${var_name}"="${2}"
+    shift 2
   else
-    echo "Invalid option: $1"  # Print error message for invalid option
-    exit 1  # Exit with error code
+    echo "Invalid option: ${1}"
+    exit 1
   fi
 done
 

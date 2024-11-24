@@ -21,16 +21,20 @@ display_help() {
 }
 
 # Parse command line arguments
-while [[ "$#" -gt 0 ]]; do
-  if [[ "$1" == --* ]]; then
-    if [[ "$1" == "--help" ]]; then
+while [[ "${#}" -gt 0 ]]; do
+  if [[ "${1}" == --* ]]; then
+    if [[ "${1}" == "--help" ]]; then
       display_help  # Display help message and exit
     fi
-    var_name=$(echo "$1" | sed 's/--//; s/-/_/')
-    declare "$var_name"="$2"
+    if [[ -z "${2}" ]]; then
+      echo "Error: Missing value for parameter ${1}"
+      exit 1
+    fi
+    var_name=$(echo "${1}" | sed 's/--//; s/-/_/')
+    declare "${var_name}"="${2}"
     shift 2
   else
-    echo "Invalid option: $1"
+    echo "Invalid option: ${1}"
     exit 1
   fi
 done
@@ -84,8 +88,8 @@ for file in "${index_files[@]}"; do
     # Prompt the user for confirmation
     echo -e "\033[0;33mINPUT REQUIRED:\033[0m Is this alright? (Y/N)"
     read -r choice
-    while [[ ! $choice =~ ^[YyNn]$ ]]; do
-        echo "Invalid input. Please enter y or n"
+    while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
+            echo "Invalid input. Please enter y or n"
         read -r choice
     done
 
@@ -96,32 +100,64 @@ for file in "${index_files[@]}"; do
         mkdir -p "${project_dir}/${project_id}_fastq/logs/"
 
         # Submit the job to SLURM
-        sbatch <<EOF
+sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name ${project_id}
 #SBATCH --output ${project_dir}/${project_id}_fastq/logs/${index_file}.out
 #SBATCH --error ${project_dir}/${project_id}_fastq/logs/${index_file}.out
 #SBATCH --ntasks=16
-#SBATCH --mem=64000
+#SBATCH --mem=64GB
 #SBATCH --time=12:00:00
 
+# Source the functions
+source "${oscar_dir}/functions.sh"
+
+# Create log directory if it doesn't exist
+mkdir -p ${project_dir}/${project_id}_fastq/logs
+check_status "Log directory creation"
+
 # Change to the fastq directory
+log "Changing to fastq directory..."
 cd ${project_dir}/${project_id}_fastq/
+check_status "Directory change"
 
 # Run the cellranger command
-apptainer run -B /data ${count_container} ${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}
+log "Starting CellRanger mkfastq..."
+apptainer run -B /data ${count_container} ${cellranger_command} \
+    --id ${index_file} \
+    --run ${project_dir}/${project_id}_bcl \
+    --csv ${project_scripts}/indices/${file} \
+    --use-bases-mask ${base_mask} \
+    --delete-undetermined \
+    --barcode-mismatches 1 \
+    ${filter_option}
+check_status "CellRanger mkfastq"
 
 # Create fastqc directory
+log "Creating FastQC directory..."
 mkdir -p ${project_dir}/${project_id}_fastq/${index_file}/fastqc
+check_status "FastQC directory creation"
 
 # Run fastqc on all fastq.gz files in parallel
-find "${project_dir}/${project_id}_fastq/${index_file}/outs/fastq_path/${flowcell_id}"* -name "*.fastq.gz" | parallel -j $(nproc) "apptainer run -B /data ${count_container} fastqc {} --outdir ${project_dir}/${project_id}_fastq/${index_file}/fastqc"
+log "Starting FastQC analysis..."
+find "${project_dir}/${project_id}_fastq/${index_file}/outs/fastq_path/${flowcell_id}"* -name "*.fastq.gz" | \
+    parallel -j \$(nproc) "apptainer run -B /data ${count_container} fastqc {} \
+    --outdir ${project_dir}/${project_id}_fastq/${index_file}/fastqc"
+check_status "FastQC analysis"
 
 # Run multiqc to aggregate fastqc reports
-apptainer run -B /data ${count_container} multiqc "${project_dir}/${project_id}_fastq/${index_file}" -o "${project_dir}/${project_id}_fastq/${index_file}/multiqc"
+log "Starting MultiQC analysis..."
+apptainer run -B /data ${count_container} multiqc \
+    "${project_dir}/${project_id}_fastq/${index_file}" \
+    -o "${project_dir}/${project_id}_fastq/${index_file}/multiqc"
+check_status "MultiQC analysis"
 
 # Clean up temporary files
+log "Cleaning up temporary files..."
 rm -r ${project_dir}/${project_id}_fastq/${index_file}/_* ${project_dir}/${project_id}_fastq/${index_file}/MAKE*
+check_status "Cleanup"
+
+log "All processing completed successfully!"
 EOF
     elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
         :
