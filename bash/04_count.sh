@@ -175,7 +175,7 @@ EOF
                 echo $ADT_outs
                 
                 # Ask the user if they want to submit with or without dependency
-                echo "Do you want to submit with dependency on previous job, with these options? (Y/N)"
+                echo "Submit with a dependency on the count job? (Y/N)"
                 
                 read -r choice
                 while [[ ! $choice =~ ^[YyNn]$ ]]; do
@@ -225,7 +225,7 @@ apptainer run -B /data ${count_container} kallisto index \
 check_status "kallisto index"
 
 # Running asap_to_kite
-library_out_name="${library/_ATAC/_ADT}"
+library_out_name=$(echo "$library" | sed 's/_ATAC/_ADT/')
 log "Checking for existing KITE converted files..."
 if [ ! -f "${corrected_fastq}/${library_out_name}_R1.fastq.gz" ] || [ ! -f "${corrected_fastq}/${library_out_name}_R2.fastq.gz" ]; then
     log "Running ASAP to KITE conversion..."
@@ -256,6 +256,15 @@ ${TMPDIR}/OSCAR/737K-arc-v1.txt
 ATAC_whitelist=${TMPDIR}/OSCAR/737K-arc-v1.txt
 check_status "gunzip barcodes"
 
+# Debug logging for bustools correct variables
+log "Debug info for bustools correct:"
+log "Container: ${count_container}"
+log "ATAC whitelist: ${ATAC_whitelist}"
+log "ADT index folder: ${ADT_index_folder}"
+log "Input bus file: ${ADT_index_folder}/temp/output.bus"
+log "Output bus file: ${ADT_index_folder}/temp/output_corrected.bus"
+
+# Original command
 log "Running bustools correct..."
 apptainer run -B /data ${count_container} bustools correct \
     -w ${ATAC_whitelist} \
