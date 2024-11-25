@@ -76,18 +76,16 @@ for library in "${libraries[@]}"; do
 
         extra_arguments=$(count_check_dogma "${project_libraries}" "$library")
 
-        echo -e "\033[0;33mINPUT REQUIRED:\033[0m Submit ${library} for cellranger-atac count? (Y/N)"
-        read -r choice
+        read -p "Submit ${library} for cellranger-atac count? (Y/N): " choice
         while [[ ! $choice =~ ^[YyNn]$ ]]; do
             echo "Invalid input. Please enter Y or N."
-            read -r choice
+            read -p "Submit ${library} for cellranger-atac count? (Y/N): " choice
         done
         # Process choices
         if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
             mkdir -p ${project_outs}/logs
             # Submit the job to slurm for counting
-# Submit the job and capture job ID
-job_id=$(sbatch <<EOF
+            job_id=$(sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name ${library}
 #SBATCH --output ${project_outs}/logs/cellranger_${library}.out
@@ -107,6 +105,8 @@ log "count_container: ${count_container}"
 log "fastq_dirs: ${fastq_dirs}"
 log "fastq_names: ${fastq_names}"
 log "extra_arguments: ${extra_arguments}"
+
+log ""
 
 cd ${project_outs}
 
@@ -135,11 +135,10 @@ EOF
         fi
 
         if grep -q '.*\(ASAP\).*' "${project_libraries}/${library}.csv"; then
-            echo "Perform ADT counting? (Y/N)"
-            read -r choice
+            read -p "Perform ADT counting? (Y/N): " choice
             while [[ ! $choice =~ ^[YyNn]$ ]]; do
                 echo "Invalid input. Please enter Y or N."
-                read -r choice
+                read -p "Perform ADT counting? (Y/N): " choice
             done
 
             if [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
@@ -200,6 +199,8 @@ log "fastq_libraries: ${fastq_libraries}"
 log "TMPDIR: ${TMPDIR}"
 log "sbatch_dependency: ${sbatch_dependency}"
 
+log ""
+
 cd ${project_outs}/${library}
 
 # Create required directories
@@ -209,6 +210,8 @@ mkdir -p $corrected_fastq
 mkdir -p ${ADT_outs}
 check_status "Directory creation"
 
+log ""
+
 # Run featuremap
 log "Running featuremap"
 apptainer run -B /data ${count_container} featuremap ${ADT_file} \
@@ -217,6 +220,8 @@ apptainer run -B /data ${count_container} featuremap ${ADT_file} \
     --header --quiet
 check_status "featuremap"
 
+log ""
+
 # Running kallisto index
 log "Running kallisto index"
 apptainer run -B /data ${count_container} kallisto index \
@@ -224,7 +229,8 @@ apptainer run -B /data ${count_container} kallisto index \
     -k 15 ${ADT_index_folder}/FeaturesMismatch.fa
 check_status "kallisto index"
 
-# Substitution using parameter expansion
+log ""
+
 library_out_name=$(echo "$library" | sed 's/_ATAC/_ADT/')
 
 # Check if files already exist
@@ -240,6 +246,8 @@ else
     log "KITE converted files already exist, skipping conversion"
 fi
 
+log ""
+
 # Running kallisto bus
 log "Running kallisto bus"
 apptainer run -B /data ${count_container} kallisto bus \
@@ -250,12 +258,16 @@ apptainer run -B /data ${count_container} kallisto bus \
     ${corrected_fastq}/\${library_out_name}*
 check_status "kallisto bus"
 
+log ""
+
 log "Extracting ATAC barcodes to ${TMPDIR}/OSCAR/737K-arc-v1.txt"
 apptainer exec ${count_container} gunzip \
 -c /opt/cellranger-atac-2.1.0/lib/python/atac/barcodes/737K-arc-v1.txt.gz > \
 ${TMPDIR}/OSCAR/737K-arc-v1.txt
 ATAC_whitelist=${TMPDIR}/OSCAR/737K-arc-v1.txt
 check_status "gunzip barcodes"
+
+log ""
 
 log "Running bustools correct"
 apptainer run -B /data ${count_container} bustools correct \
@@ -264,6 +276,8 @@ apptainer run -B /data ${count_container} bustools correct \
     -o ${ADT_index_folder}/temp/output_corrected.bus
 check_status "bustools correct"
 
+log ""
+
 # Running bustools sort
 log "Running bustools sort"
 apptainer run -B /data ${count_container} bustools sort \
@@ -271,6 +285,8 @@ apptainer run -B /data ${count_container} bustools sort \
     -o ${ADT_index_folder}/temp/output_sorted.bus \
     ${ADT_index_folder}/temp/output_corrected.bus
 check_status "bustools sort"
+
+log ""
 
 # Running bustools count
 log "Running bustools count"
@@ -283,10 +299,14 @@ apptainer run -B /data ${count_container} bustools count \
     ${ADT_index_folder}/temp/output_sorted.bus
 check_status "bustools count"
 
+log ""
+
 # Cleanup
 log "Cleaning up temporary files"
 rm -r ${ADT_index_folder}
 check_status "Cleanup"
+
+log ""
 
 log "All processing completed successfully"
 EOF
@@ -302,11 +322,10 @@ EOF
         echo "cellranger multi --id ${library} --csv ${project_libraries}/${library}.csv --localcores 32"
 
         # Ask the user if they want to submit the indices for FASTQ generation
-        echo -e "\033[0;33mINPUT REQUIRED:\033[0m Is this alright? (Y/N)"
-        read -r choice
+        read -p "Is this alright? (Y/N): " choice
         while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
             echo "Invalid input. Please enter Y or N."
-            read -r choice
+            read -p "Is this alright? (Y/N): " choice
         done
         # Process choices
         if [ "${choice}" = "Y" ] || [ "${choice}" = "y" ]; then
@@ -331,6 +350,8 @@ log "oscar_dir: ${oscar_dir}"
 log "count_container: ${count_container}"
 log "project_libraries: ${project_libraries}"
 
+log ""
+
 # Run the CellRanger multi command
 log "Running cellranger multi"
 apptainer run -B /data "${count_container}" cellranger multi \
@@ -338,6 +359,8 @@ apptainer run -B /data "${count_container}" cellranger multi \
     --csv "${project_libraries}/${library}.csv" \
     --localcores "\$(nproc)"
 check_status "cellranger multi"
+
+log ""
 
 # Clean up temporary files
 log "Cleaning up temporary files"

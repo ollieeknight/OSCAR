@@ -81,11 +81,10 @@ for file in "${index_files[@]}"; do
     base_mask="${base_mask//./ }"
 
     # Prompt the user for confirmation
-    echo -e "\033[0;33mINPUT REQUIRED:\033[0m Submit ${index_file} for fastq demultiplexing? (Y/N)"
-    read -r choice
+    read -p $'\033[0;33mINPUT REQUIRED:\033[0m Submit '"${index_file}"' for fastq demultiplexing? (Y/N) ' choice
     while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
-            echo "Invalid input. Please enter y or n"
-        read -r choice
+        echo "Invalid input. Please enter y or n"
+        read -p $'\033[0;33mINPUT REQUIRED:\033[0m Submit '"${index_file}"' for fastq demultiplexing? (Y/N) ' choice
     done
 
     # If user confirms, submit the job to SLURM
@@ -120,6 +119,8 @@ log "base_mask: ${base_mask}"
 log "filter_option: ${filter_option}"
 log "flowcell_id: ${flowcell_id}"
 
+log ""
+
 mkdir -p ${project_dir}/${project_id}_fastq/logs
 cd ${project_dir}/${project_id}_fastq/
 
@@ -135,6 +136,8 @@ apptainer run -B /data ${count_container} ${cellranger_command} \
     ${filter_option}
 check_status "${cellranger_command} mkfastq"
 
+log ""
+
 mkdir -p ${project_dir}/${project_id}_fastq/${index_file}/fastqc
 
 # Run fastqc
@@ -144,6 +147,8 @@ find "${project_dir}/${project_id}_fastq/${index_file}/outs/fastq_path/${flowcel
     --outdir ${project_dir}/${project_id}_fastq/${index_file}/fastqc"
 check_status "fastqc"
 
+log ""
+
 # Run multiqc to aggregate fastqc reports
 log "Running multiqc"
 apptainer run -B /data ${count_container} multiqc \
@@ -151,7 +156,12 @@ apptainer run -B /data ${count_container} multiqc \
     -o "${project_dir}/${project_id}_fastq/${index_file}/multiqc"
 check_status "multiqc"
 
+log ""
+
+# Clean up temporary files
+log "Cleaning up temporary files"
 rm -r ${project_dir}/${project_id}_fastq/${index_file}/_* ${project_dir}/${project_id}_fastq/${index_file}/MAKE*
+check_status "Cleanup"
 
 log "All processing completed successfully"
 EOF

@@ -12,36 +12,36 @@ mode=""
 
 # Function to display help message
 display_help() {
-  echo "Usage: $0 [options]"
-  echo ""
-  echo "Options:"
-  echo "  --project-id <id>                             Set the project ID. Can be multiple (comma-separated)"
-  echo "  --dir-prefix <path>                           Set the directory prefix (default: ${HOME}/scratch/ngs)"
-  echo "  --gene-expression-options <id1,id2>           Define options for gene expression processing (comma-separated)"
-  echo "  --vdj-options <id1,id2>                       Define options for VDJ processing (comma-separated)"
-  echo "  --adt-options <id1,id2>                       Define options for ADT processing (comma-separated)"
-  echo "  --metadata-file-name <name>                   Set the metadata file name (default: metadata.csv)"
-  echo "  --help                                        Display this help message"
-  exit 0
+        echo "Usage: $0 [options]"
+        echo ""
+        echo "Options:"
+        echo "  --project-id <id>                             Set the project ID. Can be multiple (comma-separated)"
+        echo "  --dir-prefix <path>                           Set the directory prefix (default: ${HOME}/scratch/ngs)"
+        echo "  --gene-expression-options <id1,id2>           Define options for gene expression processing (comma-separated)"
+        echo "  --vdj-options <id1,id2>                       Define options for VDJ processing (comma-separated)"
+        echo "  --adt-options <id1,id2>                       Define options for ADT processing (comma-separated)"
+        echo "  --metadata-file-name <name>                   Set the metadata file name (default: metadata.csv)"
+        echo "  --help                                        Display this help message"
+        exit 0
 }
 
 # Parse command line arguments
 while [[ "${#}" -gt 0 ]]; do
-  if [[ "${1}" == --* ]]; then
-    if [[ "${1}" == "--help" ]]; then
-      display_help  # Display help message and exit
-    fi
-    if [[ -z "${2}" ]]; then
-      echo "Error: Missing value for parameter ${1}"
-      exit 1
-    fi
-    var_name=$(echo "${1}" | sed 's/--//; s/-/_/')
-    declare "${var_name}"="${2}"
-    shift 2
-  else
-    echo "Invalid option: ${1}"
-    exit 1
-  fi
+        if [[ "${1}" == --* ]]; then
+                if [[ "${1}" == "--help" ]]; then
+                        display_help  # Display help message and exit
+                fi
+                if [[ -z "${2}" ]]; then
+                        echo "Error: Missing value for parameter ${1}"
+                        exit 1
+                fi
+                var_name=$(echo "${1}" | sed 's/--//; s/-/_/')
+                declare "${var_name}"="${2}"
+                shift 2
+        else
+                echo "Invalid option: ${1}"
+                exit 1
+        fi
 done
 
 check_project_id
@@ -86,7 +86,7 @@ output_project_libraries=${output_project_scripts}/libraries
 
 # Check if the libraries folder already exists, and remove it if it does
 if [ -d "${output_project_libraries}" ]; then
-    rm -r "${output_project_libraries}"
+        rm -r "${output_project_libraries}"
 fi
 
 # Create the libraries folder
@@ -124,7 +124,6 @@ for project_id in "${project_ids[@]}"; do
                 # Determine the full modality
                 full_modality=$(determine_full_modality "${modality}" "${library}")
                 if [ ${?} -eq 1 ]; then
-
                         continue
                 fi
 

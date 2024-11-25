@@ -69,9 +69,9 @@ while IFS=',' read -r assay experiment_id historical_number replicate modality c
 
     # Determine the output file name based on chemistry
     if [ "${chemistry}" != "NA" ] && ( [ "${assay}" == "CITE" ] || [ "${assay}" == "GEX" ] ); then
-        sample="${project_indices}/${assay}_${index_type}_${modality}_${chemistry}"
+      sample="${project_indices}/${assay}_${index_type}_${modality}_${chemistry}"
     else
-        sample="${project_indices}/${assay}_${index_type}_${modality}"
+      sample="${project_indices}/${assay}_${index_type}_${modality}"
     fi
 
     output_file="${sample}.csv"
@@ -93,14 +93,14 @@ echo ""
 echo -e "\033[0;33mINPUT REQUIRED:\033[0m Would you like to proceed to FASTQ demultiplexing? (y/n)"
 read -r choice
 while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
-    echo "Invalid input. Please enter y or n"
-    read -r choice
+  echo "Invalid input. Please enter y or n"
+  read -r choice
 done
 
 # Process choices
 if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-    echo "Submitting: bash ${oscar_dir}/02_fastq.sh --project-id ${project_id}"
-    bash "${oscar_dir}/02_fastq.sh" --project-id "${project_id}"  # Run the FASTQ script
+  echo "Submitting: bash ${oscar_dir}/02_fastq.sh --project-id ${project_id}"
+  bash "${oscar_dir}/02_fastq.sh" --project-id "${project_id}"  # Run the FASTQ script
 else
-    exit 0  # Exit the script
+  exit 0  # Exit the script
 fi
