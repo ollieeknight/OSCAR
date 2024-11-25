@@ -232,25 +232,29 @@ log "Fastq libraries: ${fastq_libraries}"
 log "Corrected fastq path: ${corrected_fastq}"
 log "Count container: ${count_container}"
 
+# Trim whitespace from library name
+library=$(echo "$library" | xargs) # Trim leading/trailing spaces
+log "Trimmed library name: [${library}]"
+
 # Validate input library name
 if [[ ! "$library" == *"_ATAC"* ]]; then
     log "ERROR: Input library name does not contain '_ATAC'"
     exit 1
 fi
 
-# Running asap_to_kite with improved substitution and debug
+# Running ASAP to KITE with improved substitution and debug
 log "Attempting name conversion..."
 log "Original library name: ${library}"
 
-# Try multiple substitution methods
+# Substitution using parameter expansion
 library_out_name="${library/_ATAC/_ADT}"
-log "After parameter expansion: ${library_out_name}"
+log "After parameter expansion: [${library_out_name}]"
 
 # Fallback to sed if parameter expansion fails
 if [ -z "$library_out_name" ] || [ "$library_out_name" = "$library" ]; then
     log "Parameter expansion failed, trying sed..."
     library_out_name=$(echo "$library" | sed 's/_ATAC/_ADT/')
-    log "After sed substitution: ${library_out_name}"
+    log "After sed substitution: [${library_out_name}]"
 fi
 
 # Verify substitution worked
@@ -264,6 +268,7 @@ log "Checking for existing KITE converted files..."
 log "Looking for: ${corrected_fastq}/${library_out_name}_R1.fastq.gz"
 log "Looking for: ${corrected_fastq}/${library_out_name}_R2.fastq.gz"
 
+# Check if files already exist
 if [ ! -f "${corrected_fastq}/${library_out_name}_R1.fastq.gz" ] || [ ! -f "${corrected_fastq}/${library_out_name}_R2.fastq.gz" ]; then
     log "Running ASAP to KITE conversion..."
     apptainer run -B /data ${count_container} ASAP_to_KITE \
