@@ -228,10 +228,10 @@ log "Input library name: ${library}"
 
 # Substitution using parameter expansion
 library_out_name=$(echo "$library" | sed 's/_ATAC/_ADT/')
-log "After parameter expansion: [${library_out_name}]"
+log "After parameter expansion: ${library_out_name}"
 
 # Verify substitution worked
-if [[ ! "$library_out_name" == *"_ADT"* ]]; then
+if [[ ! "${library_out_name}" == *_ADT* ]]; then
     log "ERROR: Substitution failed - output name does not contain '_ADT'"
     exit 1
 fi
