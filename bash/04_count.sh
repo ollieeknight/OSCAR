@@ -232,9 +232,17 @@ log "Fastq libraries: ${fastq_libraries}"
 log "Corrected fastq path: ${corrected_fastq}"
 log "Count container: ${count_container}"
 
+# Validate input library name
+if [[ ! "$library" == *"_ATAC"* ]]; then
+    log "ERROR: Input library name does not contain '_ATAC'"
+    exit 1
+fi
+
 # Running asap_to_kite with improved substitution and debug
 log "Attempting name conversion..."
-log "Original library name pattern: ${library}"
+log "Original library name: ${library}"
+
+# Try multiple substitution methods
 library_out_name="${library/_ATAC/_ADT}"
 log "After parameter expansion: ${library_out_name}"
 
@@ -245,9 +253,9 @@ if [ -z "$library_out_name" ] || [ "$library_out_name" = "$library" ]; then
     log "After sed substitution: ${library_out_name}"
 fi
 
-# Verify we have a valid name
-if [ -z "$library_out_name" ]; then
-    log "ERROR: Failed to generate output library name"
+# Verify substitution worked
+if [[ ! "$library_out_name" == *"_ADT"* ]]; then
+    log "ERROR: Substitution failed - output name does not contain '_ADT'"
     exit 1
 fi
 
@@ -263,7 +271,7 @@ if [ ! -f "${corrected_fastq}/${library_out_name}_R1.fastq.gz" ] || [ ! -f "${co
         -s "$fastq_libraries" \
         -o "${corrected_fastq}/${library_out_name}" \
         -c $(nproc)
-    check_status "ASAP_to_KITE"
+    check_status "ASAP to KITE conversion"
 else
     log "KITE converted files already exist, skipping conversion..."
 fi
