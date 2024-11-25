@@ -224,7 +224,7 @@ apptainer run -B /data ${count_container} kallisto index \
     -k 15 ${ADT_index_folder}/FeaturesMismatch.fa
 check_status "kallisto index"
 
-# Debug logging
+# Debug logging before substitution
 log "Debug info for ASAP to KITE conversion:"
 log "Input library name: ${library}"
 log "Fastq directories: ${fastq_dirs}"
@@ -232,10 +232,26 @@ log "Fastq libraries: ${fastq_libraries}"
 log "Corrected fastq path: ${corrected_fastq}"
 log "Count container: ${count_container}"
 
-# Running asap_to_kite
-library_out_name=$(echo "$library" | sed 's/_ATAC/_ADT/')
-log "Converted library name: ${library_out_name}"
+# Running asap_to_kite with improved substitution and debug
+log "Attempting name conversion..."
+log "Original library name pattern: ${library}"
+library_out_name="${library/_ATAC/_ADT}"
+log "After parameter expansion: ${library_out_name}"
 
+# Fallback to sed if parameter expansion fails
+if [ -z "$library_out_name" ] || [ "$library_out_name" = "$library" ]; then
+    log "Parameter expansion failed, trying sed..."
+    library_out_name=$(echo "$library" | sed 's/_ATAC/_ADT/')
+    log "After sed substitution: ${library_out_name}"
+fi
+
+# Verify we have a valid name
+if [ -z "$library_out_name" ]; then
+    log "ERROR: Failed to generate output library name"
+    exit 1
+fi
+
+log "Final converted library name: ${library_out_name}"
 log "Checking for existing KITE converted files..."
 log "Looking for: ${corrected_fastq}/${library_out_name}_R1.fastq.gz"
 log "Looking for: ${corrected_fastq}/${library_out_name}_R2.fastq.gz"
