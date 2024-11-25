@@ -224,9 +224,22 @@ apptainer run -B /data ${count_container} kallisto index \
     -k 15 ${ADT_index_folder}/FeaturesMismatch.fa
 check_status "kallisto index"
 
+# Debug logging
+log "Debug info for ASAP to KITE conversion:"
+log "Input library name: ${library}"
+log "Fastq directories: ${fastq_dirs}"
+log "Fastq libraries: ${fastq_libraries}"
+log "Corrected fastq path: ${corrected_fastq}"
+log "Count container: ${count_container}"
+
 # Running asap_to_kite
 library_out_name=$(echo "$library" | sed 's/_ATAC/_ADT/')
+log "Converted library name: ${library_out_name}"
+
 log "Checking for existing KITE converted files..."
+log "Looking for: ${corrected_fastq}/${library_out_name}_R1.fastq.gz"
+log "Looking for: ${corrected_fastq}/${library_out_name}_R2.fastq.gz"
+
 if [ ! -f "${corrected_fastq}/${library_out_name}_R1.fastq.gz" ] || [ ! -f "${corrected_fastq}/${library_out_name}_R2.fastq.gz" ]; then
     log "Running ASAP to KITE conversion..."
     apptainer run -B /data ${count_container} ASAP_to_KITE \
