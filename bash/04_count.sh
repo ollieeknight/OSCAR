@@ -224,38 +224,11 @@ apptainer run -B /data ${count_container} kallisto index \
     -k 15 ${ADT_index_folder}/FeaturesMismatch.fa
 check_status "kallisto index"
 
-# Debug logging before substitution
-log "Debug info for ASAP to KITE conversion:"
 log "Input library name: ${library}"
-log "Fastq directories: ${fastq_dirs}"
-log "Fastq libraries: ${fastq_libraries}"
-log "Corrected fastq path: ${corrected_fastq}"
-log "Count container: ${count_container}"
-
-# Trim whitespace from library name
-library=$(echo "$library" | xargs) # Trim leading/trailing spaces
-log "Trimmed library name: [${library}]"
-
-# Validate input library name
-if [[ ! "$library" == *"_ATAC"* ]]; then
-    log "ERROR: Input library name does not contain '_ATAC'"
-    exit 1
-fi
-
-# Running ASAP to KITE with improved substitution and debug
-log "Attempting name conversion..."
-log "Original library name: ${library}"
 
 # Substitution using parameter expansion
-library_out_name="${library/_ATAC/_ADT}"
+library_out_name=$(echo "$library" | sed 's/_ATAC/_ADT/')
 log "After parameter expansion: [${library_out_name}]"
-
-# Fallback to sed if parameter expansion fails
-if [ -z "$library_out_name" ] || [ "$library_out_name" = "$library" ]; then
-    log "Parameter expansion failed, trying sed..."
-    library_out_name=$(echo "$library" | sed 's/_ATAC/_ADT/')
-    log "After sed substitution: [${library_out_name}]"
-fi
 
 # Verify substitution worked
 if [[ ! "$library_out_name" == *"_ADT"* ]]; then
