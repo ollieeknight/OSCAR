@@ -1,5 +1,3 @@
-<img align="right" width="150" src="docs/files/oscar.jpg" alt="OSCAR Logo">
-
 # OSCAR
 
 **Ollie's Single Cell Analysis for the Romagnani Lab**
