@@ -228,26 +228,26 @@ log "Input library name: ${library}"
 
 # Substitution using parameter expansion
 library_out_name=$(echo "$library" | sed 's/_ATAC/_ADT/')
-log "After parameter expansion: ${library_out_name}"
+log "After parameter expansion: \${library_out_name}"
 
 # Verify substitution worked
-if [[ ! "${library_out_name}" == *_ADT* ]]; then
+if [[ ! "\${library_out_name}" == *_ADT* ]]; then
     log "ERROR: Substitution failed - output name does not contain '_ADT'"
     exit 1
 fi
 
-log "Final converted library name: ${library_out_name}"
+log "Final converted library name: \${library_out_name}"
 log "Checking for existing KITE converted files..."
-log "Looking for: ${corrected_fastq}/${library_out_name}_R1.fastq.gz"
-log "Looking for: ${corrected_fastq}/${library_out_name}_R2.fastq.gz"
+log "Looking for: ${corrected_fastq}/\${library_out_name}_R1.fastq.gz"
+log "Looking for: ${corrected_fastq}/\${library_out_name}_R2.fastq.gz"
 
 # Check if files already exist
-if [ ! -f "${corrected_fastq}/${library_out_name}_R1.fastq.gz" ] || [ ! -f "${corrected_fastq}/${library_out_name}_R2.fastq.gz" ]; then
+if [ ! -f "${corrected_fastq}/\${library_out_name}_R1.fastq.gz" ] || [ ! -f "${corrected_fastq}/\${library_out_name}_R2.fastq.gz" ]; then
     log "Running ASAP to KITE conversion..."
     apptainer run -B /data ${count_container} ASAP_to_KITE \
         -f "$fastq_dirs" \
         -s "$fastq_libraries" \
-        -o "${corrected_fastq}/${library_out_name}" \
+        -o "${corrected_fastq}/\${library_out_name}" \
         -c $(nproc)
     check_status "ASAP to KITE conversion"
 else
@@ -261,7 +261,7 @@ apptainer run -B /data ${count_container} kallisto bus \
     -o ${ADT_index_folder}/temp \
     -x 0,0,16:0,16,26:1,0,0 \
     -t \$(nproc) \
-    ${corrected_fastq}/${library_out_name}*
+    ${corrected_fastq}/\${library_out_name}*
 check_status "kallisto bus"
 
 log "Extracting ATAC barcodes..."
@@ -271,15 +271,7 @@ ${TMPDIR}/OSCAR/737K-arc-v1.txt
 ATAC_whitelist=${TMPDIR}/OSCAR/737K-arc-v1.txt
 check_status "gunzip barcodes"
 
-# Debug logging for bustools correct variables
-log "Debug info for bustools correct:"
-log "Container: ${count_container}"
-log "ATAC whitelist: ${ATAC_whitelist}"
-log "ADT index folder: ${ADT_index_folder}"
-log "Input bus file: ${ADT_index_folder}/temp/output.bus"
-log "Output bus file: ${ADT_index_folder}/temp/output_corrected.bus"
 
-# Original command
 log "Running bustools correct..."
 apptainer run -B /data ${count_container} bustools correct \
     -w ${ATAC_whitelist} \
