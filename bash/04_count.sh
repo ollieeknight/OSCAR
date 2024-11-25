@@ -76,10 +76,7 @@ for library in "${libraries[@]}"; do
 
         extra_arguments=$(count_check_dogma "${project_libraries}" "$library")
 
-        echo "Output directory: ${project_outs}/"
-        echo "apptainer run -B /data ${count_container} cellranger-atac count --id $library --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc --fastqs $fastq_dirs  --sample $fastq_names --localcores 32 $extra_arguments"
-        # Ask the user if they want to submit the indices for FASTQ generation
-        echo -e "\033[0;33mINPUT REQUIRED:\033[0m Is this alright? (Y/N)"
+        echo -e "\033[0;33mINPUT REQUIRED:\033[0m Submit ${library} for cellranger-atac count? (Y/N)"
         read -r choice
         while [[ ! $choice =~ ^[YyNn]$ ]]; do
             echo "Invalid input. Please enter Y or N."
@@ -87,7 +84,6 @@ for library in "${libraries[@]}"; do
         done
         # Process choices
         if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-            count_submitted='YES'
             mkdir -p ${project_outs}/logs
             # Submit the job to slurm for counting
 # Submit the job and capture job ID
@@ -102,10 +98,20 @@ job_id=$(sbatch <<EOF
 
 source "${oscar_dir}/functions.sh"
 
+# Log input variables
+log "Input variables:"
+log "library: ${library}"
+log "project_outs: ${project_outs}"
+log "oscar_dir: ${oscar_dir}"
+log "count_container: ${count_container}"
+log "fastq_dirs: ${fastq_dirs}"
+log "fastq_names: ${fastq_names}"
+log "extra_arguments: ${extra_arguments}"
+
 cd ${project_outs}
 
 # Run cellranger-atac count
-log "Running cellranger-atac count..."
+log "Running cellranger-atac count"
 apptainer run -B /data ${count_container} cellranger-atac count \
     --id $library \
     --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ \
@@ -120,6 +126,7 @@ rm -r ${project_outs}/$library/_* ${project_outs}/$library/SC_ATAC_COUNTER_CS
 log "All processing completed successfully"
 EOF
             )
+            count_submitted='YES'
             job_id=$(echo "$job_id" | awk '{print $4}')
         elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
             count_submitted='NO'
@@ -128,7 +135,7 @@ EOF
         fi
 
         if grep -q '.*\(ASAP\).*' "${project_libraries}/${library}.csv"; then
-            echo "As this is an ASAP-seq run, would you like to queue ADT counting? (Y/N)"
+            echo "Perform ADT counting? (Y/N)"
             read -r choice
             while [[ ! $choice =~ ^[YyNn]$ ]]; do
                 echo "Invalid input. Please enter Y or N."
@@ -161,30 +168,8 @@ EOF
                     exit 1
                 fi
                 
-                echo -e "\033[0;33mFor ${library}, ASAP FASTQ directories are:\033[0m"
-                echo $fastq_dirs
-                echo -e "\033[0;33mWith FASTQ files:\033[0m"
-                echo $fastq_libraries
-                echo -e "\033[0;33mFiles will be corrected to:\033[0m"
-                echo $corrected_fastq
-                echo -e "\033[0;33mAnd mapped to reference:\033[0m"
-                echo ${ADT_file}
-                echo -e "\033[0;33mUnder:\033[0m"
-                echo $ADT_index_folder
-                echo -e "\033[0;33mOutputting to:\033[0m"
-                echo $ADT_outs
-                
-                # Ask the user if they want to submit with or without dependency
-                echo "Submit with a dependency on the count job? (Y/N)"
-                
-                read -r choice
-                while [[ ! $choice =~ ^[YyNn]$ ]]; do
-                    echo "Invalid input. Please enter Y or N."
-                    read -r choice
-                done
-
-                if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-                    sbatch_dependency="--dependency=afterok:$job_id"
+                if [ "${count_submitted}" = "yes" ]; then
+                    sbatch_dependency="--dependency=afterok:${job_id}"
                 else
                     sbatch_dependency=""
                 fi
@@ -200,17 +185,32 @@ EOF
 
 source "${oscar_dir}/functions.sh"
 
+# Log input variables
+log "Input variables:"
+log "library: ${library}"
+log "project_outs: ${project_outs}"
+log "oscar_dir: ${oscar_dir}"
+log "count_container: ${count_container}"
+log "ADT_index_folder: ${ADT_index_folder}"
+log "corrected_fastq: ${corrected_fastq}"
+log "ADT_outs: ${ADT_outs}"
+log "ADT_file: ${ADT_file}"
+log "fastq_dirs: ${fastq_dirs}"
+log "fastq_libraries: ${fastq_libraries}"
+log "TMPDIR: ${TMPDIR}"
+log "sbatch_dependency: ${sbatch_dependency}"
+
 cd ${project_outs}/${library}
 
 # Create required directories
-log "Creating directories..."
+log "Creating directories"
 mkdir -p ${ADT_index_folder}/temp
 mkdir -p $corrected_fastq
 mkdir -p ${ADT_outs}
 check_status "Directory creation"
 
 # Run featuremap
-log "Running featuremap..."
+log "Running featuremap"
 apptainer run -B /data ${count_container} featuremap ${ADT_file} \
     --t2g ${ADT_index_folder}/FeaturesMismatch.t2g \
     --fa ${ADT_index_folder}/FeaturesMismatch.fa \
@@ -218,32 +218,18 @@ apptainer run -B /data ${count_container} featuremap ${ADT_file} \
 check_status "featuremap"
 
 # Running kallisto index
-log "Running kallisto index..."
+log "Running kallisto index"
 apptainer run -B /data ${count_container} kallisto index \
     -i ${ADT_index_folder}/FeaturesMismatch.idx \
     -k 15 ${ADT_index_folder}/FeaturesMismatch.fa
 check_status "kallisto index"
 
-log "Input library name: ${library}"
-
 # Substitution using parameter expansion
 library_out_name=$(echo "$library" | sed 's/_ATAC/_ADT/')
-log "After parameter expansion: \${library_out_name}"
-
-# Verify substitution worked
-if [[ ! "\${library_out_name}" == *_ADT* ]]; then
-    log "ERROR: Substitution failed - output name does not contain '_ADT'"
-    exit 1
-fi
-
-log "Final converted library name: \${library_out_name}"
-log "Checking for existing KITE converted files..."
-log "Looking for: ${corrected_fastq}/\${library_out_name}_R1.fastq.gz"
-log "Looking for: ${corrected_fastq}/\${library_out_name}_R2.fastq.gz"
 
 # Check if files already exist
 if [ ! -f "${corrected_fastq}/\${library_out_name}_R1.fastq.gz" ] || [ ! -f "${corrected_fastq}/\${library_out_name}_R2.fastq.gz" ]; then
-    log "Running ASAP to KITE conversion..."
+    log "Running ASAP to KITE conversion"
     apptainer run -B /data ${count_container} ASAP_to_KITE \
         -f "$fastq_dirs" \
         -s "$fastq_libraries" \
@@ -251,11 +237,11 @@ if [ ! -f "${corrected_fastq}/\${library_out_name}_R1.fastq.gz" ] || [ ! -f "${c
         -c $(nproc)
     check_status "ASAP to KITE conversion"
 else
-    log "KITE converted files already exist, skipping conversion..."
+    log "KITE converted files already exist, skipping conversion"
 fi
 
 # Running kallisto bus
-log "Running kallisto bus..."
+log "Running kallisto bus"
 apptainer run -B /data ${count_container} kallisto bus \
     -i ${ADT_index_folder}/FeaturesMismatch.idx \
     -o ${ADT_index_folder}/temp \
@@ -264,23 +250,22 @@ apptainer run -B /data ${count_container} kallisto bus \
     ${corrected_fastq}/\${library_out_name}*
 check_status "kallisto bus"
 
-log "Extracting ATAC barcodes..."
+log "Extracting ATAC barcodes to ${TMPDIR}/OSCAR/737K-arc-v1.txt"
 apptainer exec ${count_container} gunzip \
 -c /opt/cellranger-atac-2.1.0/lib/python/atac/barcodes/737K-arc-v1.txt.gz > \
 ${TMPDIR}/OSCAR/737K-arc-v1.txt
 ATAC_whitelist=${TMPDIR}/OSCAR/737K-arc-v1.txt
 check_status "gunzip barcodes"
 
-
-log "Running bustools correct..."
+log "Running bustools correct"
 apptainer run -B /data ${count_container} bustools correct \
-    -w ${ATAC_whitelist} \
+    -w \${ATAC_whitelist} \
     ${ADT_index_folder}/temp/output.bus \
     -o ${ADT_index_folder}/temp/output_corrected.bus
 check_status "bustools correct"
 
 # Running bustools sort
-log "Running bustools sort..."
+log "Running bustools sort"
 apptainer run -B /data ${count_container} bustools sort \
     -t \$(nproc) \
     -o ${ADT_index_folder}/temp/output_sorted.bus \
@@ -288,7 +273,7 @@ apptainer run -B /data ${count_container} bustools sort \
 check_status "bustools sort"
 
 # Running bustools count
-log "Running bustools count..."
+log "Running bustools count"
 apptainer run -B /data ${count_container} bustools count \
     -o ${ADT_outs} \
     --genecounts \
@@ -299,7 +284,7 @@ apptainer run -B /data ${count_container} bustools count \
 check_status "bustools count"
 
 # Cleanup
-log "Cleaning up temporary files..."
+log "Cleaning up temporary files"
 rm -r ${ADT_index_folder}
 check_status "Cleanup"
 
@@ -338,6 +323,14 @@ EOF
 
 source "${oscar_dir}/functions.sh"
 
+# Log input variables
+log "Input variables:"
+log "library: ${library}"
+log "project_outs: ${project_outs}"
+log "oscar_dir: ${oscar_dir}"
+log "count_container: ${count_container}"
+log "project_libraries: ${project_libraries}"
+
 # Run the CellRanger multi command
 log "Running cellranger multi"
 apptainer run -B /data "${count_container}" cellranger multi \
@@ -347,12 +340,11 @@ apptainer run -B /data "${count_container}" cellranger multi \
 check_status "cellranger multi"
 
 # Clean up temporary files
-log "Cleaning up temporary files..."
+log "Cleaning up temporary files"
 rm -r ${project_outs}/${library}/SC_MULTI_CS ${project_outs}/${library}/_*
 check_status "Cleanup"
 
 log "All processing completed successfully!"
-
 EOF
         fi
     else

@@ -80,13 +80,8 @@ for file in "${index_files[@]}"; do
     filter_option="${filter_option//./ }"
     base_mask="${base_mask//./ }"
 
-    # Print the command to be executed
-    echo "Submission for ${index_file}:"
-    echo "apptainer run -B /data ${count_container} ${cellranger_command} --id ${index_file} --run ${project_dir}/${project_id}_bcl --csv ${project_scripts}/indices/${file} --use-bases-mask ${base_mask} --delete-undetermined --barcode-mismatches 1 ${filter_option}"
-    echo ""
-
     # Prompt the user for confirmation
-    echo -e "\033[0;33mINPUT REQUIRED:\033[0m Is this alright? (Y/N)"
+    echo -e "\033[0;33mINPUT REQUIRED:\033[0m Submit ${index_file} for fastq demultiplexing? (Y/N)"
     read -r choice
     while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
             echo "Invalid input. Please enter y or n"
@@ -110,6 +105,20 @@ sbatch <<EOF
 #SBATCH --time=12:00:00
 
 source "${oscar_dir}/functions.sh"
+
+# Log all input variables
+log "Input variables:"
+log "project_id: ${project_id}"
+log "project_dir: ${project_dir}"
+log "index_file: ${index_file}"
+log "oscar_dir: ${oscar_dir}"
+log "count_container: ${count_container}"
+log "cellranger_command: ${cellranger_command}"
+log "project_scripts: ${project_scripts}"
+log "file: ${file}"
+log "base_mask: ${base_mask}"
+log "filter_option: ${filter_option}"
+log "flowcell_id: ${flowcell_id}"
 
 mkdir -p ${project_dir}/${project_id}_fastq/logs
 cd ${project_dir}/${project_id}_fastq/
