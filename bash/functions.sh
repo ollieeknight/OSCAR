@@ -9,9 +9,9 @@ log() {
 # Function to check last command status and exit if failed
 check_status() {
     if [ $? -eq 0 ]; then
-        log "✓ SUCCESS: $1"
+        log "SUCCESS: $1"
     else
-        log "❌ ERROR: $1 failed"
+        log "ERROR: $1 failed"
         exit 1
     fi
 }

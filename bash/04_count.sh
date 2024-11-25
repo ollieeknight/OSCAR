@@ -100,16 +100,12 @@ job_id=$(sbatch <<EOF
 #SBATCH --mem=64GB
 #SBATCH --time=72:00:00
 
-# Source the functions
 source "${oscar_dir}/functions.sh"
 
-# Change to output directory
-log "Changing to output directory..."
 cd ${project_outs}
-check_status "Directory change"
 
 # Run cellranger-atac count
-log "Starting cellranger-atac count..."
+log "Running cellranger-atac count..."
 apptainer run -B /data ${count_container} cellranger-atac count \
     --id $library \
     --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ \
@@ -117,14 +113,11 @@ apptainer run -B /data ${count_container} cellranger-atac count \
     --sample $fastq_names \
     --localcores \$(nproc) \
     $extra_arguments
-check_status "CellRanger ATAC count"
+check_status "cellranger-atac count count"
 
-# Cleanup
-log "Cleaning up temporary files..."
 rm -r ${project_outs}/$library/_* ${project_outs}/$library/SC_ATAC_COUNTER_CS
-check_status "Cleanup"
 
-log "All processing completed successfully!"
+log "All processing completed successfully"
 EOF
             )
             job_id=$(echo "$job_id" | awk '{print $4}')
@@ -216,38 +209,45 @@ mkdir -p $corrected_fastq
 mkdir -p ${ADT_outs}
 check_status "Directory creation"
 
-# Running featuremap
-log "Starting featuremap..."
+# Run featuremap
+log "Running featuremap..."
 apptainer run -B /data ${count_container} featuremap ${ADT_file} \
     --t2g ${ADT_index_folder}/FeaturesMismatch.t2g \
     --fa ${ADT_index_folder}/FeaturesMismatch.fa \
     --header --quiet
-check_status "Featuremap"
+check_status "featuremap"
 
 # Running kallisto index
-log "Starting kallisto index..."
+log "Running kallisto index..."
 apptainer run -B /data ${count_container} kallisto index \
     -i ${ADT_index_folder}/FeaturesMismatch.idx \
     -k 15 ${ADT_index_folder}/FeaturesMismatch.fa
-check_status "Kallisto index"
+check_status "kallisto index"
 
 # Running asap_to_kite
-log "Starting ASAP to KITE conversion..."
-apptainer run -B /data ${count_container} ASAP_to_KITE \
-    -f $fastq_dirs \
-    -s $fastq_libraries \
-    -o ${corrected_fastq}/${library} \
-    -c \$(nproc)
-check_status "ASAP to KITE conversion"
+library_out_name="${library/_ATAC/_ADT}"
+log "Checking for existing KITE converted files..."
+if [ ! -f "${corrected_fastq}/${library_out_name}_R1.fastq.gz" ] || [ ! -f "${corrected_fastq}/${library_out_name}_R2.fastq.gz" ]; then
+    log "Running ASAP to KITE conversion..."
+    apptainer run -B /data ${count_container} ASAP_to_KITE \
+        -f "$fastq_dirs" \
+        -s "$fastq_libraries" \
+        -o "${corrected_fastq}/${library_out_name}" \
+        -c $(nproc)
+    check_status "ASAP_to_KITE"
+else
+    log "KITE converted files already exist, skipping conversion..."
+fi
 
 # Running kallisto bus
-log "Starting kallisto bus..."
+log "Running kallisto bus..."
 apptainer run -B /data ${count_container} kallisto bus \
     -i ${ADT_index_folder}/FeaturesMismatch.idx \
     -o ${ADT_index_folder}/temp \
     -x 0,0,16:0,16,26:1,0,0 \
-    -t \$(nproc) ${corrected_fastq}/${library}*
-check_status "Kallisto bus"
+    -t \$(nproc) \
+    ${corrected_fastq}/${library_out_name}*
+check_status "kallisto bus"
 
 log "Extracting ATAC barcodes..."
 apptainer exec ${count_container} gunzip \
@@ -256,24 +256,23 @@ ${TMPDIR}/OSCAR/737K-arc-v1.txt
 ATAC_whitelist=${TMPDIR}/OSCAR/737K-arc-v1.txt
 check_status "gunzip barcodes"
 
-log "Starting bustools correct..."
+log "Running bustools correct..."
 apptainer run -B /data ${count_container} bustools correct \
     -w ${ATAC_whitelist} \
     ${ADT_index_folder}/temp/output.bus \
     -o ${ADT_index_folder}/temp/output_corrected.bus
-check_status "Bustools correct"
-
+check_status "bustools correct"
 
 # Running bustools sort
-log "Starting bustools sort..."
+log "Running bustools sort..."
 apptainer run -B /data ${count_container} bustools sort \
     -t \$(nproc) \
     -o ${ADT_index_folder}/temp/output_sorted.bus \
     ${ADT_index_folder}/temp/output_corrected.bus
-check_status "Bustools sort"
+check_status "bustools sort"
 
 # Running bustools count
-log "Starting bustools count..."
+log "Running bustools count..."
 apptainer run -B /data ${count_container} bustools count \
     -o ${ADT_outs} \
     --genecounts \
@@ -281,14 +280,14 @@ apptainer run -B /data ${count_container} bustools count \
     -e ${ADT_index_folder}/temp/matrix.ec \
     -t ${ADT_index_folder}/temp/transcripts.txt \
     ${ADT_index_folder}/temp/output_sorted.bus
-check_status "Bustools count"
+check_status "bustools count"
 
 # Cleanup
 log "Cleaning up temporary files..."
 rm -r ${ADT_index_folder}
 check_status "Cleanup"
 
-log "All processing completed successfully!"
+log "All processing completed successfully"
 EOF
             fi
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
@@ -320,16 +319,16 @@ EOF
 #SBATCH --ntasks=32
 #SBATCH --mem=96GB
 #SBATCH --time=96:00:00
-# Source the functions
+
 source "${oscar_dir}/functions.sh"
 
 # Run the CellRanger multi command
-log "Starting CellRanger multi..."
+log "Running cellranger multi"
 apptainer run -B /data "${count_container}" cellranger multi \
     --id "${library}" \
     --csv "${project_libraries}/${library}.csv" \
     --localcores "\$(nproc)"
-check_status "CellRanger multi"
+check_status "cellranger multi"
 
 # Clean up temporary files
 log "Cleaning up temporary files..."
@@ -357,5 +356,7 @@ EOF
         corrected_fastq=""
         fastq_libraries=""
         ADT_outs=""
+        library_out_name=""
+
     fi
 done

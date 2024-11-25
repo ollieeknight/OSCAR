@@ -109,20 +109,13 @@ sbatch <<EOF
 #SBATCH --mem=64GB
 #SBATCH --time=12:00:00
 
-# Source the functions
 source "${oscar_dir}/functions.sh"
 
-# Create log directory if it doesn't exist
 mkdir -p ${project_dir}/${project_id}_fastq/logs
-check_status "Log directory creation"
-
-# Change to the fastq directory
-log "Changing to fastq directory..."
 cd ${project_dir}/${project_id}_fastq/
-check_status "Directory change"
 
-# Run the cellranger command
-log "Starting CellRanger mkfastq..."
+# Run cellranger
+log "Running ${cellranger_command} mkfastq"
 apptainer run -B /data ${count_container} ${cellranger_command} \
     --id ${index_file} \
     --run ${project_dir}/${project_id}_bcl \
@@ -131,33 +124,27 @@ apptainer run -B /data ${count_container} ${cellranger_command} \
     --delete-undetermined \
     --barcode-mismatches 1 \
     ${filter_option}
-check_status "CellRanger mkfastq"
+check_status "${cellranger_command} mkfastq"
 
-# Create fastqc directory
-log "Creating FastQC directory..."
 mkdir -p ${project_dir}/${project_id}_fastq/${index_file}/fastqc
-check_status "FastQC directory creation"
 
-# Run fastqc on all fastq.gz files in parallel
-log "Starting FastQC analysis..."
+# Run fastqc
+log "Running fastqc"
 find "${project_dir}/${project_id}_fastq/${index_file}/outs/fastq_path/${flowcell_id}"* -name "*.fastq.gz" | \
     parallel -j \$(nproc) "apptainer run -B /data ${count_container} fastqc {} \
     --outdir ${project_dir}/${project_id}_fastq/${index_file}/fastqc"
-check_status "FastQC analysis"
+check_status "fastqc"
 
 # Run multiqc to aggregate fastqc reports
-log "Starting MultiQC analysis..."
+log "Running multiqc"
 apptainer run -B /data ${count_container} multiqc \
     "${project_dir}/${project_id}_fastq/${index_file}" \
     -o "${project_dir}/${project_id}_fastq/${index_file}/multiqc"
-check_status "MultiQC analysis"
+check_status "multiqc"
 
-# Clean up temporary files
-log "Cleaning up temporary files..."
 rm -r ${project_dir}/${project_id}_fastq/${index_file}/_* ${project_dir}/${project_id}_fastq/${index_file}/MAKE*
-check_status "Cleanup"
 
-log "All processing completed successfully!"
+log "All processing completed successfully"
 EOF
     elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
         :
