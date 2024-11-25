@@ -4,7 +4,7 @@
   "description": "Single cell analysis",
   "main": "index.js",
   "directories": {
-    "doc": "docs",
+    "doc": "docs"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
