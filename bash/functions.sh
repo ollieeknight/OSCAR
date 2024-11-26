@@ -66,29 +66,25 @@ check_metadata_file() {
 }
 
 check_and_pull_oscar_containers() {
+    local container_dir="${TMPDIR}/OSCAR"
+    local container_count="${container_dir}/oscar-count_latest.sif"
+    local container_qc="${container_dir}/oscar-qc_latest.sif"
 
-    container_count="${TMPDIR}/OSCAR/oscar-count_latest.sif"
+    mkdir -p "${container_dir}"
 
     if [ ! -f "${container_count}" ]; then
         echo "oscar-count_latest.sif singularity file not found, pulling..."
-        mkdir -p "${TMPDIR}/OSCAR"
-        apptainer pull --dir "${TMPDIR}/OSCAR" library://romagnanilab/oscar/oscar-count:latest
+        apptainer pull --dir "${container_dir}" library://romagnanilab/oscar/oscar-count:latest
     fi
-
-    container_qc="${TMPDIR}/OSCAR/oscar-qc_latest.sif"
 
     if [ ! -f "${container_qc}" ]; then
         echo "oscar-qc_latest.sif singularity file not found, pulling..."
-        mkdir -p "${TMPDIR}/OSCAR"
-        apptainer pull --dir "${TMPDIR}/OSCAR" library://romagnanilab/oscar/oscar-qc:latest
-        echo "All images are present under ${TMPDIR}/OSCAR/"
-        touch ${TMPDIR}/OSCAR/oscar-count_latest.sif
-        touch ${TMPDIR}/OSCAR/oscar-qc_latest.sif
-    else
-        echo "All images are present under ${TMPDIR}/OSCAR/"
-        touch ${TMPDIR}/OSCAR/oscar-count_latest.sif
-        touch ${TMPDIR}/OSCAR/oscar-qc_latest.sif
+        apptainer pull --dir "${container_dir}" library://romagnanilab/oscar/oscar-qc:latest
+        echo "All images are present under ${container_dir}"
     fi
+
+    touch "${container_count}"
+    touch "${container_qc}"
 }
 
 check_base_masks_step1() {
@@ -382,8 +378,8 @@ write_fastq_files() {
             if [ ! -v unique_lines["${line_identifier}"] ]; then
                 unique_lines["${line_identifier}"]=1
                 echo "${line_identifier}" >> "${output_file}"
-                echo -e "\033[0;33mWriting ${line_identifier} to\033[0m"
-                echo "${output_file}"
+                # echo -e "\033[0;33mWriting ${line_identifier} to\033[0m"
+                # echo "${output_file}"
             fi
         done
     done
@@ -463,7 +459,7 @@ count_check_dogma() {
     if grep -q '.*DOGMA.*' "${library_folder}/${library}.csv"; then
         cat "${library_folder}/${library}.csv"
         extra_arguments="--chemistry ARC-v1"
-        echo "Adding $extra_arguments as it is a DOGMA/MULTIOME run"
+        # echo "Adding $extra_arguments as it is a DOGMA/MULTIOME run"
     fi
 
     echo "$extra_arguments"
@@ -546,7 +542,7 @@ search_metadata() {
 
         # Check if the metadata file exists
         if [ -f "$metadata_file" ]; then
-            echo "Searching $project_id for ${library}"
+            # echo "Searching $project_id for ${library}"
             # Read metadata from the CSV file line by line
             while IFS=, read -r -a fields; do
                 # Check if all individual fields match the criteria
