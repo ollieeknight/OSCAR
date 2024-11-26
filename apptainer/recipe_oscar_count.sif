@@ -13,12 +13,14 @@ From: ubuntu:latest
 %environment
     export LC_ALL=C
     export LC_NUMERIC=en_GB.UTF-8
-	export PATH="/opt/cellranger-atac-2.1.0:/opt/cellranger-8.0.1:/opt/kallisto/:$PATH"
+    export PATH="/opt/cellranger-atac-2.1.0:/opt/cellranger-8.0.1:/opt/kallisto/:$PATH"
+    . /opt/miniforge3/etc/profile.d/conda.sh
+    conda activate oscar_count
 
 %runscript
-        alias featuremap='/opt/kite/featuremap/featuremap.py'
-        alias ASAP_to_KITE='/opt/asap_to_kite/asap_to_kite_v2.py'
-        eval ${@}
+    alias featuremap='/opt/kite/featuremap/featuremap.py'
+    alias asap_to_kite='/opt/asap_to_kite/asap_to_kite_v2.py'
+    eval ${@}
 
 %post
     # Update and upgrade the package lists
@@ -33,24 +35,25 @@ From: ubuntu:latest
 
     # Download and extract kallisto, then remove the tarball
     mkdir -p /opt/kallisto/
-    curl -sSL -o /opt/kallisto_linux-v0.46.1.tar.gz https://github.com/pachterlab/kallisto/releases/download/v0.46.1/kallisto_linux-v0.46.1.tar.gz
+    curl -sSL -o /opt/kallisto_linux-v0.46.1.tar.gz "https://github.com/pachterlab/kallisto/releases/download/v0.46.1/kallisto_linux-v0.46.1.tar.gz"
     tar -xf /opt/kallisto_linux-v0.46.1.tar.gz -C /opt/
     rm /opt/kallisto_linux-v0.46.1.tar.gz
     chmod -R +x /opt/kallisto/
 
-    # Clone the ASAP_to_KITE repository and add a shebang to the Python script
+    # Clone the asap_to_kite repository and add a shebang to the Python script
     mkdir -p /opt/asap_to_kite/
-    git clone https://github.com/caleblareau/asap_to_kite /opt/asap_to_kite/
+    git clone "https://github.com/caleblareau/asap_to_kite" /opt/asap_to_kite/
     sed -i '1s|^.*$|#!/opt/miniforge3/envs/oscar_count/bin/python\n&|' /opt/asap_to_kite/asap_to_kite_v2.py
     chmod -R +x /opt/asap_to_kite
 
+    # Clone kite repository and add a shebang to the Python script
     mkdir -p /opt/kite/
-    git clone https://github.com/pachterlab/kite /opt/kite/
+    git clone "https://github.com/pachterlab/kite" /opt/kite/
     sed -i '1s|^.*$|#!/opt/miniforge3/envs/oscar_count/bin/python\n&|' /opt/kite/featuremap/featuremap.py
     chmod -R +x /opt/kite/
 
     # Install Miniforge if it is not already installed
-    [ ! -d "/opt/miniforge3" ] && curl -L https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -o Miniforge3-Linux-x86_64.sh && bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3" && rm Miniforge3-Linux-x86_64.sh
+    [ ! -d "/opt/miniforge3" ] && curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -o Miniforge3-Linux-x86_64.sh && bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3" && rm Miniforge3-Linux-x86_64.sh
     
     # Source the conda profile script
     . /opt/miniforge3/etc/profile.d/conda.sh
@@ -71,7 +74,3 @@ From: ubuntu:latest
     # Clean up apt caches and remove unnecessary packages
     apt-get clean
     apt-get autoremove
-
-    # Ensure the conda environment is activated when the container starts
-    echo ". /opt/miniforge3/etc/profile.d/conda.sh" >> $SINGULARITY_ENVIRONMENT
-    echo "conda activate oscar_count" >> $SINGULARITY_ENVIRONMENT

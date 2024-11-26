@@ -40,7 +40,8 @@ conda create -y -n oscar_qc -c nvidia \
     bioconductor-genomicranges \
     bioconductor-summarizedexperiment \
     cuda-toolkit \
-    cuda-nvcc
+    cuda-nvcc \
+    compilers
 
 # Activate the 'oscar_qc' environment
 conda activate oscar_qc

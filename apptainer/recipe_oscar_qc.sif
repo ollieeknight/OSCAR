@@ -15,10 +15,13 @@ From: ubuntu:latest
     export LC_ALL=C
     export LC_NUMERIC=en_GB.UTF-8
     export PATH="/opt/AMULET/:$PATH"
+    . /opt/miniforge3/etc/profile.d/conda.sh
+    conda activate oscar_qc
 
 %runscript
-    alias AMULET='/opt/AMULET/AMULET.sh'
-    eval ${@}
+    #!/bin/sh
+    alias AMULET="/opt/AMULET/AMULET.sh"
+    eval "$@"
 
 %post
     # Update and upgrade the package lists and install necessary packages
@@ -31,29 +34,25 @@ From: ubuntu:latest
 
     # Download the SNP file
     curl -L -o /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz "https://www.dropbox.com/scl/fi/qpsdse6dqqjnje53mtyps/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz?rlkey=cxfnlxp8d4zref5eixg0x9uah&st=h5bxgja6&dl=1"
-    
 
     # Clone the AMULET repository
     git clone https://github.com/UcarLab/AMULET /opt/AMULET/
- 
-    curl -sSL -o /opt/AMULET/RestrictionRepeatLists.zip https://github.com/UcarLab/AMULET/releases/download/v1.0/RestrictionRepeatLists.zip
+
+    # Download RestrictionRepeatLists for AMULET
+    curl -sSL -o /opt/AMULET/RestrictionRepeatLists.zip "https://github.com/UcarLab/AMULET/releases/download/v1.0/RestrictionRepeatLists.zip"
 
     # Unzip the RestrictionRepeatLists and remove the zip file
     unzip -q /opt/AMULET/RestrictionRepeatLists.zip -d /opt/AMULET/ && rm /opt/AMULET/RestrictionRepeatLists.zip
-    
+
     # Make all files in the AMULET directory executable
     chmod -R +x /opt/AMULET/
 
-    # Set the SNP URL and download the SNP file again (seems redundant)
-    SNP_URL="https://www.dropbox.com/scl/fi/qpsdse6dqqjnje53mtyps/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz?rlkey=cxfnlxp8d4zref5eixg0x9uah&st=h5bxgja6&dl=1"
-    curl -L -o /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz "$SNP_URL"    
-    
-    # Install Miniforge if it is not already installed
-    [ ! -d "/opt/miniforge3" ] && curl -L https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -o Miniforge3-Linux-x86_64.sh && bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3" && rm Miniforge3-Linux-x86_64.sh
-    
+    # Install "Miniforge" if it is not already installed
+    [ ! -d "/opt/miniforge3" ] && curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -o Miniforge3-Linux-x86_64.sh && bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3" && rm Miniforge3-Linux-x86_64.sh
+
     # Source the conda profile script
     . /opt/miniforge3/etc/profile.d/conda.sh
-    
+
     # Upgrade all conda packages
     conda upgrade --all -y
 
@@ -70,7 +69,3 @@ From: ubuntu:latest
     # Clean up apt caches and remove unnecessary packages
     apt-get clean
     apt-get autoremove
-
-    # Ensure the conda environment is activated when the container starts
-    echo ". /opt/miniforge3/etc/profile.d/conda.sh" >> $SINGULARITY_ENVIRONMENT
-    echo "conda activate oscar_qc" >> $SINGULARITY_ENVIRONMENT
