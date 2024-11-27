@@ -55,7 +55,7 @@ mapfile -t libraries < <(printf '%s\n' "${libraries[@]}" | sort)
 
 for library in "${libraries[@]}"; do
 
-        read assay experiment_id historical_number replicate < <(extract_variables "$library")
+        read assay experiment_id historical_number replicate modality < <(extract_variables "$library")
         log "library: ${library}"
         log "assay: ${assay}"
         log "experiment_id: ${experiment_id}"

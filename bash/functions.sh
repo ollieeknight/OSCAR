@@ -526,7 +526,6 @@ extract_variables() {
     remainder="${remainder#*_}"
     modality="${remainder#*}"
 
-    log "Extracted variables: assay=${assay}, experiment_id=${experiment_id}, historical_number=${historical_number}, replicate=${replicate}, modality=${modality}"
     echo "$assay" "$experiment_id" "$historical_number" "$replicate" "$modality"
 }
 
