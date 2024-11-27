@@ -534,7 +534,8 @@ search_metadata() {
     local replicate="$5"
     local project_ids=("${!6}")
     local prefix="$7"
-    local n_donors ADT_file
+    local n_donors=""
+    local ADT_file=""
 
     # Loop through each project_id
     for project_id in "${project_ids[@]}"; do
@@ -542,13 +543,15 @@ search_metadata() {
 
         # Check if the metadata file exists
         if [ -f "$metadata_file" ]; then
-            # echo "Searching $project_id for ${library}"
+            log "Searching $metadata_file for ${library}"
             # Read metadata from the CSV file line by line
             while IFS=, read -r -a fields; do
+                log "Read line: ${fields[*]}"
                 # Check if all individual fields match the criteria
                 if [[ "${fields[0]}" == "$assay" && "${fields[1]}" == "$experiment_id" && "${fields[2]}" == "$historical_number" && "${fields[3]}" == "$replicate" ]]; then
                     n_donors="${fields[9]}"
                     ADT_file="${fields[10]}"
+                    log "Match found: n_donors=${n_donors}, ADT_file=${ADT_file}"
                     break  # Stop searching once a match is found
                 fi
             done < "$metadata_file"
