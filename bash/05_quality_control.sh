@@ -55,7 +55,7 @@ mapfile -t libraries < <(printf '%s\n' "${libraries[@]}" | sort)
 for library in "${libraries[@]}"; do
 
         read assay experiment_id historical_number replicate modality < <(extract_variables "$library")
-        
+
         read n_donors < <(search_metadata "$library" "$assay" "$experiment_id" "$historical_number" "$replicate")        
 
         feature_matrix_path=$(find "${project_outs}/${library}/" -type f -name "raw_feature_bc_matrix.h5" -print -quit)
@@ -69,7 +69,6 @@ for library in "${libraries[@]}"; do
                 done
                 # Process choices
                 if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-                                echo "Submitting cellbender for ${library}"
 # Submit the job and capture job ID
 job_id=$(sbatch <<EOF
 #!/bin/bash
@@ -146,7 +145,6 @@ EOF
                                 read -p "Would you like to genotype ${library}? (Y/N): " choice
                         done
                         if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-                                echo "Submitting vireo genotyping for ${library}"
 # Submit the dependent job
 sbatch --dependency=afterok:$job_id <<EOF
 #!/bin/bash
@@ -286,7 +284,6 @@ EOF
                                 read -p "Would you like to genotype ${library}? (Y/N): " choice
                         done
                         if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-                                echo "Submitting vireo genotyping for ${library}"
 sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name geno_${experiment_id}
@@ -374,7 +371,6 @@ EOF
                                 read -p "Would you like to perform mitochondrial genotyping for ${library}? (Y/N): " choice
                         done
                         if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-                                echo "Submitting genotyping for ${library}"
 sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name geno_${experiment_id}
