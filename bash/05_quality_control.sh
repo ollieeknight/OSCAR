@@ -56,15 +56,15 @@ mapfile -t libraries < <(printf '%s\n' "${libraries[@]}" | sort)
 for library in "${libraries[@]}"; do
 
         read assay experiment_id historical_number replicate < <(extract_variables "$library")
+        log "library: ${library}"
+        log "assay: ${assay}"
+        log "experiment_id: ${experiment_id}"
+        log "historical_number: ${historical_number}"
+        log "replicate: ${replicate}"
+        log "$project_id"
+        log "$dir_prefix"
 
-        # Log the project IDs and directory prefix
-        log "Project IDs: ${project_id}"
-        log "Directory Prefix: ${dir_prefix}"
-        # Log the metadata file path
-        log "Checking metadata file: ${metadata_file}"
-        log "n_donors: ${n_donors}, ADT_file: ${ADT_file}"
-
-        read n_donors ADT_file < <(search_metadata "$library" "$assay" "$experiment_id" "$historical_number" "$replicate" project_ids[@] "$dir_prefix")
+        read n_donors ADT_file < <(search_metadata "$library" "$assay" "$experiment_id" "$historical_number" "$replicate" project_id "$dir_prefix")
         log "n_donors: ${n_donors}"
         feature_matrix_path=$(find "${project_outs}/${library}/" -type f -name "raw_feature_bc_matrix.h5" -print -quit)
         peak_matrix_path=$(find "${project_outs}/${library}/" -type f -name "raw_peak_bc_matrix.h5" -print -quit)
