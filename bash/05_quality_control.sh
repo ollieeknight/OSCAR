@@ -55,13 +55,9 @@ mapfile -t libraries < <(printf '%s\n' "${libraries[@]}" | sort)
 for library in "${libraries[@]}"; do
 
         read assay experiment_id historical_number replicate modality < <(extract_variables "$library")
-        log "library: ${library}"
-        log "assay: ${assay}"
-        log "experiment_id: ${experiment_id}"
-        log "historical_number: ${historical_number}"
-        log "replicate: ${replicate}"
+        
+        read n_donors < <(search_metadata "$library" "$assay" "$experiment_id" "$historical_number" "$replicate")        
 
-        read n_donors < <(search_metadata "$library" "$assay" "$experiment_id" "$historical_number" "$replicate")        log "n_donors: ${n_donors}"
         feature_matrix_path=$(find "${project_outs}/${library}/" -type f -name "raw_feature_bc_matrix.h5" -print -quit)
         peak_matrix_path=$(find "${project_outs}/${library}/" -type f -name "raw_peak_bc_matrix.h5" -print -quit)
 
@@ -297,7 +293,7 @@ sbatch <<EOF
 #SBATCH --output ${project_outs}/logs/geno_${library}.out
 #SBATCH --error ${project_outs}/logs/geno_${library}.out
 #SBATCH --ntasks=16
-#SBATCH --mem=128GB
+#SBATCH --mem=64GB
 #SBATCH --time=96:00:00
 # Source the functions
 source "${oscar_dir}/functions.sh"
@@ -385,7 +381,7 @@ sbatch <<EOF
 #SBATCH --output ${project_outs}/logs/geno_${library}.out
 #SBATCH --error ${project_outs}/logs/geno_${library}.out
 #SBATCH --ntasks=16
-#SBATCH --mem=32GB
+#SBATCH --mem=64GB
 #SBATCH --time=48:00:00
 
 # Source the functions

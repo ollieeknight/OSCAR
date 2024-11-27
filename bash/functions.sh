@@ -537,15 +537,6 @@ search_metadata() {
     local replicate="$5"
     local metadata_file="$project_scripts/metadata/metadata.csv"
 
-    # Check if metadata file exists
-    if [[ ! -f "$metadata_file" ]]; then
-        echo "Error: Metadata file not found at $metadata_file" >&2
-        return 1
-    fi
-
-    # Use awk to search the CSV file
-    # -F, sets the field separator to comma
-    # NR>1 skips the header row
     awk -F, 'NR>1 {
         if ($1 == "'$assay'" && 
             $2 == "'$experiment_id'" && 
