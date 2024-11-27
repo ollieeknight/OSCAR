@@ -541,7 +541,7 @@ search_metadata() {
     if [[ ! -f "$metadata_file" ]]; then
         echo "Error: Metadata file not found at $metadata_file" >&2
         return 1
-    }
+    fi
 
     # Use awk to search the CSV file
     # -F, sets the field separator to comma
