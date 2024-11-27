@@ -57,6 +57,13 @@ for library in "${libraries[@]}"; do
 
         read assay experiment_id historical_number replicate < <(extract_variables "$library")
 
+        # Log the project IDs and directory prefix
+        log "Project IDs: ${project_id}"
+        log "Directory Prefix: ${dir_prefix}"
+        # Log the metadata file path
+        log "Checking metadata file: ${metadata_file}"
+        log "n_donors: ${n_donors}, ADT_file: ${ADT_file}"
+
         read n_donors ADT_file < <(search_metadata "$library" "$assay" "$experiment_id" "$historical_number" "$replicate" project_ids[@] "$dir_prefix")
         log "n_donors: ${n_donors}"
         feature_matrix_path=$(find "${project_outs}/${library}/" -type f -name "raw_feature_bc_matrix.h5" -print -quit)
