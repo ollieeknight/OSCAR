@@ -514,16 +514,20 @@ count_read_adt_csv() {
 
 extract_variables() {
     local library="$1"
-    local assay remainder experiment_id historical_number replicate
+    local assay remainder experiment_id historical_number replicate modality
 
     assay="${library%%_*}"
     remainder="${library#*_}"
     experiment_id="${remainder%%_exp*}"
-    remainder="${remainder#*_}"
+    remainder="${remainder#*_exp}"
     historical_number="${remainder%%_lib*}"
-    replicate="${remainder#*_lib}"
+    remainder="${remainder#*_lib}"
+    replicate="${remainder%%_*}"
+    remainder="${remainder#*_}"
+    modality="${remainder#*}"
 
-    echo "$assay" "$experiment_id" "$historical_number" "$replicate"
+    log "Extracted variables: assay=${assay}, experiment_id=${experiment_id}, historical_number=${historical_number}, replicate=${replicate}, modality=${modality}"
+    echo "$assay" "$experiment_id" "$historical_number" "$replicate" "$modality"
 }
 
 search_metadata() {

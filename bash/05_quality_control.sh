@@ -61,8 +61,6 @@ for library in "${libraries[@]}"; do
         log "experiment_id: ${experiment_id}"
         log "historical_number: ${historical_number}"
         log "replicate: ${replicate}"
-        log "$project_id"
-        log "$dir_prefix"
 
         read n_donors ADT_file < <(search_metadata "$library" "$assay" "$experiment_id" "$historical_number" "$replicate" project_id "$dir_prefix")
         log "n_donors: ${n_donors}"
