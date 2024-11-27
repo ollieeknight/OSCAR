@@ -535,34 +535,24 @@ search_metadata() {
     local experiment_id="$3"
     local historical_number="$4"
     local replicate="$5"
-    local project_ids=("${!6}")
-    local prefix="$7"
-    local n_donors=""
-    local ADT_file=""
+    local metadata_file="$project_scripts/metadata/metadata.csv"
 
-    # Loop through each project_id
-    for project_id in "${project_ids[@]}"; do
-        metadata_file="${prefix}/${project_id}/${project_id}_scripts/metadata/metadata.csv"
+    # Check if metadata file exists
+    if [[ ! -f "$metadata_file" ]]; then
+        echo "Error: Metadata file not found at $metadata_file" >&2
+        return 1
+    }
 
-        # Check if the metadata file exists
-        if [ -f "$metadata_file" ]; then
-            log "Searching $metadata_file for ${library}"
-            # Read metadata from the CSV file line by line
-            while IFS=, read -r -a fields; do
-                log "Read line: ${fields[*]}"
-                # Check if all individual fields match the criteria
-                if [[ "${fields[0]}" == "$assay" && "${fields[1]}" == "$experiment_id" && "${fields[2]}" == "$historical_number" && "${fields[3]}" == "$replicate" ]]; then
-                    n_donors="${fields[9]}"
-                    ADT_file="${fields[10]}"
-                    log "Match found: n_donors=${n_donors}, ADT_file=${ADT_file}"
-                    break  # Stop searching once a match is found
-                fi
-            done < "$metadata_file"
-        else
-            echo -e "\033[0;31mERROR:\033[0m Metadata file not found for project_id: $project_id"
-            exit 1
-        fi
-    done
-
-    echo "$n_donors" "$ADT_file"
+    # Use awk to search the CSV file
+    # -F, sets the field separator to comma
+    # NR>1 skips the header row
+    awk -F, 'NR>1 {
+        if ($1 == "'$assay'" && 
+            $2 == "'$experiment_id'" && 
+            $3 == "'$historical_number'" && 
+            $4 == "'$replicate'") {
+            print $10  # n_donors is in column 10
+            exit      # stop after first match
+        }
+    }' "$metadata_file"
 }

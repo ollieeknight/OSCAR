@@ -4,7 +4,6 @@
 oscar_dir=$(dirname "${BASH_SOURCE[0]}")
 source "${oscar_dir}/functions.sh"
 dir_prefix="${HOME}/scratch/ngs"
-metadata_file_name="metadata.csv"
 
 # Function to display help message
 display_help() {
@@ -13,7 +12,6 @@ display_help() {
     echo "Options:"
     echo "  --project-id <id>                             Set the project ID. Can be multiple (comma-separated)"
     echo "  --dir-prefix <path>                           Set the directory prefix (default: ${HOME}/scratch/ngs)"
-    echo "  --metadata-file-name <name>                   Set the metadata file name (default: metadata.csv)"
     echo "  --help                                        Display this help message"
     exit 0
 }
@@ -41,6 +39,7 @@ check_project_id
 # Define project directories
 project_dir="${dir_prefix}/${project_id}"
 project_outs="${project_dir}/${project_id}_outs"
+project_scripts="${project_dir}/${project_id}_scripts"
 
 check_folder_exists "${project_outs}"
 
