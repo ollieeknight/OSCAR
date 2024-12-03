@@ -24,10 +24,13 @@ From: ubuntu:latest
     eval "$@"
 
 %post
+    # Use bash
+    #!/bin/bash
+
     # Update and upgrade the package lists and install necessary packages
     apt-get update -qq
     apt-get upgrade -y -qq
-    apt-get install -y curl git unzip tar nano build-essential wget && apt-get clean
+    apt-get install -y curl git unzip tar nano build-essential wget
 
     # Create directories for SNP and AMULET
     mkdir -p /opt/SNP/ /opt/AMULET/
@@ -62,6 +65,12 @@ From: ubuntu:latest
     # Activate the conda environment
     conda activate oscar_qc
 
+    # Clone the mgatk repository and install it
+    mkdir -p /opt/mgatk/
+    git clone "https://github.com/ollieeknight/mgatk" /opt/mgatk/
+    cd /opt/mgatk/
+    pip install .
+    
     # Clean up conda and pip caches
     conda clean -y -a
     pip cache purge

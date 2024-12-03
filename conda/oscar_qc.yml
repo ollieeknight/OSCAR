@@ -1,3 +1,4 @@
+name: oscar_qc
 channels:
   - nvidia
   - https://prefix.dev/conda-forge

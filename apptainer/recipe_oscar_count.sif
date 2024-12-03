@@ -23,6 +23,9 @@ From: ubuntu:latest
     eval ${@}
 
 %post
+    # Use bash
+    #!/bin/bash
+    
     # Update and upgrade the package lists
     apt-get update -qq
     apt-get upgrade -y -qq
@@ -35,15 +38,15 @@ From: ubuntu:latest
 
     # Download and extract kallisto, then remove the tarball
     mkdir -p /opt/kallisto/
-    curl -sSL -o /opt/kallisto_linux-v0.46.1.tar.gz "https://github.com/pachterlab/kallisto/releases/download/v0.46.1/kallisto_linux-v0.46.1.tar.gz"
-    tar -xf /opt/kallisto_linux-v0.46.1.tar.gz -C /opt/
-    rm /opt/kallisto_linux-v0.46.1.tar.gz
+    curl -sSL -o /opt/kallisto_linux-v0.51.1.tar.gz "https://github.com/pachterlab/kallisto/releases/download/v0.51.1/kallisto_linux-v0.51.1.tar.gz"
+    tar -xf /opt/kallisto_linux-v0.51.1.tar.gz -C /opt/
+    rm /opt/kallisto_linux-v0.51.1.tar.gz
     chmod -R +x /opt/kallisto/
 
     # Clone the asap_to_kite repository and add a shebang to the Python script
     mkdir -p /opt/asap_to_kite/
-    git clone "https://github.com/caleblareau/asap_to_kite" /opt/asap_to_kite/
-    sed -i '1s|^.*$|#!/opt/miniforge3/envs/oscar_count/bin/python\n&|' /opt/asap_to_kite/asap_to_kite_v2.py
+    git clone "https://github.com/ollieeknight/asap_to_kite" /opt/asap_to_kite/
+    sed -i '1s|^.*$|#!/opt/miniforge3/envs/oscar_count/bin/python\n&|' /opt/asap_to_kite/asap_to_kite.py
     chmod -R +x /opt/asap_to_kite
 
     # Clone kite repository and add a shebang to the Python script
