@@ -137,7 +137,7 @@ EOF
         if grep -q '.*\(ASAP\).*' "${project_libraries}/${library}.csv"; then
 
             # Extract the ADT file name from the metadata
-            ADT_file="$(extract_adt_file "$metadata_file" "$library")
+            ADT_file="$(extract_adt_file "$metadata_file" "$library")"
             echo $ADT_file
             ADT_file="${project_scripts}/adt_files/${ADT_file}.csv"
             echo $ADT_file
