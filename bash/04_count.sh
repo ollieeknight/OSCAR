@@ -137,7 +137,7 @@ EOF
         if grep -q '.*\(ASAP\).*' "${project_libraries}/${library}.csv"; then
 
             # Determine the correct ADT CSV file name by replacing _ATAC with _ADT
-            temp_library="${library/_ATAC/_ADT}.csv"
+            temp_library="${library/_ATAC/_ADT}"
 
             echo "Temp library name to search for is $temp_library"
 
