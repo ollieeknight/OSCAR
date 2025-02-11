@@ -251,6 +251,7 @@ if [ ! -f "${corrected_fastq}/\${library_out_name}_R1.fastq.gz" ] || [ ! -f "${c
         -ff "$fastq_dirs" \
         -sp "$fastq_libraries" \
         -of "${corrected_fastq}/\${library_out_name}" \
+        -on ${library_out_name} \
         -c $(nproc)
     check_status "ASAP to KITE conversion"
 else
