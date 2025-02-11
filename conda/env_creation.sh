@@ -10,7 +10,7 @@ fi
 set -e
 
 # Create a new conda environment named 'oscar_count' with specified packages from the 'bih-cubi' channel
-conda create -y -n oscar_count -c bih-cubi \
+conda create -y -n oscar_count -c https://repo.prefix.dev/romitools \
     bcl2fastq2 \
     fastqc \
     multiqc \
@@ -24,6 +24,8 @@ pip install bio
 
 # Export the 'oscar_count' environment to a YAML file
 conda env export > oscar_count.yml
+
+conda deactivate
 
 # Create a new conda environment named 'oscar_qc' with specified packages from the 'nvidia' channel
 conda create -y -n oscar_qc -c nvidia \
@@ -47,7 +49,7 @@ conda create -y -n oscar_qc -c nvidia \
 conda activate oscar_qc
 
 # Install additional packages using pip
-pip install vireoSNP cellbender mgatk
+pip install vireoSNP cellbender
 
 # Export the 'oscar_qc' environment to a YAML file
 conda env export > oscar_qc.yml

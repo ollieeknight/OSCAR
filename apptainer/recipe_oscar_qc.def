@@ -78,3 +78,4 @@ From: ubuntu:latest
     # Clean up apt caches and remove unnecessary packages
     apt-get clean
     apt-get autoremove
+    rm -rf /var/lib/apt/lists/*

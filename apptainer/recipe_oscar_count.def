@@ -19,7 +19,7 @@ From: ubuntu:latest
 
 %runscript
     alias featuremap='/opt/kite/featuremap/featuremap.py'
-    alias asap_to_kite='/opt/asap_to_kite/asap_to_kite_v2.py'
+    alias asap_to_kite='/opt/asap_to_kite/asap_to_kite.py'
     eval ${@}
 
 %post
@@ -77,3 +77,4 @@ From: ubuntu:latest
     # Clean up apt caches and remove unnecessary packages
     apt-get clean
     apt-get autoremove
+    rm -rf /var/lib/apt/lists/*

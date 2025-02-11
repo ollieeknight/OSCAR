@@ -236,7 +236,7 @@ library_out_name=$(echo "$library" | sed 's/_ATAC/_ADT/')
 # Check if files already exist
 if [ ! -f "${corrected_fastq}/\${library_out_name}_R1.fastq.gz" ] || [ ! -f "${corrected_fastq}/\${library_out_name}_R2.fastq.gz" ]; then
     log "Running ASAP to KITE conversion"
-    apptainer run -B /data ${count_container} ASAP_to_KITE \
+    apptainer run -B /data ${count_container} asap_to_kite \
         -f "$fastq_dirs" \
         -s "$fastq_libraries" \
         -o "${corrected_fastq}/\${library_out_name}" \
