@@ -485,7 +485,7 @@ extract_adt_file() {
 count_read_adt_csv() {
     local library_folder=$1
     local library=$2
-    local library_csv="${library_folder}/${library}"
+    local library_csv="${library}"
     local fastq_dirs=''
     local fastq_libraries=''
 
