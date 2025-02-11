@@ -138,9 +138,7 @@ EOF
 
             # Extract the ADT file name from the metadata
             ADT_file="$(extract_adt_file "$metadata_file" "$library")"
-            echo $ADT_file
             ADT_file="${project_scripts}/adt_files/${ADT_file}.csv"
-            echo $ADT_file
 
             # Check if the ADT file exists
             if [[ ! -f "${ADT_file}" ]]; then
@@ -163,7 +161,7 @@ EOF
             echo "DEBUG: ${adt_library_csv} found."
 
             read -p "Perform ADT counting? (Y/N): " choice
-            
+
             while [[ ! $choice =~ ^[YyNn]$ ]]; do
                 echo "Invalid input. Please enter Y or N."
                 read -p "Perform ADT counting? (Y/N): " choice
@@ -179,12 +177,6 @@ EOF
                 ADT_outs=${project_outs}/$library/ADT/
 
                 corrected_fastq=$(realpath -m "${fastq_dirs[0]}/../../KITE_corrected")
-                ADT_file="${project_scripts}/adt_files/${ADT_file}.csv"
-
-                if [[ ! -f "$ADT_file" ]]; then
-                    echo -e "\033[0;31mERROR: File does not exist: $ADT_file. Check metadata and adt_files folder\033[0m"
-                    exit 1
-                fi
                 
                 if [ "${count_submitted}" = "yes" ]; then
                     sbatch_dependency="--dependency=afterok:${job_id}"
