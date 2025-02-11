@@ -138,7 +138,7 @@ EOF
 
             # Extract the ADT file name from the metadata
             echo $library
-            temp_library="${library/_ATAC/_ADT}"
+            temp_library="${library/_ATAC/}"
             echo $temp_library
             ADT_file="$(extract_adt_file "$metadata_file" "$temp_library")"
             echo $ADT_file
