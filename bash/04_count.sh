@@ -266,7 +266,7 @@ apptainer run -B /data ${count_container} kallisto bus \
     -o ${ADT_index_folder}/temp \
     -x 0,0,16:0,16,26:1,0,0 \
     -t \$(nproc) \
-    ${corrected_fastq}/\${library_out_name}*
+    ${corrected_fastq}/\${library_out_name}/*
 check_status "kallisto bus"
 
 log ""
