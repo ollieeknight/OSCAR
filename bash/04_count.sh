@@ -135,6 +135,29 @@ EOF
         fi
 
         if grep -q '.*\(ASAP\).*' "${project_libraries}/${library}.csv"; then
+
+            # Extract the ADT file name from the metadata
+            ADT_file=$(extract_adt_file "$metadata_file" "$library")
+
+            # Check if the ADT file exists
+            if [[ ! -f "${project_libraries}/${ADT_file}" ]]; then
+                echo "ERROR: ${project_libraries}/${ADT_file} not found."
+                exit 1
+            fi
+            echo "DEBUG: ${project_libraries}/${ADT_file} found."
+
+            # Determine the correct ADT CSV file name by replacing _ATAC with _ADT
+            adt_library_csv="${library/_ATAC/_ADT}.csv"
+
+            echo "DEBUG: adt_library_csv is: ${adt_library_csv}"
+
+            # Check if the ADT CSV file exists
+            if [[ ! -f "${project_libraries}/${adt_library_csv}" ]]; then
+                echo "ERROR: ${project_libraries}/${adt_library_csv} not found."
+                exit 1
+            fi
+            echo "DEBUG: ${project_libraries}/${adt_library_csv} found."
+
             read -p "Perform ADT counting? (Y/N): " choice
             while [[ ! $choice =~ ^[YyNn]$ ]]; do
                 echo "Invalid input. Please enter Y or N."
@@ -144,15 +167,6 @@ EOF
             if [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
                 continue
             elif [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-                ADT_file=$(count_read_metadata "$metadata_file" "$library")
-
-                # Determine the correct ADT CSV file name by replacing _ATAC with _ADT
-                adt_library_csv="${library/_ATAC/_ADT}.csv"
-
-                if [[ ! -f "${project_libraries}/${adt_library_csv}" ]]; then
-                    echo "ERROR: ${project_libraries}/${adt_library_csv} not found."
-                    exit 1
-                fi
 
                 read fastq_dirs fastq_libraries < <(count_read_adt_csv "${project_libraries}" "${adt_library_csv}")
 
@@ -237,9 +251,9 @@ library_out_name=$(echo "$library" | sed 's/_ATAC/_ADT/')
 if [ ! -f "${corrected_fastq}/\${library_out_name}_R1.fastq.gz" ] || [ ! -f "${corrected_fastq}/\${library_out_name}_R2.fastq.gz" ]; then
     log "Running ASAP to KITE conversion"
     apptainer run -B /data ${count_container} asap_to_kite \
-        -f "$fastq_dirs" \
-        -s "$fastq_libraries" \
-        -o "${corrected_fastq}/\${library_out_name}" \
+        -ff "$fastq_dirs" \
+        -sp "$fastq_libraries" \
+        -of "${corrected_fastq}/\${library_out_name}" \
         -c $(nproc)
     check_status "ASAP to KITE conversion"
 else

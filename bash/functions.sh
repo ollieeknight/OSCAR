@@ -465,20 +465,16 @@ count_check_dogma() {
     echo "$extra_arguments"
 }
 
-count_read_metadata() {
+extract_adt_file() {
     local metadata_file=$1
     local library=$2
     local ADT_file=""
 
-    while IFS=',' read -r -a fields; do
-        assay="${fields[0]}"
-        experiment_id="${fields[1]}"
-        historical_number="${fields[2]}"
-        replicate="${fields[3]}"
-        expected_library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_ATAC"
+    while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file; do
+        expected_library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${modality}"
 
         if [ "$expected_library" == "$library" ]; then
-            ADT_file="${fields[10]}"  # Corrected index for ADT file
+            ADT_file="${adt_file}"
             break
         fi
     done < "$metadata_file"
