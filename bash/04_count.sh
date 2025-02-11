@@ -149,8 +149,11 @@ EOF
             echo "DEBUG: ${ADT_file} found."
 
             # Determine the correct ADT CSV file name by replacing _ATAC with _ADT
+            echo $library
             adt_library_csv="${library/_ATAC/_ADT}.csv"
+            echo $adt_library_csv
             adt_library_csv="${project_libraries}/${adt_library_csv}"
+            echo $adt_library_csv
 
             # Check if the ADT CSV file exists
             if [[ ! -f "${adt_library_csv}" ]]; then
