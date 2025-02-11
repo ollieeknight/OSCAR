@@ -138,11 +138,11 @@ EOF
 
             # Extract the ADT file name from the metadata
             echo $library
-            ADT_file="$(extract_adt_file "$metadata_file" "$library")"
+            temp_library="${library/_ATAC/_ADT}"
+            ADT_file="$(extract_adt_file "$metadata_file" "$temp_library")"
             echo $ADT_file
             ADT_file="${project_scripts}/adt_files/${ADT_file}.csv"
             echo $ADT_file
-
 
             # Check if the ADT file exists
             if [[ ! -f "${ADT_file}" ]]; then
