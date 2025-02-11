@@ -137,13 +137,9 @@ EOF
         if grep -q '.*\(ASAP\).*' "${project_libraries}/${library}.csv"; then
 
             # Extract the ADT file name from the metadata
-            echo $library
             temp_library="${library/_ATAC/}"
-            echo $temp_library
             ADT_file="$(extract_adt_file "$metadata_file" "$temp_library")"
-            echo $ADT_file
             ADT_file="${project_scripts}/adt_files/${ADT_file}.csv"
-            echo $ADT_file
 
             # Check if the ADT file exists
             if [[ ! -f "${ADT_file}" ]]; then
@@ -163,8 +159,6 @@ EOF
                 exit 1
             fi
 
-            echo "DEBUG: ${adt_library_csv} found."
-
             read -p "Perform ADT counting? (Y/N): " choice
 
             while [[ ! $choice =~ ^[YyNn]$ ]]; do
@@ -179,9 +173,12 @@ EOF
                 read fastq_dirs fastq_libraries < <(count_read_adt_csv "${project_libraries}" "${adt_library_csv}")
 
                 ADT_index_folder=${project_outs}/$library/adt_index
+                echo $ADT_index_folder
                 ADT_outs=${project_outs}/$library/ADT/
+                echo $ADT_outs
 
                 corrected_fastq=$(realpath -m "${fastq_dirs[0]}/../../KITE_corrected")
+                echo $corrected_fastq
                 
                 if [ "${count_submitted}" = "yes" ]; then
                     sbatch_dependency="--dependency=afterok:${job_id}"
