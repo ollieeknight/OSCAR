@@ -137,8 +137,12 @@ EOF
         if grep -q '.*\(ASAP\).*' "${project_libraries}/${library}.csv"; then
 
             # Extract the ADT file name from the metadata
+            echo $library
             ADT_file="$(extract_adt_file "$metadata_file" "$library")"
+            echo $ADT_file
             ADT_file="${project_scripts}/adt_files/${ADT_file}.csv"
+            echo $ADT_file
+
 
             # Check if the ADT file exists
             if [[ ! -f "${ADT_file}" ]]; then
@@ -149,11 +153,8 @@ EOF
             echo "DEBUG: ${ADT_file} found."
 
             # Determine the correct ADT CSV file name by replacing _ATAC with _ADT
-            echo $library
             adt_library_csv="${library/_ATAC/_ADT}.csv"
-            echo $adt_library_csv
             adt_library_csv="${project_libraries}/${adt_library_csv}"
-            echo $adt_library_csv
 
             # Check if the ADT CSV file exists
             if [[ ! -f "${adt_library_csv}" ]]; then
