@@ -139,8 +139,12 @@ EOF
             # Determine the correct ADT CSV file name by replacing _ATAC with _ADT
             temp_library="${library/_ATAC/_ADT}.csv"
 
+            echo "Temp library name to search for is $temp_library"
+
             # Extract the ADT file name from the metadata
             ADT_file=$(extract_adt_file "$metadata_file" "$temp_library")
+
+            echo "ADT file is $ADT_file"
 
             # Check if the ADT file exists
             if [[ ! -f "${project_libraries}/${ADT_file}" ]]; then
