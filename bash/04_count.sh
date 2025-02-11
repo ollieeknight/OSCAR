@@ -139,6 +139,7 @@ EOF
             # Extract the ADT file name from the metadata
             echo $library
             temp_library="${library/_ATAC/_ADT}"
+            echo $temp_library
             ADT_file="$(extract_adt_file "$metadata_file" "$temp_library")"
             echo $ADT_file
             ADT_file="${project_scripts}/adt_files/${ADT_file}.csv"
