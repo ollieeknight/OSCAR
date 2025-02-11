@@ -471,7 +471,7 @@ extract_adt_file() {
     local ADT_file=""
 
     while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file; do
-        expected_library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${modality}"
+        expected_library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
 
         if [ "$expected_library" == "$library" ]; then
             ADT_file="${adt_file}"
