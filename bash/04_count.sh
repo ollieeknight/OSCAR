@@ -172,6 +172,9 @@ EOF
 
                 read fastq_dirs fastq_libraries < <(count_read_adt_csv "${project_libraries}" "${adt_library_csv}")
 
+                echo $fastq_dirs
+                echo $fastq_libraries
+
                 ADT_index_folder=${project_outs}/$library/adt_index
                 echo $ADT_index_folder
                 ADT_outs=${project_outs}/$library/ADT/
@@ -180,6 +183,7 @@ EOF
                 corrected_fastq=$(realpath -m "${fastq_dirs[0]}/../../KITE_corrected")
                 echo $corrected_fastq
                 
+                exit 1
                 if [ "${count_submitted}" = "yes" ]; then
                     sbatch_dependency="--dependency=afterok:${job_id}"
                 else
