@@ -147,18 +147,23 @@ EOF
                 echo "ERROR: ${ADT_file} not found."
                 exit 1
             fi
+            
             echo "DEBUG: ${ADT_file} found."
 
-            echo "DEBUG: adt_library_csv is: ${adt_library_csv}"
+            # Determine the correct ADT CSV file name by replacing _ATAC with _ADT
+            adt_library_csv="${library/_ATAC/_ADT}.csv"
+            adt_library_csv="${project_libraries}/${adt_library_csv}"
 
             # Check if the ADT CSV file exists
-            if [[ ! -f "${project_libraries}/${adt_library_csv}" ]]; then
-                echo "ERROR: ${project_libraries}/${adt_library_csv} not found."
+            if [[ ! -f "${adt_library_csv}" ]]; then
+                echo "ERROR: ${adt_library_csv} not found."
                 exit 1
             fi
-            echo "DEBUG: ${project_libraries}/${adt_library_csv} found."
+
+            echo "DEBUG: ${adt_library_csv} found."
 
             read -p "Perform ADT counting? (Y/N): " choice
+            
             while [[ ! $choice =~ ^[YyNn]$ ]]; do
                 echo "Invalid input. Please enter Y or N."
                 read -p "Perform ADT counting? (Y/N): " choice
