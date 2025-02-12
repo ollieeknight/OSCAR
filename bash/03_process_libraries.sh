@@ -52,24 +52,29 @@ IFS=';' read -r -a gene_expression_options <<< "${gene_expression_options}"
 IFS=';' read -r -a vdj_options <<< "${vdj_options}"
 IFS=';' read -r -a adt_options <<< "${adt_options}"
 
-# Define project directories
-project_dir="${dir_prefix}/${project_id}"
-project_scripts="${project_dir}/${project_id}_scripts"
-project_indices="${project_scripts}/indices"
+# Define output directories
+output_project_id="${project_ids[0]}"
+output_project_dir="${dir_prefix}/${output_project_id}"
+output_project_scripts="${output_project_dir}/${output_project_id}_scripts/"
+output_project_libraries=${output_project_scripts}/libraries
 
-# Check if metadata file exists
-metadata_file="${project_scripts}/metadata/${metadata_file_name}"
-check_metadata_file "${metadata_file}"
+# Check if metadata file exists for all project IDs
+for project_id in "${project_ids[@]}"; do
+    project_dir="${dir_prefix}/${project_id}"
+    project_scripts="${project_dir}/${project_id}_scripts"
+    metadata_file="${project_scripts}/metadata/${metadata_file_name}"
+    
+    if [ ! -f "${metadata_file}" ]; then
+        echo -e "\033[0;31mERROR:\033[0m Metadata file for ${project_id} not found, please check path"
+        exit 1
+    fi
+done
 
-# Check if indices folder exists
-check_folder_exists "${project_scripts}/indices"
+# List index files and extract flowcell ID from RunInfo.xml for the first project ID
+flowcell_id=$(grep "<Flowcell>" "${project_dir}/${project_ids[0]}_bcl/RunInfo.xml" | sed -e 's|.*<Flowcell>\(.*\)</Flowcell>.*|\1|')
 
 # Pull necessary OSCAR containers
 check_and_pull_oscar_containers
-
-# List index files and extract flowcell ID from RunInfo.xml
-index_files=($(ls "${project_dir}/${project_id}_scripts/indices"))
-flowcell_id=$(grep "<Flowcell>" "${project_dir}/${project_id}_bcl/RunInfo.xml" | sed -e 's|.*<Flowcell>\(.*\)</Flowcell>.*|\1|')
 
 # Validate the mode
 validate_mode "${mode}"
@@ -78,11 +83,6 @@ validate_mode "${mode}"
 print_options "Gene expression" "${gene_expression_options[@]}"
 print_options "VDJ-B/T" "${vdj_options[@]}"
 print_options "ADT/HTO" "${adt_options[@]}"
-
-# Define output directories
-output_project_id="${project_ids[0]}"
-output_project_scripts="${dir_prefix}/${output_project_id}/${output_project_id}_scripts/"
-output_project_libraries=${output_project_scripts}/libraries
 
 # Check if the libraries folder already exists, and remove it if it does
 if [ -d "${output_project_libraries}" ]; then
@@ -142,7 +142,7 @@ for project_id in "${project_ids[@]}"; do
         done < "${metadata_file}"
 done
 
-# Ask the user if they want to submit the indices for FASTQ generation
+# Ask the user if they want to submit the libraries for counting
 echo "Would you like to proceed to counting? (Y/N)"
 read -r choice
 while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
