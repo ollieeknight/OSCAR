@@ -112,7 +112,7 @@ log "----------------------------------------"
 log "Cellranger flavour      | ${cellranger_command}"
 log "Sequencing run          | ${project_dir}/${project_id}_bcl"
 log "Flowcell ID             | ${flowcell_id}"
-log "Demultiplexing indices  | ${project_scripts}/indices/${file}"
+log "Index .csv file  | ${project_scripts}/indices/${file}"
 log "Output name             | ${index_file}"
 log "Base mask               | ${base_mask}"
 log "Filter option           | ${filter_option}"
@@ -121,8 +121,10 @@ log "----------------------------------------"
 mkdir -p ${project_dir}/${project_id}_fastq/logs
 cd ${project_dir}/${project_id}_fastq/
 
+echo ""
+
 # Run cellranger
-log "Running ${cellranger_command} mkfastq"
+log "Running ${cellranger_command}"
 
 echo ""
 
@@ -134,10 +136,7 @@ apptainer run -B /data ${count_container} \
     --use-bases-mask ${base_mask} \
     --delete-undetermined \
     --barcode-mismatches 1 \
-    ${filter_option} \
-    --jobmode local \
-    --localcores $(nproc) \
-    --localmem 32
+    ${filter_option}
 
 log ""
 

@@ -50,6 +50,8 @@ check_metadata_file "${metadata_file}"  # Function to check the metadata file
 
 # Determine the run type
 run_type=$(check_run_type "${project_id}" "${dir_prefix}")
+
+echo ""
 echo -e "\033[34mINFO:\033[0m Detected a(n) ${run_type} run"
 
 # Recreate indices folder
@@ -64,8 +66,7 @@ while IFS=',' read -r assay experiment_id historical_number replicate modality c
   # Skip the first header line
   if [[ "${assay}" != "assay" ]]; then
     echo ""
-    echo "Processing metadata line"
-    echo "${assay},${experiment_id},${historical_number},${replicate},${modality},${chemistry},${index_type},${index},${species},${n_donors},${adt_file}"
+    echo "Processing library component ${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${modality}"
 
     # Determine the output file name based on chemistry
     if [ "${chemistry}" != "NA" ] && ( [ "${assay}" == "CITE" ] || [ "${assay}" == "GEX" ] ); then
@@ -78,11 +79,11 @@ while IFS=',' read -r assay experiment_id historical_number replicate modality c
 
     # Check if the output file exists
     if [ ! -f "${output_file}" ]; then
-      echo "Output file ${output_file} does not exist, creating csv"
+      echo " Creating ${output_file} and appending line"
       echo "lane,sample,index" > "${output_file}"  # Create new CSV file with header
       echo "*,${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${modality},${index}" >> "${output_file}"  # Add data line
     else
-      echo "Output file ${output_file} already exists, appending"
+      echo "Appending line to ${output_file}"
       echo "*,${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${modality},${index}" >> "${output_file}"  # Append data line
     fi
   fi
@@ -90,7 +91,7 @@ done < "${metadata_file}"
 
 # Ask the user if they want to submit the indices for FASTQ generation
 echo ""
-echo -e "\033[0;33mINPUT REQUIRED:\033[0m Would you like to proceed to FASTQ demultiplexing? (y/n)"
+echo -e "\033[0;33mINPUT:\033[0m Would you like to proceed to FASTQ demultiplexing? (y/n)"
 read -r choice
 while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
   echo "Invalid input. Please enter y or n"
