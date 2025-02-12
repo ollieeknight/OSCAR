@@ -100,68 +100,73 @@ sbatch <<EOF
 #SBATCH --output ${project_dir}/${project_id}_fastq/logs/${index_file}.out
 #SBATCH --error ${project_dir}/${project_id}_fastq/logs/${index_file}.out
 #SBATCH --ntasks=16
-#SBATCH --mem=64GB
-#SBATCH --time=12:00:00
+#SBATCH --mem=32GB
+#SBATCH --time=4:00:00
 
 source "${oscar_dir}/functions.sh"
 
-# Log all input variables
 log "Input variables:"
-log "project_id: ${project_id}"
-log "project_dir: ${project_dir}"
-log "index_file: ${index_file}"
-log "oscar_dir: ${oscar_dir}"
-log "count_container: ${count_container}"
-log "cellranger_command: ${cellranger_command}"
-log "project_scripts: ${project_scripts}"
-log "file: ${file}"
-log "base_mask: ${base_mask}"
-log "filter_option: ${filter_option}"
-log "flowcell_id: ${flowcell_id}"
-
-log ""
+log "----------------------------------------"
+log "Variable                | Value"
+log "----------------------------------------"
+log "Cellranger flavour      | ${cellranger_command}"
+log "Sequencing run          | ${project_dir}/${project_id}_bcl"
+log "Flowcell ID             | ${flowcell_id}"
+log "Demultiplexing indices  | ${project_scripts}/indices/${file}"
+log "Output name             | ${index_file}"
+log "Base mask               | ${base_mask}"
+log "Filter option           | ${filter_option}"
+log "----------------------------------------"
 
 mkdir -p ${project_dir}/${project_id}_fastq/logs
 cd ${project_dir}/${project_id}_fastq/
 
 # Run cellranger
 log "Running ${cellranger_command} mkfastq"
-apptainer run -B /data ${count_container} ${cellranger_command} \
-    --id ${index_file} \
+
+echo ""
+
+apptainer run -B /data ${count_container} \
+    ${cellranger_command} \
     --run ${project_dir}/${project_id}_bcl \
+    --id ${index_file} \
     --csv ${project_scripts}/indices/${file} \
     --use-bases-mask ${base_mask} \
     --delete-undetermined \
     --barcode-mismatches 1 \
-    ${filter_option}
-check_status "${cellranger_command} mkfastq"
+    ${filter_option} \
+    --jobmode local \
+    --localcores $(nproc) \
+    --localmem 32
 
 log ""
 
 mkdir -p ${project_dir}/${project_id}_fastq/${index_file}/fastqc
 
 # Run fastqc
-log "Running fastqc"
+log "Running FastQC"
 find "${project_dir}/${project_id}_fastq/${index_file}/outs/fastq_path/${flowcell_id}"* -name "*.fastq.gz" | \
     parallel -j \$(nproc) "apptainer run -B /data ${count_container} fastqc {} \
     --outdir ${project_dir}/${project_id}_fastq/${index_file}/fastqc"
+
+echo ""
+
 check_status "fastqc"
 
-log ""
+echo ""
 
 # Run multiqc to aggregate fastqc reports
-log "Running multiqc"
+log "Running MultiQC"
 apptainer run -B /data ${count_container} multiqc \
     "${project_dir}/${project_id}_fastq/${index_file}" \
     -o "${project_dir}/${project_id}_fastq/${index_file}/multiqc"
-check_status "multiqc"
 
-log ""
+echo ""
 
 # Clean up temporary files
 log "Cleaning up temporary files"
 rm -r ${project_dir}/${project_id}_fastq/${index_file}/_* ${project_dir}/${project_id}_fastq/${index_file}/MAKE*
-check_status "Cleanup"
+echo ""
 
 log "All processing completed successfully"
 EOF
