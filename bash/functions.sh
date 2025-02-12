@@ -3,7 +3,7 @@
 # Function for formatted logging
 log() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    echo -e "[$timestamp] $1"
+    echo -e "$timestamp $1"
 }
 
 # Function to check last command status and exit if failed

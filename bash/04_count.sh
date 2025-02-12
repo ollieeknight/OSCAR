@@ -90,28 +90,33 @@ for library in "${libraries[@]}"; do
 #SBATCH --job-name ${library}
 #SBATCH --output ${project_outs}/logs/cellranger_${library}.out
 #SBATCH --error ${project_outs}/logs/cellranger_${library}.out
-#SBATCH --ntasks=32
-#SBATCH --mem=64GB
-#SBATCH --time=72:00:00
+#SBATCH --ntasks=64
+#SBATCH --mem=128GB
+#SBATCH --time=96:00:00
 
 source "${oscar_dir}/functions.sh"
 
-# Log input variables
 log "Input variables:"
-log "library: ${library}"
-log "project_outs: ${project_outs}"
-log "oscar_dir: ${oscar_dir}"
-log "count_container: ${count_container}"
-log "fastq_dirs: ${fastq_dirs}"
-log "fastq_names: ${fastq_names}"
-log "extra_arguments: ${extra_arguments}"
+log "----------------------------------------"
+log "Variable                | Value"
+log "----------------------------------------"
+log "Cellranger flavour      | cellranger-atac"
+log "Library                 | $library"
+log "Reference genome        | $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/"
+log ".fastq directory         | $fastq_dirs"
+log ".fastq samples           | $fastq_names"
+log "Cores                   | \$(nproc)"
+log "Extra arguments         | $extra_arguments"
+log "----------------------------------------"
 
-log ""
+echo ""
 
 cd ${project_outs}
 
 # Run cellranger-atac count
 log "Running cellranger-atac count"
+
+echo ""
 apptainer run -B /data ${count_container} cellranger-atac count \
     --id $library \
     --reference $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/ \
@@ -119,11 +124,11 @@ apptainer run -B /data ${count_container} cellranger-atac count \
     --sample $fastq_names \
     --localcores \$(nproc) \
     $extra_arguments
-check_status "cellranger-atac count count"
+
+echo ""
 
 rm -r ${project_outs}/$library/_* ${project_outs}/$library/SC_ATAC_COUNTER_CS
 
-log "All processing completed successfully"
 EOF
             )
             count_submitted='YES'
@@ -194,33 +199,35 @@ EOF
 
 source "${oscar_dir}/functions.sh"
 
-# Log input variables
-log "Input variables:"
-log "library: ${library}"
-log "project_outs: ${project_outs}"
-log "oscar_dir: ${oscar_dir}"
-log "count_container: ${count_container}"
-log "ADT_index_folder: ${ADT_index_folder}"
-log "corrected_fastq: ${corrected_fastq}"
-log "ADT_outs: ${ADT_outs}"
-log "ADT_file: ${ADT_file}"
-log "fastq_dirs: ${fastq_dirs}"
-log "fastq_libraries: ${fastq_libraries}"
-log "TMPDIR: ${TMPDIR}"
-log "sbatch_dependency: ${sbatch_dependency}"
+library_out_name=$(echo "$library" | sed 's/_ATAC/_ADT/')
 
-log ""
+apptainer exec ${count_container} gunzip \
+-c /opt/cellranger-atac-2.1.0/lib/python/atac/barcodes/737K-cratac-v1.txt.gz > \
+${TMPDIR}/OSCAR/737K-cratac-v1.txt.gz
+ATAC_whitelist=${TMPDIR}/OSCAR/737K-cratac-v1.txt.gz
+
+log "Input variables:"
+log "----------------------------------------"
+log "Variable                | Value"
+log "----------------------------------------"
+log "ADT file                | ${ADT_file}"
+log "ADT index folder        | ${ADT_index_folder}"
+log "Input .fastq files      | $fastq_dirs"
+log ".fastq to convert       | $fastq_libraries"
+log "Corrected .fastq name   | \${library_out_name}"
+log "Corrected .fastq output | ${corrected_fastq}/\${library_out_name}/"
+log "Cores                   | \$(nproc)"
+log "Barcode whitelist       | \${ATAC_whitelist}"
+log "----------------------------------------"
+
+echo ""
 
 cd ${project_outs}/${library}
 
 # Create required directories
-log "Creating directories"
 mkdir -p ${ADT_index_folder}/temp
 mkdir -p $corrected_fastq
 mkdir -p ${ADT_outs}
-check_status "Directory creation"
-
-log ""
 
 # Run featuremap
 log "Running featuremap"
@@ -228,7 +235,6 @@ apptainer run -B /data ${count_container} featuremap ${ADT_file} \
     --t2g ${ADT_index_folder}/FeaturesMismatch.t2g \
     --fa ${ADT_index_folder}/FeaturesMismatch.fa \
     --header --quiet
-check_status "featuremap"
 
 log ""
 
@@ -237,11 +243,8 @@ log "Running kallisto index"
 apptainer run -B /data ${count_container} kallisto index \
     -i ${ADT_index_folder}/FeaturesMismatch.idx \
     -k 15 ${ADT_index_folder}/FeaturesMismatch.fa
-check_status "kallisto index"
 
 log ""
-
-library_out_name=$(echo "$library" | sed 's/_ATAC/_ADT/')
 
 # Check if files already exist
 if [ ! -f "${corrected_fastq}/\${library_out_name}/\${library_out_name}_R1.fastq.gz" ] || [ ! -f "${corrected_fastq}/\${library_out_name}/\${library_out_name}_R2.fastq.gz" ]; then
@@ -251,13 +254,12 @@ if [ ! -f "${corrected_fastq}/\${library_out_name}/\${library_out_name}_R1.fastq
         -sp "$fastq_libraries" \
         -of "${corrected_fastq}/\${library_out_name}" \
         -on \${library_out_name} \
-        -c $(nproc)
-    check_status "ASAP to KITE conversion"
+        -c \$(nproc)
 else
     log "KITE converted files already exist, skipping conversion"
 fi
 
-log ""
+echo ""
 
 # Running kallisto bus
 log "Running kallisto bus"
@@ -267,27 +269,16 @@ apptainer run -B /data ${count_container} kallisto bus \
     -x 0,0,16:0,16,26:1,0,0 \
     -t \$(nproc) \
     ${corrected_fastq}/\${library_out_name}/*
-check_status "kallisto bus"
 
-log ""
-
-log "Extracting ATAC barcodes to ${TMPDIR}/OSCAR/737K-arc-v1.txt"
-apptainer exec ${count_container} gunzip \
--c /opt/cellranger-atac-2.1.0/lib/python/atac/barcodes/737K-arc-v1.txt.gz > \
-${TMPDIR}/OSCAR/737K-arc-v1.txt
-ATAC_whitelist=${TMPDIR}/OSCAR/737K-arc-v1.txt
-check_status "gunzip barcodes"
-
-log ""
+echo ""
 
 log "Running bustools correct"
 apptainer run -B /data ${count_container} bustools correct \
     -w \${ATAC_whitelist} \
     ${ADT_index_folder}/temp/output.bus \
     -o ${ADT_index_folder}/temp/output_corrected.bus
-check_status "bustools correct"
 
-log ""
+echo ""
 
 # Running bustools sort
 log "Running bustools sort"
@@ -295,9 +286,8 @@ apptainer run -B /data ${count_container} bustools sort \
     -t \$(nproc) \
     -o ${ADT_index_folder}/temp/output_sorted.bus \
     ${ADT_index_folder}/temp/output_corrected.bus
-check_status "bustools sort"
 
-log ""
+echo ""
 
 # Running bustools count
 log "Running bustools count"
@@ -308,14 +298,12 @@ apptainer run -B /data ${count_container} bustools count \
     -e ${ADT_index_folder}/temp/matrix.ec \
     -t ${ADT_index_folder}/temp/transcripts.txt \
     ${ADT_index_folder}/temp/output_sorted.bus
-check_status "bustools count"
 
-log ""
+echo ""
 
 # Cleanup
 log "Cleaning up temporary files"
 rm -r ${ADT_index_folder}
-check_status "Cleanup"
 
 log ""
 
@@ -347,8 +335,8 @@ EOF
 #SBATCH --job-name ${library}
 #SBATCH --output ${project_outs}/logs/cellranger_${library}.out
 #SBATCH --error ${project_outs}/logs/cellranger_${library}.out
-#SBATCH --ntasks=32
-#SBATCH --mem=96GB
+#SBATCH --ntasks=64
+#SBATCH --mem=128GB
 #SBATCH --time=96:00:00
 
 source "${oscar_dir}/functions.sh"

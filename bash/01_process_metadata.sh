@@ -79,7 +79,7 @@ while IFS=',' read -r assay experiment_id historical_number replicate modality c
 
     # Check if the output file exists
     if [ ! -f "${output_file}" ]; then
-      echo " Creating ${output_file} and appending line"
+      echo "Creating ${output_file} and appending line"
       echo "lane,sample,index" > "${output_file}"  # Create new CSV file with header
       echo "*,${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${modality},${index}" >> "${output_file}"  # Add data line
     else
@@ -92,6 +92,7 @@ done < "${metadata_file}"
 # Ask the user if they want to submit the indices for FASTQ generation
 echo ""
 echo -e "\033[0;33mINPUT:\033[0m Would you like to proceed to FASTQ demultiplexing? (y/n)"
+echo -e "bash ${oscar_dir}/02_fastq.sh --project-id ${project_id}"
 read -r choice
 while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
   echo "Invalid input. Please enter y or n"
@@ -100,7 +101,6 @@ done
 
 # Process choices
 if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-  echo "Submitting: bash ${oscar_dir}/02_fastq.sh --project-id ${project_id}"
   bash "${oscar_dir}/02_fastq.sh" --project-id "${project_id}"  # Run the FASTQ script
 else
   exit 0  # Exit the script
