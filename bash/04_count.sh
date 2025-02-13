@@ -42,10 +42,11 @@ check_project_id
 IFS=',' read -r -a project_ids <<< "${project_id}"
 
 output_project_id="${project_ids[0]}"
+echo "Output project ID: ${output_project_id}"
 output_project_dir="${dir_prefix}/${output_project_id}"
-output_project_scripts="${output_project_dir}/${output_project_id}_scripts/"
-output_project_libraries=${output_project_scripts}/libraries
-output_project_outs="${output_project_dir}/${output_project_id}_outs/"
+output_project_scripts="${output_project_dir}/${output_project_id}_scripts"
+output_project_libraries="${output_project_scripts}/libraries"
+output_project_outs="${output_project_dir}/${output_project_id}_outs"
 
 # Check if metadata file exists for all project IDs
 for project_id in "${project_ids[@]}"; do
