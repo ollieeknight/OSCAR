@@ -72,10 +72,10 @@ mkdir -p ${output_project_outs}/
 # Iterate over each library file to submit counting jobs
 for library in "${libraries[@]}"; do
     # Skip processing lines with 'ADT' in the library name
-    if grep -q '.*\(HTO\|ADT\).*' "${output_project_libraries}/${library}.csv"; then
+    if [[ "${library}" == *ADT* ||  "${library}" == *HTO* ]]; then
 #        echo "Processing ${library} as an ADT/HTO library"
         continue
-    elif grep -q '.*\(ATAC\).*' "${output_project_libraries}/${library}.csv"; then
+    if [[ "${library}" == *ATAC* ]]; then
         fastq_names=""
         fastq_dirs=""
 
@@ -153,7 +153,7 @@ EOF
             echo -e "\033[0;31mERROR:\033[0m Invalid choice. Exiting"
         fi
 
-        if grep -q '.*\(ASAP\).*' "${output_project_libraries}/${library}.csv"; then
+        if [[ "${library}" == *ASAP* ]]; then
 
            temp_library="${library/_ATAC/}"
             ADT_file=""
@@ -172,8 +172,8 @@ EOF
 
             # Check if the ADT file exists
             if [[ ! -f "${ADT_file}" ]]; then
-                echo "ERROR: ${ADT_file} not found."
-                exit 1
+                echo "INFO: ${ADT_file} not found!"
+                continue
             fi
             
 #            echo "DEBUG: ${ADT_file} found."
@@ -337,8 +337,8 @@ log "All processing completed successfully!"
 EOF
             fi
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
-    elif grep -q '.*GEX*' "${output_project_libraries}/${library}.csv"; then
-=        echo ""
+    if [[ ("${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* || "${library}" == *DOGMA*) && "${library}" != *ATAC* ]]; then
+        echo ""
         echo "For library $library"
         echo ""
         cat ${output_project_libraries}/${library}.csv
