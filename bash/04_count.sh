@@ -41,6 +41,11 @@ check_project_id
 
 IFS=',' read -r -a project_ids <<< "${project_id}"
 
+echo "Project IDs:"
+for id in "${project_ids[@]}"; do
+    echo "${id}"
+done
+
 output_project_id="${project_ids[0]}"
 echo "Output project ID: ${output_project_id}"
 output_project_dir="${dir_prefix}/${output_project_id}"
