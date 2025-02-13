@@ -153,6 +153,10 @@ EOF
             echo -e "\033[0;31mERROR:\033[0m Invalid choice. Exiting"
         fi
 
+        if [[ "${library}" == *DOGMA* ]]; then
+            continue
+        fi
+
         if [[ "${library}" == *ASAP* ]]; then
 
            temp_library="${library/_ATAC/}"
