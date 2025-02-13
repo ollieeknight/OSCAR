@@ -65,6 +65,11 @@ count_container=${TMPDIR}/OSCAR/oscar-count_latest.sif
 
 # Take the csv files into a list and remove the .csv suffix
 libraries=($(ls "${output_project_libraries}" | awk -F/ '{print $NF}' | awk -F. '{print $1}'))
+echo "Libraries:"
+for library in "${libraries[@]}"; do
+    echo "${library}"
+done
+exit 1
 mkdir -p ${output_project_outs}/
 
 # Iterate over each library file to submit counting jobs
