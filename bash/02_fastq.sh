@@ -81,10 +81,10 @@ for file in "${index_files[@]}"; do
     base_mask="${base_mask//./ }"
 
     # Prompt the user for confirmation
-    read -p $'\033[0;33mINPUT REQUIRED:\033[0m Submit '"${index_file}"' for fastq demultiplexing? (Y/N) ' choice
+    read -p $'\033[0;33mINPUT REQUIRED:\033[0m Submit '"${index_file}"' for FASTQ demultiplexing? (Y/N) ' choice
     while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
         echo "Invalid input. Please enter y or n"
-        read -p $'\033[0;33mINPUT REQUIRED:\033[0m Submit '"${index_file}"' for fastq demultiplexing? (Y/N) ' choice
+        read -p $'\033[0;33mINPUT REQUIRED:\033[0m Submit '"${index_file}"' for FASTQ demultiplexing? (Y/N) ' choice
     done
 
     # If user confirms, submit the job to SLURM
@@ -105,7 +105,13 @@ sbatch <<EOF
 
 source "${oscar_dir}/functions.sh"
 
+log "OSCAR step 2: BCL to .FASTQ demultiplexing"
+log "See https://github.com/ollieeknight/OSCAR for more information"
+
+echo ""
+
 log "Input variables:"
+
 log "----------------------------------------"
 log "Variable                | Value"
 log "----------------------------------------"
@@ -142,7 +148,7 @@ log ""
 
 mkdir -p ${project_dir}/${project_id}_fastq/${index_file}/fastqc
 
-# Run fastqc
+# Run FastQC
 log "Running FastQC"
 find "${project_dir}/${project_id}_fastq/${index_file}/outs/fastq_path/${flowcell_id}"* -name "*.fastq.gz" | \
     parallel -j \$(nproc) "apptainer run -B /data ${count_container} fastqc {} \
@@ -150,11 +156,7 @@ find "${project_dir}/${project_id}_fastq/${index_file}/outs/fastq_path/${flowcel
 
 echo ""
 
-check_status "fastqc"
-
-echo ""
-
-# Run multiqc to aggregate fastqc reports
+# Run MultiQC to aggregate FastQC reports
 log "Running MultiQC"
 apptainer run -B /data ${count_container} multiqc \
     "${project_dir}/${project_id}_fastq/${index_file}" \

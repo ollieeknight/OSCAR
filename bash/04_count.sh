@@ -96,6 +96,11 @@ for library in "${libraries[@]}"; do
 
 source "${oscar_dir}/functions.sh"
 
+log "OSCAR step 4: cellranger-atac mapping"
+log "See https://github.com/ollieeknight/OSCAR for more information"
+
+echo ""
+
 log "Input variables:"
 log "----------------------------------------"
 log "Variable                | Value"
@@ -103,8 +108,8 @@ log "----------------------------------------"
 log "Cellranger flavour      | cellranger-atac"
 log "Library                 | $library"
 log "Reference genome        | $HOME/group/work/ref/hs/GRCh38-hardmasked-optimised-arc/"
-log ".fastq directory         | $fastq_dirs"
-log ".fastq samples           | $fastq_names"
+log "FASTQ directory         | $fastq_dirs"
+log "FASTQ samples           | $fastq_names"
 log "Cores                   | \$(nproc)"
 log "Extra arguments         | $extra_arguments"
 log "----------------------------------------"
@@ -128,6 +133,8 @@ apptainer run -B /data ${count_container} cellranger-atac count \
 echo ""
 
 rm -r ${project_outs}/$library/_* ${project_outs}/$library/SC_ATAC_COUNTER_CS
+
+log "All processing completed successfully!"
 
 EOF
             )
@@ -199,11 +206,15 @@ EOF
 
 source "${oscar_dir}/functions.sh"
 
+log "OSCAR step 4: ASAP-seq ADT/HTO mapping"
+log "See https://github.com/ollieeknight/OSCAR for more information"
+
+echo ""
+
 library_out_name=$(echo "$library" | sed 's/_ATAC/_ADT/')
 
-apptainer exec ${count_container} gunzip \
--c /opt/cellranger-atac-2.1.0/lib/python/atac/barcodes/737K-cratac-v1.txt.gz > \
-${TMPDIR}/OSCAR/737K-cratac-v1.txt.gz
+apptainer exec ${count_container} gunzip -c /opt/cellranger-atac-2.1.0/lib/python/atac/barcodes/737K-cratac-v1.txt.gz > ${TMPDIR}/OSCAR/737K-cratac-v1.txt.gz
+
 ATAC_whitelist=${TMPDIR}/OSCAR/737K-cratac-v1.txt.gz
 
 log "Input variables:"
@@ -212,10 +223,10 @@ log "Variable                | Value"
 log "----------------------------------------"
 log "ADT file                | ${ADT_file}"
 log "ADT index folder        | ${ADT_index_folder}"
-log "Input .fastq files      | $fastq_dirs"
-log ".fastq to convert       | $fastq_libraries"
-log "Corrected .fastq name   | \${library_out_name}"
-log "Corrected .fastq output | ${corrected_fastq}/\${library_out_name}/"
+log "Input FASTQ files       | $fastq_dirs"
+log "FASTQ to convert        | $fastq_libraries"
+log "Corrected FASTQ name    | \${library_out_name}"
+log "Corrected FASTQ output  | ${corrected_fastq}/\${library_out_name}/"
 log "Cores                   | \$(nproc)"
 log "Barcode whitelist       | \${ATAC_whitelist}"
 log "----------------------------------------"
@@ -236,7 +247,7 @@ apptainer run -B /data ${count_container} featuremap ${ADT_file} \
     --fa ${ADT_index_folder}/FeaturesMismatch.fa \
     --header --quiet
 
-log ""
+echo "" 
 
 # Running kallisto index
 log "Running kallisto index"
@@ -244,7 +255,7 @@ apptainer run -B /data ${count_container} kallisto index \
     -i ${ADT_index_folder}/FeaturesMismatch.idx \
     -k 15 ${ADT_index_folder}/FeaturesMismatch.fa
 
-log ""
+echo ""
 
 # Check if files already exist
 if [ ! -f "${corrected_fastq}/\${library_out_name}/\${library_out_name}_R1.fastq.gz" ] || [ ! -f "${corrected_fastq}/\${library_out_name}/\${library_out_name}_R2.fastq.gz" ]; then
@@ -302,12 +313,10 @@ apptainer run -B /data ${count_container} bustools count \
 echo ""
 
 # Cleanup
-log "Cleaning up temporary files"
 rm -r ${ADT_index_folder}
 
-log ""
+log "All processing completed successfully!"
 
-log "All processing completed successfully"
 EOF
             fi
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
@@ -341,15 +350,20 @@ EOF
 
 source "${oscar_dir}/functions.sh"
 
-# Log input variables
-log "Input variables:"
-log "library: ${library}"
-log "project_outs: ${project_outs}"
-log "oscar_dir: ${oscar_dir}"
-log "count_container: ${count_container}"
-log "project_libraries: ${project_libraries}"
+log "OSCAR step 4: cellranger multi mapping"
+log "See https://github.com/ollieeknight/OSCAR for more information"
 
-log ""
+echo ""
+
+log "Input variables:"
+log "----------------------------------------"
+log "Variable                | Value"
+log "----------------------------------------"
+log "Library                 | ${library}"
+log "Cores                   | $(nproc)"
+log "----------------------------------------"
+
+echo ""
 
 # Run the CellRanger multi command
 log "Running cellranger multi"
@@ -357,14 +371,11 @@ apptainer run -B /data "${count_container}" cellranger multi \
     --id "${library}" \
     --csv "${project_libraries}/${library}.csv" \
     --localcores "\$(nproc)"
-check_status "cellranger multi"
 
-log ""
+echo ""
 
 # Clean up temporary files
-log "Cleaning up temporary files"
 rm -r ${project_outs}/${library}/SC_MULTI_CS ${project_outs}/${library}/_*
-check_status "Cleanup"
 
 log "All processing completed successfully!"
 EOF
