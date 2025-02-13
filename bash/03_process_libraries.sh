@@ -122,6 +122,8 @@ for project_id in "${project_ids[@]}"; do
                 # Define the library name
                 library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
 
+                echo -e "\033[34mINFO:\033[0m Processing library ${library}"
+
                 # Determine the full modality
                 full_modality=$(determine_full_modality "${modality}" "${library}")
                 if [ ${?} -eq 1 ]; then
