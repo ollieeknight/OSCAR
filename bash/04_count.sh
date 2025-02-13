@@ -75,7 +75,7 @@ for library in "${libraries[@]}"; do
     if [[ "${library}" == *ADT* ||  "${library}" == *HTO* ]]; then
 #        echo "Processing ${library} as an ADT/HTO library"
         continue
-    if [[ "${library}" == *ATAC* ]]; then
+    elif [[ "${library}" == *ATAC* ]]; then
         fastq_names=""
         fastq_dirs=""
 
@@ -337,7 +337,7 @@ log "All processing completed successfully!"
 EOF
             fi
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
-    if [[ ("${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* || "${library}" == *DOGMA*) && "${library}" != *ATAC* ]]; then
+    elif [[ ("${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* || "${library}" == *DOGMA*) && "${library}" != *ATAC* ]]; then
         echo ""
         echo "For library $library"
         echo ""
@@ -396,7 +396,8 @@ log "All processing completed successfully!"
 EOF
         fi
     else
-        echo -e "\033[0;31mERROR:\033[0m Cannot determine whether ${library} is a GEX or ATAC run. is 'GEX' or 'ATAC present in its library csv file?"
+        echo -e "\033[0;31mERROR:\033[0m Cannot determine what kind of library ${library} is"
+        echo -e "      Please check that library output .csv files are correct"
         exit 1
     fi
         # Reset variables
