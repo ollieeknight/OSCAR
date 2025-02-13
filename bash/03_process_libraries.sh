@@ -152,7 +152,7 @@ done
 
 # Process choices
 if [ "${choice}" = "Y" ] || [ "${choice}" = "y" ]; then
-        bash ${oscar_dir}/04_count.sh --project-id ${output_project_id}
+        bash ${oscar_dir}/04_count.sh --project-id ${project_id}
 elif [ "${choice}" = "N" ] || [ "${choice}" = "n" ]; then
         :
 else
