@@ -149,6 +149,7 @@ EOF
             job_id=$(echo "$job_id" | awk '{print $4}')
         elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
             count_submitted='NO'
+            continue
         else
             echo -e "\033[0;31mERROR:\033[0m Invalid choice. Exiting"
         fi
@@ -336,7 +337,7 @@ log "All processing completed successfully!"
 
 EOF
         fi
-        
+
         continue
 
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
