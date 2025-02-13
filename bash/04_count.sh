@@ -42,7 +42,6 @@ check_project_id
 IFS=',' read -r -a project_ids <<< "${project_id}"
 
 output_project_id="${project_ids[0]}"
-echo "Output project ID: ${output_project_id}"
 output_project_dir="${dir_prefix}/${output_project_id}"
 output_project_scripts="${output_project_dir}/${output_project_id}_scripts"
 output_project_libraries="${output_project_scripts}/libraries"
@@ -338,7 +337,7 @@ log "All processing completed successfully!"
 EOF
             fi
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
-    elif [[ "${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* || "${library}" == *DOGMA* ]]; then
+    elif [[ ("${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* || "${library}" == *DOGMA*) && "${library}" != *ATAC* ]]; then
         echo ""
 
         # Ask the user if they want to submit the indices for FASTQ generation
