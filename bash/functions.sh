@@ -357,11 +357,11 @@ write_fastq_files() {
             fastq_name=$(basename "${fastq_file}" | sed -E 's/\.fastq\.gz$//' | sed -E 's/(_S[0-9]+)?(_[SL][0-9]+_[IR][0-9]+_[0-9]+)*$//')
             
             # Define line_identifier and output suffix based on conditions
-            if [[ "${modality}" == "ADT" && "${assay}" == "ASAP" ]]; then
+            if [[ "${modality}" == "ADT" && "${assay}" == "ASAP" || "${modality}" == "HTO" && "${assay}" == "ASAP" ]]; then
                 line_identifier="${fastq_name},${directory}"
                 suffix="_ADT"
             elif [[ "${modality}" == "ATAC" || "${assay}" == "ASAP" ]]; then
-                line_identifier="${fastq_name},${directory},${full_modality}"
+                line_identifier="${fastq_name},${directory}"
                 suffix="_ATAC"
             else
                 line_identifier="${fastq_name},${directory},${full_modality}"
