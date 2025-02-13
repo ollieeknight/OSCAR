@@ -336,6 +336,9 @@ log "All processing completed successfully!"
 
 EOF
             fi
+        fi
+        continue
+        
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
     elif [[ ("${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* || "${library}" == *DOGMA*) && "${library}" != *ATAC* ]]; then
         echo ""
