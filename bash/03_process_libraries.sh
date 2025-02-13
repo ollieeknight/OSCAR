@@ -79,10 +79,10 @@ check_and_pull_oscar_containers
 # Validate the mode
 validate_mode "${mode}"
 
-# Print options for gene expression, VDJ, and ADT
-print_options "Gene expression" "${gene_expression_options[@]}"
-print_options "VDJ-B/T" "${vdj_options[@]}"
-print_options "ADT/HTO" "${adt_options[@]}"
+# Print options for gene expression, VDJ, and ADT if mode is GEX
+print_options "${mode}" "Gene expression" "${gene_expression_options[@]}"
+print_options "${mode}" "VDJ-B/T" "${vdj_options[@]}"
+print_options "${mode}" "ADT/HTO" "${adt_options[@]}"
 
 # Check if the libraries folder already exists, and remove it if it does
 if [ -d "${output_project_libraries}" ]; then
@@ -144,6 +144,7 @@ done
 
 # Ask the user if they want to submit the libraries for counting
 echo "Would you like to proceed to counting? (Y/N)"
+echo -e "bash ${oscar_dir}/04_count.sh --project-id ${output_project_id}"
 read -r choice
 while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
         echo "Invalid input. Please enter y or n"
@@ -152,7 +153,6 @@ done
 
 # Process choices
 if [ "${choice}" = "Y" ] || [ "${choice}" = "y" ]; then
-        echo "Submitting: bash ${oscar_dir}/04_count.sh --project-id ${output_project_id}"
         bash ${oscar_dir}/04_count.sh --project-id ${output_project_id}
 elif [ "${choice}" = "N" ] || [ "${choice}" = "n" ]; then
         :

@@ -246,18 +246,20 @@ validate_mode() {
 }
 
 print_options() {
-    local options=("$@")
-    local option_name=$1
-    shift
+    local mode=$1
+    local option_name=$2
+    shift 2
     local option_values=("$@")
 
-    if [ ${#option_values[@]} -gt 0 ]; then
-        echo "${option_name} options set as:"
-        for option in "${option_values[@]}"; do
-            echo "${option}"
-        done
-    else
-        echo "No non-default options set for ${option_name}"
+    if [ "${mode}" == "GEX" ]; then
+        if [ ${#option_values[@]} -gt 0 ]; then
+            echo "${option_name} options set as:"
+            for option in "${option_values[@]}"; do
+                echo "${option}"
+            done
+        else
+            echo "Default options set for ${option_name}"
+        fi
     fi
 }
 

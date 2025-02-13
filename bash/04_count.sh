@@ -65,10 +65,9 @@ mkdir -p ${project_outs}/
 for library in "${libraries[@]}"; do
     # Skip processing lines with 'ADT' in the library name
     if grep -q '.*\(HTO\|ADT\).*' "${project_libraries}/${library}.csv"; then
-        echo "Processing ${library} as an ADT/HTO library"
+#        echo "Processing ${library} as an ADT/HTO library"
         continue
     elif grep -q '.*\(ATAC\).*' "${project_libraries}/${library}.csv"; then
-        echo "Processing ${library} as an ATAC library"
         fastq_names=""
         fastq_dirs=""
 
@@ -76,7 +75,7 @@ for library in "${libraries[@]}"; do
 
         extra_arguments=$(count_check_dogma "${project_libraries}" "$library")
 
-        read -p "Submit ${library} for cellranger-atac count? (Y/N): " choice
+        read -p "${library} as an ATAC library; process with cellranger-atac? (Y/N): " choice
         while [[ ! $choice =~ ^[YyNn]$ ]]; do
             echo "Invalid input. Please enter Y or N."
             read -p "Submit ${library} for cellranger-atac count? (Y/N): " choice
@@ -321,16 +320,14 @@ EOF
             fi
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
     elif grep -q '.*GEX*' "${project_libraries}/${library}.csv"; then
-    echo "Processing ${library} as an CITE/GEX run"
-        echo ""
+=        echo ""
         echo "For library $library"
         echo ""
         cat ${project_libraries}/${library}.csv
         echo ""
-        echo "cellranger multi --id ${library} --csv ${project_libraries}/${library}.csv --localcores 32"
 
         # Ask the user if they want to submit the indices for FASTQ generation
-        read -p "Is this alright? (Y/N): " choice
+        read -p "${library} is a GEX or CITE library, process with cellranger multi? (Y/N): " choice
         while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
             echo "Invalid input. Please enter Y or N."
             read -p "Is this alright? (Y/N): " choice
