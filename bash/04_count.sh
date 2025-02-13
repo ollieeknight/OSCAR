@@ -135,6 +135,7 @@ apptainer run -B /data ${count_container} cellranger-atac count \
     --fastqs $fastq_dirs \
     --sample $fastq_names \
     --localcores \$(nproc) \
+    --localmem 128 \
     $extra_arguments
 
 echo ""
@@ -151,7 +152,7 @@ EOF
             echo -e "\033[0;31mERROR:\033[0m Invalid choice. Exiting"
         fi
 
-        if [[ "${library}" == *DOGMA* ]]; then
+        if [[ "${library}" == *DOGMA* || "${library}" == *ATAC_* ]]; then
             continue
         fi
 
@@ -384,7 +385,8 @@ log "Running cellranger multi"
 apptainer run -B /data "${count_container}" cellranger multi \
     --id "${library}" \
     --csv "${output_project_libraries}/${library}.csv" \
-    --localcores "\$(nproc)"
+    --localcores "\$(nproc)" \
+    --localmem 128
 
 echo ""
 
