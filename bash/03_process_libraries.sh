@@ -153,8 +153,9 @@ done
 
 # Process choices
 if [ "${choice}" = "Y" ] || [ "${choice}" = "y" ]; then
-        bash ${oscar_dir}/04_count.sh --project-id ${project_id}
-elif [ "${choice}" = "N" ] || [ "${choice}" = "n" ]; then
+        project_ids_string=$(IFS=','; echo "${project_ids[*]}")
+        bash ${oscar_dir}/04_count.sh --project-id "${project_ids_string}"
+        elif [ "${choice}" = "N" ] || [ "${choice}" = "n" ]; then
         :
 else
         echo -e "\033[0;31mERROR:\033[0m Invalid choice. Exiting"
