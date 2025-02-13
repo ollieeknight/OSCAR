@@ -41,11 +41,6 @@ check_project_id
 
 IFS=',' read -r -a project_ids <<< "${project_id}"
 
-echo "Project IDs:"
-for id in "${project_ids[@]}"; do
-    echo "${id}"
-done
-
 output_project_id="${project_ids[0]}"
 echo "Output project ID: ${output_project_id}"
 output_project_dir="${dir_prefix}/${output_project_id}"
@@ -71,11 +66,7 @@ count_container=${TMPDIR}/OSCAR/oscar-count_latest.sif
 
 # Take the csv files into a list and remove the .csv suffix
 libraries=($(ls "${output_project_libraries}" | awk -F/ '{print $NF}' | awk -F. '{print $1}'))
-echo "Libraries:"
-for library in "${libraries[@]}"; do
-    echo "${library}"
-done
-exit 1
+
 mkdir -p ${output_project_outs}/
 
 # Iterate over each library file to submit counting jobs
