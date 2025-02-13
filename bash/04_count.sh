@@ -337,7 +337,7 @@ log "All processing completed successfully!"
 EOF
             fi
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
-    elif [[ ("${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* || "${library}" == *DOGMA*) && "${library}" != *ATAC* ]]; then
+    elif [[ "${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* || "${library}" == *DOGMA* ]]; then
         echo ""
         echo "For library $library"
         echo ""
@@ -397,7 +397,7 @@ EOF
         fi
     else
         echo -e "\033[0;31mERROR:\033[0m Cannot determine what kind of library ${library} is"
-        echo -e "      Please check that library output .csv files are correct"
+        echo -e "       Please check that library output .csv files are correct"
         exit 1
     fi
         # Reset variables
