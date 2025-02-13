@@ -104,9 +104,13 @@ for project_id in "${project_ids[@]}"; do
         fi
 
         # Determine the run type
+
+        # List index files and extract flowcell ID from RunInfo.xml for the first project ID
+        flowcell_id=$(grep "<Flowcell>" "${project_dir}/${project_id}_bcl/RunInfo.xml" | sed -e 's|.*<Flowcell>\(.*\)</Flowcell>.*|\1|')
+
         run_type=$(check_run_type "${project_id}" "${dir_prefix}")
 
-        echo -e "\033[34mINFO:\033[0m ${project_id} is an ${run_type} run, processing appropriately"
+        echo -e "\033[34mINFO:\033[0m ${run_type} run ${project_id} has flowcell ID ${flowcell_id}"
 
         # Iterate through each line in metadata.csv
         while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file; do
