@@ -72,10 +72,10 @@ mkdir -p ${output_project_outs}/
 for library in "${libraries[@]}"; do
     # Skip processing lines with 'ADT' in the library name
     if [[ "${library}" == *ADT* ||  "${library}" == *HTO* ]]; then
-        echo "Processing ${library} as an ADT/HTO library"
+#        echo "Processing ${library} as an ADT/HTO library"
         continue
     elif [[ "${library}" == *ATAC* ]]; then
-        echo "Processing ${library} as an ATAC library"
+#        echo "Processing ${library} as an ATAC library"
         fastq_names=""
         fastq_dirs=""
 
@@ -149,7 +149,6 @@ EOF
             job_id=$(echo "$job_id" | awk '{print $4}')
         elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
             count_submitted='NO'
-            continue
         else
             echo -e "\033[0;31mERROR:\033[0m Invalid choice. Exiting"
         fi
@@ -337,8 +336,8 @@ log "All processing completed successfully!"
 
 EOF
         fi
-
-        continue
+        
+    continue
 
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
     elif [[ ("${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* || "${library}" == *DOGMA*) && "${library}" != *ATAC* ]]; then
