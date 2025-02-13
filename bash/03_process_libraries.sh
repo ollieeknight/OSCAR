@@ -70,9 +70,6 @@ for project_id in "${project_ids[@]}"; do
     fi
 done
 
-# List index files and extract flowcell ID from RunInfo.xml for the first project ID
-flowcell_id=$(grep "<Flowcell>" "${project_dir}/${project_ids[0]}_bcl/RunInfo.xml" | sed -e 's|.*<Flowcell>\(.*\)</Flowcell>.*|\1|')
-
 # Pull necessary OSCAR containers
 check_and_pull_oscar_containers
 
