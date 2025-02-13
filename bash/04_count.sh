@@ -81,7 +81,7 @@ for library in "${libraries[@]}"; do
 
         read fastq_names fastq_dirs < <(count_read_csv "${output_project_libraries}" "$library")
 
-        extra_arguments=$(count_check_dogma "${output_project_libraries}" "$library")
+        extra_arguments=$(check_dogma_chemistry "${output_project_libraries}" "$library")
 
         read -p "${library} as an ATAC library; process with cellranger-atac? (Y/N): " choice
         while [[ ! $choice =~ ^[YyNn]$ ]]; do
@@ -140,8 +140,6 @@ apptainer run -B /data ${count_container} cellranger-atac count \
 echo ""
 
 rm -r ${output_project_outs}/$library/_* ${output_project_outs}/$library/SC_ATAC_COUNTER_CS
-
-log "All processing completed successfully!"
 
 EOF
             )
@@ -336,8 +334,6 @@ echo ""
 # Cleanup
 rm -r ${ADT_index_folder}
 
-log "All processing completed successfully!"
-
 EOF
         fi
         
@@ -395,7 +391,6 @@ echo ""
 # Clean up temporary files
 rm -r ${output_project_outs}/${library}/SC_MULTI_CS ${output_project_outs}/${library}/_*
 
-log "All processing completed successfully!"
 EOF
         fi
     else

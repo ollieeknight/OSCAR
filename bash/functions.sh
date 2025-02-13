@@ -453,13 +453,12 @@ count_read_csv() {
     echo "$fastq_names" "$fastq_dirs"
 }
 
-count_check_dogma() {
+check_dogma_chemistry() {
     local library_folder=$1
     local library=$2
     local extra_arguments=""
 
-    if grep -q '.*DOGMA.*' "${library_folder}/${library}.csv"; then
-        cat "${library_folder}/${library}.csv"
+    if [[ "${library}" == *DOGMA* ]]; then
         extra_arguments="--chemistry ARC-v1"
         # echo "Adding $extra_arguments as it is a DOGMA/MULTIOME run"
     fi
