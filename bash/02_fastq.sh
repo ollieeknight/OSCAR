@@ -101,7 +101,7 @@ sbatch <<EOF
 #SBATCH --error ${project_dir}/${project_id}_fastq/logs/${index_file}.out
 #SBATCH --ntasks=16
 #SBATCH --mem=32GB
-#SBATCH --time=4:00:00
+#SBATCH --time=12:00:00
 
 source "${oscar_dir}/functions.sh"
 

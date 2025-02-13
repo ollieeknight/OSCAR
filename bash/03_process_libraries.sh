@@ -144,7 +144,6 @@ done
 
 # Ask the user if they want to submit the libraries for counting
 echo "Would you like to proceed to counting? (Y/N)"
-echo -e "bash ${oscar_dir}/04_count.sh --project-id ${output_project_id}"
 read -r choice
 while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
         echo "Invalid input. Please enter y or n"

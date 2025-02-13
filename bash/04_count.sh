@@ -39,41 +39,47 @@ done
 
 check_project_id
 
-# Define project directories
-project_dir="${dir_prefix}/${project_id}"
-project_scripts="${project_dir}/${project_id}_scripts"
-project_indices="${project_scripts}/indices"
-project_libraries="${project_scripts}/libraries"
-project_outs="${project_dir}/${project_id}_outs"
+IFS=',' read -r -a project_ids <<< "${project_id}"
 
-# Check if metadata file exists
-metadata_file="${project_scripts}/metadata/${metadata_file_name}"
-check_metadata_file "${metadata_file}"
+output_project_id="${project_ids[0]}"
+output_project_dir="${dir_prefix}/${output_project_id}"
+output_project_scripts="${output_project_dir}/${output_project_id}_scripts/"
+output_project_libraries=${output_project_scripts}/libraries
+output_project_outs="${output_project_dir}/${output_project_id}_outs/"
 
-# Check if indices folder exists
-check_folder_exists "${project_scripts}/indices"
+# Check if metadata file exists for all project IDs
+for project_id in "${project_ids[@]}"; do
+    project_dir="${dir_prefix}/${project_id}"
+    project_scripts="${project_dir}/${project_id}_scripts"
+    metadata_file="${project_scripts}/metadata/${metadata_file_name}"
+    
+    if [ ! -f "${metadata_file}" ]; then
+        echo -e "\033[0;31mERROR:\033[0m Metadata file for ${project_id} not found, please check path"
+        exit 1
+    fi
+done
 
 # Pull necessary OSCAR containers
 check_and_pull_oscar_containers
 count_container=${TMPDIR}/OSCAR/oscar-count_latest.sif
 
 # Take the csv files into a list and remove the .csv suffix
-libraries=($(ls "${project_libraries}" | awk -F/ '{print $NF}' | awk -F. '{print $1}'))
-mkdir -p ${project_outs}/
+libraries=($(ls "${output_project_libraries}" | awk -F/ '{print $NF}' | awk -F. '{print $1}'))
+mkdir -p ${output_project_outs}/
 
 # Iterate over each library file to submit counting jobs
 for library in "${libraries[@]}"; do
     # Skip processing lines with 'ADT' in the library name
-    if grep -q '.*\(HTO\|ADT\).*' "${project_libraries}/${library}.csv"; then
+    if grep -q '.*\(HTO\|ADT\).*' "${output_project_libraries}/${library}.csv"; then
 #        echo "Processing ${library} as an ADT/HTO library"
         continue
-    elif grep -q '.*\(ATAC\).*' "${project_libraries}/${library}.csv"; then
+    elif grep -q '.*\(ATAC\).*' "${output_project_libraries}/${library}.csv"; then
         fastq_names=""
         fastq_dirs=""
 
-        read fastq_names fastq_dirs < <(count_read_csv "${project_libraries}" "$library")
+        read fastq_names fastq_dirs < <(count_read_csv "${output_project_libraries}" "$library")
 
-        extra_arguments=$(count_check_dogma "${project_libraries}" "$library")
+        extra_arguments=$(count_check_dogma "${output_project_libraries}" "$library")
 
         read -p "${library} as an ATAC library; process with cellranger-atac? (Y/N): " choice
         while [[ ! $choice =~ ^[YyNn]$ ]]; do
@@ -82,13 +88,13 @@ for library in "${libraries[@]}"; do
         done
         # Process choices
         if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
-            mkdir -p ${project_outs}/logs
+            mkdir -p ${output_project_outs}/logs
             # Submit the job to slurm for counting
             job_id=$(sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name ${library}
-#SBATCH --output ${project_outs}/logs/cellranger_${library}.out
-#SBATCH --error ${project_outs}/logs/cellranger_${library}.out
+#SBATCH --output ${output_project_outs}/logs/cellranger_${library}.out
+#SBATCH --error ${output_project_outs}/logs/cellranger_${library}.out
 #SBATCH --ntasks=64
 #SBATCH --mem=128GB
 #SBATCH --time=96:00:00
@@ -115,7 +121,7 @@ log "----------------------------------------"
 
 echo ""
 
-cd ${project_outs}
+cd ${output_project_outs}
 
 # Run cellranger-atac count
 log "Running cellranger-atac count"
@@ -131,7 +137,7 @@ apptainer run -B /data ${count_container} cellranger-atac count \
 
 echo ""
 
-rm -r ${project_outs}/$library/_* ${project_outs}/$library/SC_ATAC_COUNTER_CS
+rm -r ${output_project_outs}/$library/_* ${output_project_outs}/$library/SC_ATAC_COUNTER_CS
 
 log "All processing completed successfully!"
 
@@ -145,12 +151,22 @@ EOF
             echo -e "\033[0;31mERROR:\033[0m Invalid choice. Exiting"
         fi
 
-        if grep -q '.*\(ASAP\).*' "${project_libraries}/${library}.csv"; then
+        if grep -q '.*\(ASAP\).*' "${output_project_libraries}/${library}.csv"; then
 
-            # Extract the ADT file name from the metadata
-            temp_library="${library/_ATAC/}"
-            ADT_file="$(extract_adt_file "$metadata_file" "$temp_library")"
-            ADT_file="${project_scripts}/adt_files/${ADT_file}.csv"
+           temp_library="${library/_ATAC/}"
+            ADT_file=""
+            for project_id in "${project_ids[@]}"; do
+                project_dir="${dir_prefix}/${project_id}"
+                project_scripts="${project_dir}/${project_id}_scripts"
+                metadata_file="${project_scripts}/metadata/${metadata_file_name}"
+                ADT_file="$(extract_adt_file "$metadata_file" "$temp_library")"
+                ADT_file="${project_scripts}/adt_files/${ADT_file}.csv"
+
+                # Check if the ADT file exists
+                if [[ -f "${ADT_file}" ]]; then
+                    break
+                fi
+            done
 
             # Check if the ADT file exists
             if [[ ! -f "${ADT_file}" ]]; then
@@ -158,11 +174,11 @@ EOF
                 exit 1
             fi
             
-            echo "DEBUG: ${ADT_file} found."
+#            echo "DEBUG: ${ADT_file} found."
 
             # Determine the correct ADT CSV file name by replacing _ATAC with _ADT
             adt_library_csv="${library/_ATAC/_ADT}.csv"
-            adt_library_csv="${project_libraries}/${adt_library_csv}"
+            adt_library_csv="${output_project_libraries}/${adt_library_csv}"
 
             # Check if the ADT CSV file exists
             if [[ ! -f "${adt_library_csv}" ]]; then
@@ -181,14 +197,14 @@ EOF
                 continue
             elif [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
 
-                read fastq_dirs fastq_libraries < <(count_read_adt_csv "${project_libraries}" "${adt_library_csv}")
+                read fastq_dirs fastq_libraries < <(count_read_adt_csv "${output_project_libraries}" "${adt_library_csv}")
 
-                ADT_index_folder=${project_outs}/$library/adt_index
-                ADT_outs=${project_outs}/$library/ADT/
+                ADT_index_folder=${output_project_outs}/$library/adt_index
+                ADT_outs=${output_project_outs}/$library/ADT/
 
                 corrected_fastq=$(realpath -m "${fastq_dirs[0]}/../../KITE_corrected")
                 
-                if [ "${count_submitted}" = "yes" ]; then
+                if [ "${count_submitted}" = "YES" ]; then
                     sbatch_dependency="--dependency=afterok:${job_id}"
                 else
                     sbatch_dependency=""
@@ -197,8 +213,8 @@ EOF
                 sbatch $sbatch_dependency <<EOF
 #!/bin/bash
 #SBATCH --job-name ${library}_ADT
-#SBATCH --output ${project_outs}/logs/kite_${library}.out
-#SBATCH --error ${project_outs}/logs/kite_${library}.out
+#SBATCH --output ${output_project_outs}/logs/kite_${library}.out
+#SBATCH --error ${output_project_outs}/logs/kite_${library}.out
 #SBATCH --ntasks=16
 #SBATCH --mem=96GB
 #SBATCH --time=72:00:00
@@ -232,7 +248,7 @@ log "----------------------------------------"
 
 echo ""
 
-cd ${project_outs}/${library}
+cd ${output_project_outs}/${library}
 
 # Create required directories
 mkdir -p ${ADT_index_folder}/temp
@@ -319,11 +335,11 @@ log "All processing completed successfully!"
 EOF
             fi
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
-    elif grep -q '.*GEX*' "${project_libraries}/${library}.csv"; then
+    elif grep -q '.*GEX*' "${output_project_libraries}/${library}.csv"; then
 =        echo ""
         echo "For library $library"
         echo ""
-        cat ${project_libraries}/${library}.csv
+        cat ${output_project_libraries}/${library}.csv
         echo ""
 
         # Ask the user if they want to submit the indices for FASTQ generation
@@ -334,13 +350,13 @@ EOF
         done
         # Process choices
         if [ "${choice}" = "Y" ] || [ "${choice}" = "y" ]; then
-            mkdir -p ${project_outs}/logs/
+            mkdir -p ${output_project_outs}/logs/
             # Submit the job to slurm for counting
             sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name ${library}
-#SBATCH --output ${project_outs}/logs/cellranger_${library}.out
-#SBATCH --error ${project_outs}/logs/cellranger_${library}.out
+#SBATCH --output ${output_project_outs}/logs/cellranger_${library}.out
+#SBATCH --error ${output_project_outs}/logs/cellranger_${library}.out
 #SBATCH --ntasks=64
 #SBATCH --mem=128GB
 #SBATCH --time=96:00:00
@@ -366,13 +382,13 @@ echo ""
 log "Running cellranger multi"
 apptainer run -B /data "${count_container}" cellranger multi \
     --id "${library}" \
-    --csv "${project_libraries}/${library}.csv" \
+    --csv "${output_project_libraries}/${library}.csv" \
     --localcores "\$(nproc)"
 
 echo ""
 
 # Clean up temporary files
-rm -r ${project_outs}/${library}/SC_MULTI_CS ${project_outs}/${library}/_*
+rm -r ${output_project_outs}/${library}/SC_MULTI_CS ${output_project_outs}/${library}/_*
 
 log "All processing completed successfully!"
 EOF
