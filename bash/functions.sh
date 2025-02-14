@@ -419,19 +419,22 @@ handle_gex_mode() {
 }
 
 handle_atac_mode() {
+    echo -e "\033[34mDEBUG:\033[0m Entering handle_atac_mode for library ${library} with modality ${modality} and assay ${assay}"
+    
     if [[ (${modality} == 'ADT' || ${modality} == 'HTO') && ${assay} != 'ASAP' ]]; then
         if [[ -f ${library_output} ]]; then
-            :
+            echo -e "\033[34mDEBUG:\033[0m Found existing library output for ${library}"
         else
-            echo -e "\033[0;31mERROR:\033[0m If you're trying to combine DOGMA ADT/HTO to a DOGMA GEX, please make sure the output directory is of the run containing the GEX FASTQ files"
-            echo -e "\033[0;31mERROR:\033[0m The reference part of the csv file needs to be initialised"
+            echo -e "\033[0;31mERROR:\033[0m Output .csv not found for ${library}"
             exit 1
         fi
         write_fastq_files
     elif [[ (${modality} == 'ADT' || ${modality} == 'HTO') && ${assay} == 'ASAP' ]]; then
         library_output=${output_project_libraries}/${library}_ADT.csv
+        echo -e "\033[34mDEBUG:\033[0m Setting library output to ${library_output} for ${library}"
         write_fastq_files
     elif [[ ${modality} == 'ATAC' ]]; then
+        echo -e "\033[34mDEBUG:\033[0m Processing ATAC modality for ${library}"
         write_fastq_files
     else
         echo -e "\033[0;31mERROR:\033[0m Cannot determine modality for this ATAC run. Are you sure the only modalities are either ATAC, ADT, or HTO?"
