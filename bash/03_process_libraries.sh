@@ -126,7 +126,7 @@ for project_id in "${project_ids[@]}"; do
 
                 # Determine the full modality
                 full_modality=$(determine_full_modality "${modality}" "${library}")
-                if [ ${full_modality} == 1 ]; then
+                if [ "${full_modality}" == "1" ]; then
                         echo -e "\033[34mDEBUG:\033[0m Cannot determine full modality for ${library}"
                         exit 1
                 fi
@@ -142,6 +142,8 @@ for project_id in "${project_ids[@]}"; do
                 elif [[ ${run_type} == 'ATAC' && ${mode} == "ATAC" ]]; then
                         handle_atac_mode
                 fi
+
+        full_modality==""
 
         done < "${metadata_file}"
 done

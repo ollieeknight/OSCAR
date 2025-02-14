@@ -417,7 +417,6 @@ handle_gex_mode() {
 }
 
 handle_atac_mode() {
-    
     if [[ (${modality} == 'ADT' || ${modality} == 'HTO') && ${assay} != 'ASAP' ]]; then
         if [[ -f ${library_output} ]]; then
             echo -e "\033[34mDEBUG:\033[0m Found existing library output for ${library}"
