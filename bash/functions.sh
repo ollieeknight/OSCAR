@@ -286,8 +286,6 @@ determine_full_modality() {
     else
         full_modality=1
     fi
-
-    echo "${full_modality}"
 }
 
 write_human_reference() {
@@ -353,10 +351,8 @@ write_adt_data() {
 }
 
 write_fastq_files() {
-    echo -e "\033[34mDEBUG:\033[0m Entering write_fastq_files for library ${library}"
     declare -A unique_lines
     for folder in "${project_dir}/${project_id}_fastq"/*/outs; do
-        echo -e "\033[34mDEBUG:\033[0m Searching in folder ${folder}"
         matching_fastq_files=($(find "${folder}" -type f -name "${library}*${modality}*" | sort -u))
         for fastq_file in "${matching_fastq_files[@]}"; do
             directory=$(dirname "${fastq_file}")
@@ -386,7 +382,6 @@ write_fastq_files() {
             if [ ! -v unique_lines["${line_identifier}"] ]; then
                 unique_lines["${line_identifier}"]=1
                 echo "${line_identifier}" >> "${output_file}"
-                echo -e "\033[34mDEBUG:\033[0m Writing ${line_identifier} to ${output_file}"
             fi
         done
     done
@@ -420,7 +415,6 @@ handle_gex_mode() {
 }
 
 handle_atac_mode() {
-    echo -e "\033[34mDEBUG:\033[0m Entering handle_atac_mode for library ${library} with modality ${modality} and assay ${assay}"
     
     if [[ (${modality} == 'ADT' || ${modality} == 'HTO') && ${assay} != 'ASAP' ]]; then
         if [[ -f ${library_output} ]]; then
@@ -435,7 +429,6 @@ handle_atac_mode() {
         echo -e "\033[34mDEBUG:\033[0m Setting library output to ${library_output} for ${library}"
         write_fastq_files
     elif [[ ${modality} == 'ATAC' ]]; then
-        echo -e "\033[34mDEBUG:\033[0m Processing ATAC modality for ${library}"
         write_fastq_files
     else
         echo -e "\033[0;31mERROR:\033[0m Cannot determine modality for this ATAC run. Are you sure the only modalities are either ATAC, ADT, or HTO?"
@@ -479,7 +472,7 @@ extract_adt_file() {
     local library=$2
     local ADT_file=""
 
-    while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file; do
+    while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file || [[ -n "$assay" ]]; do
         expected_library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
 
         if [ "$expected_library" == "$library" ]; then

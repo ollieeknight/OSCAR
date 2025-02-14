@@ -62,7 +62,7 @@ fi
 mkdir -p "${project_indices}"  # Create new indices folder
 
 # Read and process the metadata file
-while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file; do
+while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file || [[ -n "$assay" ]]; do
   # Skip the first header line
   if [[ "${assay}" != "assay" ]]; then
     echo ""
