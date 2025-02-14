@@ -126,7 +126,6 @@ for project_id in "${project_ids[@]}"; do
 
                 # Determine the full modality
                 full_modality=$(determine_full_modality "${modality}" "${library}")
-                echo -e "\033[34mDEBUG:\033[0m full_modality=${full_modality}"
                 if [ ${full_modality} == 1 ]; then
                         echo -e "\033[34mDEBUG:\033[0m Cannot determine full modality for ${library}"
                         exit 1

@@ -286,6 +286,8 @@ determine_full_modality() {
     else
         full_modality=1
     fi
+
+    echo "$full_modality"
 }
 
 write_human_reference() {
@@ -443,7 +445,7 @@ count_read_csv() {
     local fastq_names=""
     local fastq_dirs=""
 
-    while IFS= read -r line; do
+    while IFS= read -r line || [[ -n "$line" ]]; do
         if [[ $line == *ATAC* ]]; then
             IFS=',' read -r fastq_name fastq_dir <<< "$line"
             fastq_names="${fastq_names:+$fastq_names,}${fastq_name}"
@@ -496,7 +498,7 @@ count_read_adt_csv() {
         exit 1
     fi
 
-    while IFS= read -r line; do
+    while IFS= read -r line || [[ -n "$line" ]]; do
         IFS=',' read -r -a parts <<< "$line"
         fastq_library="${parts[0]}"
         fastq_dir="${parts[1]}"
