@@ -110,7 +110,7 @@ for project_id in "${project_ids[@]}"; do
 
         run_type=$(check_run_type "${project_id}" "${dir_prefix}")
 
-        echo -e "\033[34mINFO:\033[0m ${run_type} run ${project_id} has flowcell ID ${flowcell_id}"
+        # echo -e "\033[34mINFO:\033[0m ${run_type} run ${project_id} has flowcell ID ${flowcell_id}"
 
         # Iterate through each line in metadata.csv
         while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file || [[ -n "$assay" ]]; do
@@ -122,7 +122,7 @@ for project_id in "${project_ids[@]}"; do
                 # Define the library name
                 library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
 
-                # echo -e "\033[34mINFO:\033[0m Processing library ${library}"
+                echo -e "\033[34mINFO:\033[0m Generating library ${library}"
 
                 # Determine the full modality
                 full_modality=$(determine_full_modality "${modality}" "${library}")
