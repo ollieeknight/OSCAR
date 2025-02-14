@@ -279,8 +279,12 @@ determine_full_modality() {
         full_modality='VDJ-B'
     elif [ "${modality}" = "CRISPR" ]; then
         full_modality='CRISPR Guide Capture'
+    elif [ "${modality}" = "ATAC" ]; then
+        full_modality='ATAC'
     elif [ "${modality}" = "GENO" ]; then
-        return 1
+        full_modality='GENO'
+    else
+        full_modality='Unrecognised, check modality column of metadata file'
     fi
 
     echo "${full_modality}"
