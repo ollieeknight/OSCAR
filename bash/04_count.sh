@@ -81,9 +81,9 @@ for library in "${libraries[@]}"; do
 
         read fastq_names fastq_dirs < <(count_read_csv "${output_project_libraries}" "$library")
 
-        echo "Library: ${library}"
-        echo "FASTQ names: ${fastq_names}"
-        echo "FASTQ directories: ${fastq_dirs}"
+        # echo "Library: ${library}"
+        # echo "FASTQ names: ${fastq_names}"
+        # echo "FASTQ directories: ${fastq_dirs}"
 
         extra_arguments=$(check_dogma_chemistry "${output_project_libraries}" "$library")
 

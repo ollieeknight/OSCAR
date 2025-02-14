@@ -126,7 +126,10 @@ for project_id in "${project_ids[@]}"; do
 
                 # Determine the full modality
                 full_modality=$(determine_full_modality "${modality}" "${library}")
-                if [ ${?} -eq 1 ]; then
+                return_code=$?
+                echo -e "\033[34mDEBUG:\033[0m full_modality=${full_modality}, return_code=${return_code}"
+                if [ ${return_code} -eq 1 ]; then
+                        echo -e "\033[34mDEBUG:\033[0m Skipping library ${library} due to determine_full_modality return code"
                         continue
                 fi
 
