@@ -284,7 +284,7 @@ determine_full_modality() {
     elif [ "${modality}" = "GENO" ]; then
         full_modality='GENO'
     else
-        full_modality='Unrecognised, check modality column of metadata file'
+        full_modality=1
     fi
 
     echo "${full_modality}"
@@ -358,7 +358,6 @@ write_fastq_files() {
     for folder in "${project_dir}/${project_id}_fastq"/*/outs; do
         echo -e "\033[34mDEBUG:\033[0m Searching in folder ${folder}"
         matching_fastq_files=($(find "${folder}" -type f -name "${library}*${modality}*" | sort -u))
-        echo -e "\033[34mDEBUG:\033[0m Found matching FASTQ files: ${matching_fastq_files[@]}"
         for fastq_file in "${matching_fastq_files[@]}"; do
             directory=$(dirname "${fastq_file}")
             fastq_name=$(basename "${fastq_file}" | sed -E 's/\.fastq\.gz$//' | sed -E 's/(_S[0-9]+)?(_[SL][0-9]+_[IR][0-9]+_[0-9]+)*$//')
