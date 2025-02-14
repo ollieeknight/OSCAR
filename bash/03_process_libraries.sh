@@ -113,7 +113,7 @@ for project_id in "${project_ids[@]}"; do
         echo -e "\033[34mINFO:\033[0m ${run_type} run ${project_id} has flowcell ID ${flowcell_id}"
 
         # Iterate through each line in metadata.csv
-        while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file; do
+        while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file || [[ -n "$assay" ]]; do
                 # Skip the header line
                 if [[ ${assay} == "assay" ]]; then
                         continue
