@@ -96,7 +96,7 @@ for file in "${index_files[@]}"; do
         # Submit the job to SLURM
 sbatch <<EOF
 #!/bin/bash
-#SBATCH --job-name ${project_id}
+#SBATCH --job-name ${project_id}_fastq_${index_file}
 #SBATCH --output ${project_dir}/${project_id}_fastq/logs/${index_file}.out
 #SBATCH --error ${project_dir}/${project_id}_fastq/logs/${index_file}.out
 #SBATCH --ntasks=16

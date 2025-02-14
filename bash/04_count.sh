@@ -81,6 +81,10 @@ for library in "${libraries[@]}"; do
 
         read fastq_names fastq_dirs < <(count_read_csv "${output_project_libraries}" "$library")
 
+        echo "Library: ${library}"
+        echo "FASTQ names: ${fastq_names}"
+        echo "FASTQ directories: ${fastq_dirs}"
+
         extra_arguments=$(check_dogma_chemistry "${output_project_libraries}" "$library")
 
         read -p "${library} as an ATAC library; process with cellranger-atac? (Y/N): " choice
@@ -94,7 +98,7 @@ for library in "${libraries[@]}"; do
             # Submit the job to slurm for counting
             job_id=$(sbatch <<EOF
 #!/bin/bash
-#SBATCH --job-name ${library}
+#SBATCH --job-name ${library}_cellranger
 #SBATCH --output ${output_project_outs}/logs/cellranger_${library}.out
 #SBATCH --error ${output_project_outs}/logs/cellranger_${library}.out
 #SBATCH --ntasks=64
@@ -217,7 +221,7 @@ EOF
 
                 sbatch $sbatch_dependency <<EOF
 #!/bin/bash
-#SBATCH --job-name ${library}_ADT
+#SBATCH --job-name ${library}_kite
 #SBATCH --output ${output_project_outs}/logs/kite_${library}.out
 #SBATCH --error ${output_project_outs}/logs/kite_${library}.out
 #SBATCH --ntasks=16
@@ -356,7 +360,7 @@ EOF
             # Submit the job to slurm for counting
             sbatch <<EOF
 #!/bin/bash
-#SBATCH --job-name ${library}
+#SBATCH --job-name ${library}_cellranger
 #SBATCH --output ${output_project_outs}/logs/cellranger_${library}.out
 #SBATCH --error ${output_project_outs}/logs/cellranger_${library}.out
 #SBATCH --ntasks=64
