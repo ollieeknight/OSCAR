@@ -353,9 +353,12 @@ write_adt_data() {
 }
 
 write_fastq_files() {
+    echo -e "\033[34mDEBUG:\033[0m Entering write_fastq_files for library ${library}"
     declare -A unique_lines
     for folder in "${project_dir}/${project_id}_fastq"/*/outs; do
+        echo -e "\033[34mDEBUG:\033[0m Searching in folder ${folder}"
         matching_fastq_files=($(find "${folder}" -type f -name "${library}*${modality}*" | sort -u))
+        echo -e "\033[34mDEBUG:\033[0m Found matching FASTQ files: ${matching_fastq_files[@]}"
         for fastq_file in "${matching_fastq_files[@]}"; do
             directory=$(dirname "${fastq_file}")
             fastq_name=$(basename "${fastq_file}" | sed -E 's/\.fastq\.gz$//' | sed -E 's/(_S[0-9]+)?(_[SL][0-9]+_[IR][0-9]+_[0-9]+)*$//')
@@ -384,8 +387,7 @@ write_fastq_files() {
             if [ ! -v unique_lines["${line_identifier}"] ]; then
                 unique_lines["${line_identifier}"]=1
                 echo "${line_identifier}" >> "${output_file}"
-                # echo -e "\033[0;33mWriting ${line_identifier} to\033[0m"
-                # echo "${output_file}"
+                echo -e "\033[34mDEBUG:\033[0m Writing ${line_identifier} to ${output_file}"
             fi
         done
     done
