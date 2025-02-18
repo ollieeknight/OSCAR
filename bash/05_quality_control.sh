@@ -85,30 +85,27 @@ job_id=$(sbatch <<EOF
 # Source the functions
 source "${oscar_dir}/functions.sh"
 
-# Log input variables
+log "OSCAR step 5: Quality control with cellbender"
+log "See https://github.com/ollieeknight/OSCAR for more information"
+
+echo ""
+
 log "Input variables:"
-log "experiment_id: ${experiment_id}"
-log "library: ${library}"
-log "project_outs: ${project_outs}"
-log "oscar_dir: ${oscar_dir}"
-log "qc_container: ${qc_container}"
-log "feature_matrix_path: ${feature_matrix_path}"
+log "----------------------------------------"
+log "Variable                | Value"
+log "----------------------------------------"
+log "Feature matrix          | ${feature_matrix_path}"
+log "Output path             | ${project_outs}/${library}/cellbender"
+log "Output file             | output.h5"
+log "----------------------------------------"
 
-log ""
+echo ""
 
-# Change to library directory
-log "Changing to library directory..."
 cd ${project_outs}/${library}
-check_status "Directory change"
 
-log ""
-
-# Create cellbender directory
-log "Creating cellbender directory..."
 mkdir -p ${project_outs}/${library}/cellbender
-check_status "Directory creation"
 
-log ""
+echo ""
 
 # Run cellbender
 log "Starting CellBender remove-background..."
@@ -116,18 +113,12 @@ apptainer run --nv -B /data ${qc_container} cellbender remove-background \
         --cuda \
         --input ${feature_matrix_path} \
         --output ${project_outs}/${library}/cellbender/output.h5
-check_status "CellBender processing"
 
-log ""
+echo ""
 
 # Cleanup
-log "Cleaning up temporary files..."
 rm ckpt.tar.gz
-check_status "Cleanup"
 
-log ""
-
-log "CellBender processing completed successfully!"
 EOF
 )
                 job_id=$(echo "$job_id" | awk '{print $4}')
@@ -158,16 +149,23 @@ sbatch --dependency=afterok:$job_id <<EOF
 # Source the functions
 source "${oscar_dir}/functions.sh"
 
-# Log input variables
-log "Input variables:"
-log "experiment_id: ${experiment_id}"
-log "library: ${library}"
-log "project_outs: ${project_outs}"
-log "oscar_dir: ${oscar_dir}"
-log "qc_container: ${qc_container}"
-log "n_donors: ${n_donors}"
+log "OSCAR step 5: Quality control; genotyping with cellsnp-lite and vireo"
+log "See https://github.com/ollieeknight/OSCAR for more information"
 
-log ""
+echo ""
+
+log "Input variables:"
+log "----------------------------------------"
+log "Variable                | Value"
+log "----------------------------------------"
+log "Input sample          | ${project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam"
+log "Input cell barcodes   | ${project_outs}/${library}/cellbender/output_cell_barcodes.csv"
+log "Output folder         | ${project_outs}/${library}/vireo"
+log "VCF file              | /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz"
+log "Number of donors      | $n_donors"
+log "----------------------------------------"
+
+echo ""
 
 cd ${project_outs}/${library}
 mkdir -p ${project_outs}/${library}/vireo
@@ -183,9 +181,8 @@ apptainer exec -B /data ${qc_container} cellsnp-lite \
         --minCOUNT 20 \
         --gzip \
         -p \$(nproc)
-check_status "Cellsnp-lite processing"
 
-log ""
+echo ""
 
 # Run vireo
 log "Starting vireo processing..."
@@ -194,9 +191,8 @@ apptainer run -B /data ${qc_container} vireo \
         -o ${project_outs}/${library}/vireo \
         -N $n_donors \
         -p \$(nproc)
-check_status "Vireo processing"
 
-log ""
+echo ""
 
 log "All processing completed successfully!"
 EOF

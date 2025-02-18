@@ -284,7 +284,7 @@ determine_full_modality() {
     elif [ "${modality}" = "GENO" ]; then
         full_modality='GENO'
     else
-        full_modality=1
+        full_modality='ERROR'
     fi
 
     echo "$full_modality"
@@ -430,8 +430,10 @@ handle_atac_mode() {
         write_fastq_files
     elif [[ ${modality} == 'ATAC' ]]; then
         write_fastq_files
+    elif [[ ${modality} == 'GENO' ]]; then
+        continue
     else
-        echo -e "\033[0;31mERROR:\033[0m Cannot determine modality for this ATAC run. Are you sure the only modalities are either ATAC, ADT, or HTO?"
+        echo -e "\033[0;31mERROR:\033[0m Cannot determine modality for this ATAC run. Are you sure the only modalities are either ATAC, ADT, HTO, or GENO?"
         echo -e "\033[0;31mERROR:\033[0m Library: ${library}, modality: ${modality}"
         exit 1
     fi
