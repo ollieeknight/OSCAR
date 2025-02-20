@@ -502,6 +502,23 @@ read_adt_csv() {
     echo "$fastq_dirs" "$fastq_libraries"
 }
 
+extract_donor_number() {
+    local metadata_file=$1
+    local library=$2
+    local donor_number=""
+
+    while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file || [[ -n "$assay" ]]; do
+        expected_library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
+
+        if [ "$expected_library" == "$library" ]; then
+            donor_number="${n_donors}"
+            break
+        fi
+    done < "$metadata_file"
+
+    echo "$donor_number"
+}
+
 extract_donor_number_from_all_metadata() {
     local library=$1
     local donor_number=""
