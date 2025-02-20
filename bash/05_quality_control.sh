@@ -176,7 +176,7 @@ log "Input variables:"
 log "----------------------------------------"
 log "Variable                | Value"
 log "----------------------------------------"
-log "Input sample          | ${output_project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam"
+log "Input sample bam      | ${output_project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam"
 log "Input cell barcodes   | ${output_project_outs}/${library}/cellbender/output_cell_barcodes.csv"
 log "Output folder         | ${output_project_outs}/${library}/vireo"
 log "VCF file              | /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz"
@@ -245,7 +245,7 @@ log "Input variables:"
 log "----------------------------------------"
 log "Variable                | Value"
 log "----------------------------------------"
-log "Input sample          | ${output_project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam"
+log "Input sample bam      | ${output_project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam"
 log "Input cell barcodes   | ${output_project_outs}/${library}/cellbender/output_cell_barcodes.csv"
 log "Output folder         | ${output_project_outs}/${library}/vireo"
 log "VCF file              | /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz"
@@ -257,21 +257,21 @@ echo ""
 cd ${output_project_outs}/${library}
 mkdir -p ${output_project_outs}/${library}/vireo
 
-log ""
+echo ""
 
 # Run cellsnp-lite
 log "Starting cellsnp-lite processing..."
-# apptainer exec -B /data ${qc_container} cellsnp-lite \
-#         -s ${output_project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam \
-#         -b ${output_project_outs}/${library}/cellbender/output_cell_barcodes.csv \
-#         -O ${output_project_outs}/${library}/vireo \
-#         -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz \
-#         --minMAF 0.1 \
-#         --minCOUNT 20 \
-#         --gzip \
-#         -p \$(nproc)
+apptainer exec -B /data ${qc_container} cellsnp-lite \
+        -s ${output_project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam \
+        -b ${output_project_outs}/${library}/cellbender/output_cell_barcodes.csv \
+        -O ${output_project_outs}/${library}/vireo \
+        -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz \
+        --minMAF 0.1 \
+        --minCOUNT 20 \
+        --gzip \
+        -p \$(nproc)
 
-log ""
+echo ""
 
 # Run vireo
 log "Starting vireo processing..."
@@ -281,9 +281,6 @@ apptainer run -B /data ${qc_container} vireo \
         -N $n_donors \
         -p \$(nproc)
 
-log ""
-
-log "All processing completed successfully!"
 EOF
                                 job_id=""
                         else
@@ -321,11 +318,11 @@ log "Input variables:"
 log "----------------------------------------"
 log "Variable                | Value"
 log "----------------------------------------"
-log "Input sample          | ${output_project_outs}/${library}/outs/possorted_bam.bam"
-log "Output name           | output"
-log "Output folder         | ${output_project_outs}/${library}/mgatk"
-log "Input barcodes             | ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv"
-log "Number of donors      | $n_donors"
+log "Input sample bam        | ${output_project_outs}/${library}/outs/possorted_bam.bam"
+log "Input barcodes          | ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv"
+log "mgatk output folder     | ${output_project_outs}/${library}/mgatk"
+log "Vireo output folder     | ${output_project_outs}/${library}/vireo"
+log "Number of donors        | $n_donors"
 log "----------------------------------------"
 
 echo ""
@@ -336,30 +333,30 @@ echo ""
 
 # Run mgatk mtDNA genotyping
 log "Starting mgatk mtDNA genotyping..."
-# apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
-#         -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
-#         -n output \
-#         -o ${output_project_outs}/${library}/mgatk \
-#         -c 1 \
-#         -bt CB \
-#         -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
-#         --skip-R
+apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
+        -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
+        -n output \
+        -o ${output_project_outs}/${library}/mgatk \
+        -c 1 \
+        -bt CB \
+        -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
+        --skip-R
 
-# echo ""
+echo ""
 
-# rm -r ${output_project_outs}/${library}/.snakemake
+rm -r ${output_project_outs}/${library}/.snakemake
 
-# mkdir -p ${output_project_outs}/${library}/AMULET
+mkdir -p ${output_project_outs}/${library}/AMULET
 
 # Run AMULET doublet detection
-# log "Starting AMULET doublet detection..."
-# apptainer run -B /data ${qc_container} AMULET \
-#         ${output_project_outs}/${library}/outs/fragments.tsv.gz \
-#         ${output_project_outs}/${library}/outs/singlecell.csv \
-#         /opt/AMULET/human_autosomes.txt \
-#         /opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed \
-#         ${output_project_outs}/${library}/AMULET \
-#         /opt/AMULET/
+log "Starting AMULET doublet detection..."
+apptainer run -B /data ${qc_container} AMULET \
+        ${output_project_outs}/${library}/outs/fragments.tsv.gz \
+        ${output_project_outs}/${library}/outs/singlecell.csv \
+        /opt/AMULET/human_autosomes.txt \
+        /opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed \
+        ${output_project_outs}/${library}/AMULET \
+        /opt/AMULET/
 
 echo ""
 
@@ -367,16 +364,16 @@ mkdir -p ${output_project_outs}/${library}/vireo
 
 # Run cellsnp-lite
 log "Starting donor SNP genotyping with cellsnp-lite..."
-# apptainer exec -B /data ${qc_container} cellsnp-lite \
-#         -s ${output_project_outs}/${library}/outs/possorted_bam.bam \
-#         -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
-#         -O ${output_project_outs}/${library}/vireo \
-#         -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz \
-#         --minMAF 0.1 \
-#         --minCOUNT 20 \
-#         --gzip \
-#         -p \$(nproc) \
-#         --UMItag None
+apptainer exec -B /data ${qc_container} cellsnp-lite \
+        -s ${output_project_outs}/${library}/outs/possorted_bam.bam \
+        -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
+        -O ${output_project_outs}/${library}/vireo \
+        -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz \
+        --minMAF 0.1 \
+        --minCOUNT 20 \
+        --gzip \
+        -p \$(nproc) \
+        --UMItag None
 
 echo ""
 
