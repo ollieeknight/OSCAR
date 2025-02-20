@@ -509,6 +509,7 @@ extract_donor_number() {
     local donor_number=""
 
     for project_id in "${project_ids[@]}"; do
+        metadata_file="${dir_prefix}/${project_id}/${project_id}_scripts/metadata/metadata.csv"
         while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file || [[ -n "$assay" ]]; do
             expected_library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
 
