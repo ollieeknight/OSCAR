@@ -73,7 +73,7 @@ for library in "${libraries[@]}"; do
 
         read assay experiment_id historical_number replicate modality < <(extract_variables "$library")
 
-        n_donors=$(extract_donor_number "$library" "${project_ids[@]}")
+        n_donors=$(extract_n_donors "$library" "${project_ids[@]}")
 
         feature_matrix_path=$(find "${output_project_outs}/${library}/" -type f -name "raw_feature_bc_matrix.h5" -print -quit)
         peak_matrix_path=$(find "${output_project_outs}/${library}/" -type f -name "raw_peak_bc_matrix.h5" -print -quit)
