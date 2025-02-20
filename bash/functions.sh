@@ -508,18 +508,28 @@ extract_donor_number() {
     local project_ids=("$@")
     local donor_number=""
 
+    echo "DEBUG: Starting extract_donor_number function"
+    echo "DEBUG: Library: $library"
+    echo "DEBUG: Project IDs: ${project_ids[*]}"
+
     for project_id in "${project_ids[@]}"; do
         metadata_file="${dir_prefix}/${project_id}/${project_id}_scripts/metadata/metadata.csv"
+        echo "DEBUG: Checking metadata file: $metadata_file"
+
         while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file || [[ -n "$assay" ]]; do
             expected_library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
+            echo "DEBUG: Expected library: $expected_library"
+            echo "DEBUG: Assay: $assay, Experiment ID: $experiment_id, Historical Number: $historical_number, Replicate: $replicate, Modality: $modality, N Donors: $n_donors"
 
             if [ "$expected_library" == "$library" ]; then
                 donor_number="${n_donors}"
+                echo "DEBUG: Match found. Donor number: $donor_number"
                 break 2
             fi
         done < "$metadata_file"
     done
 
+    echo "DEBUG: Final donor number: $donor_number"
     echo "$donor_number"
 }
 
