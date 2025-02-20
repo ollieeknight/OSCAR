@@ -244,15 +244,15 @@ log ""
 
 # Run cellsnp-lite
 log "Starting cellsnp-lite processing..."
-apptainer exec -B /data ${qc_container} cellsnp-lite \
-        -s ${project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam \
-        -b ${project_outs}/${library}/cellbender/output_cell_barcodes.csv \
-        -O ${project_outs}/${library}/vireo \
-        -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz \
-        --minMAF 0.1 \
-        --minCOUNT 20 \
-        --gzip \
-        -p \$(nproc)
+# apptainer exec -B /data ${qc_container} cellsnp-lite \
+#         -s ${project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam \
+#         -b ${project_outs}/${library}/cellbender/output_cell_barcodes.csv \
+#         -O ${project_outs}/${library}/vireo \
+#         -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz \
+#         --minMAF 0.1 \
+#         --minCOUNT 20 \
+#         --gzip \
+#         -p \$(nproc)
 
 log ""
 
@@ -319,14 +319,14 @@ echo ""
 
 # Run mgatk mtDNA genotyping
 log "Starting mgatk mtDNA genotyping..."
-apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
-        -i ${project_outs}/${library}/outs/possorted_bam.bam \
-        -n output \
-        -o ${project_outs}/${library}/mgatk \
-        -c 1 \
-        -bt CB \
-        -b ${project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
-        --skip-R
+# apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
+#         -i ${project_outs}/${library}/outs/possorted_bam.bam \
+#         -n output \
+#         -o ${project_outs}/${library}/mgatk \
+#         -c 1 \
+#         -bt CB \
+#         -b ${project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
+#         --skip-R
 
 echo ""
 
@@ -350,16 +350,16 @@ mkdir -p ${project_outs}/${library}/vireo
 
 # Run cellsnp-lite
 log "Starting donor SNP genotyping with cellsnp-lite..."
-apptainer exec -B /data ${qc_container} cellsnp-lite \
-        -s ${project_outs}/${library}/outs/possorted_bam.bam \
-        -b ${project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
-        -O ${project_outs}/${library}/vireo \
-        -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz \
-        --minMAF 0.1 \
-        --minCOUNT 20 \
-        --gzip \
-        -p \$(nproc) \
-        --UMItag None
+# apptainer exec -B /data ${qc_container} cellsnp-lite \
+#         -s ${project_outs}/${library}/outs/possorted_bam.bam \
+#         -b ${project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
+#         -O ${project_outs}/${library}/vireo \
+#         -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz \
+#         --minMAF 0.1 \
+#         --minCOUNT 20 \
+#         --gzip \
+#         -p \$(nproc) \
+#         --UMItag None
 
 echo ""
 
@@ -414,14 +414,14 @@ cd ${project_outs}/${library}
 
 # Run mgatk mtDNA genotyping
 log "Starting mgatk mtDNA genotyping..."
-apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
-        -i ${project_outs}/${library}/outs/possorted_bam.bam \
-        -n output \
-        -o ${project_outs}/${library}/mgatk \
-        -c 8 \
-        -bt CB \
-        -b ${project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
-        --skip-R
+# apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
+#         -i ${project_outs}/${library}/outs/possorted_bam.bam \
+#         -n output \
+#         -o ${project_outs}/${library}/mgatk \
+#         -c 8 \
+#         -bt CB \
+#         -b ${project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
+#         --skip-R
 
 echo ""
 
