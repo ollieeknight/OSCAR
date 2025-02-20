@@ -345,21 +345,21 @@ log "Starting mgatk mtDNA genotyping..."
 #         -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
 #         --skip-R
 
-echo ""
+# echo ""
 
-rm -r ${output_project_outs}/${library}/.snakemake
+# rm -r ${output_project_outs}/${library}/.snakemake
 
-mkdir -p ${output_project_outs}/${library}/AMULET
+# mkdir -p ${output_project_outs}/${library}/AMULET
 
 # Run AMULET doublet detection
-log "Starting AMULET doublet detection..."
-apptainer run -B /data ${qc_container} AMULET \
-        ${output_project_outs}/${library}/outs/fragments.tsv.gz \
-        ${output_project_outs}/${library}/outs/singlecell.csv \
-        /opt/AMULET/human_autosomes.txt \
-        /opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed \
-        ${output_project_outs}/${library}/AMULET \
-        /opt/AMULET/
+# log "Starting AMULET doublet detection..."
+# apptainer run -B /data ${qc_container} AMULET \
+#         ${output_project_outs}/${library}/outs/fragments.tsv.gz \
+#         ${output_project_outs}/${library}/outs/singlecell.csv \
+#         /opt/AMULET/human_autosomes.txt \
+#         /opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed \
+#         ${output_project_outs}/${library}/AMULET \
+#         /opt/AMULET/
 
 echo ""
 
@@ -431,14 +431,14 @@ cd ${output_project_outs}/${library}
 
 # Run mgatk mtDNA genotyping
 log "Starting mgatk mtDNA genotyping..."
-# apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
-#         -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
-#         -n output \
-#         -o ${output_project_outs}/${library}/mgatk \
-#         -c 8 \
-#         -bt CB \
-#         -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
-#         --skip-R
+apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
+        -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
+        -n output \
+        -o ${output_project_outs}/${library}/mgatk \
+        -c 8 \
+        -bt CB \
+        -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
+        --skip-R
 
 echo ""
 
