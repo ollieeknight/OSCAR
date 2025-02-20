@@ -503,35 +503,20 @@ read_adt_csv() {
 }
 
 extract_donor_number() {
-    local metadata_file=$1
-    local library=$2
+    local library="$1"
+    shift
+    local project_ids=("$@")
     local donor_number=""
-
-    while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file || [[ -n "$assay" ]]; do
-        expected_library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
-
-        if [ "$expected_library" == "$library" ]; then
-            donor_number="${n_donors}"
-            break
-        fi
-    done < "$metadata_file"
-
-    echo "$donor_number"
-}
-
-extract_donor_number_from_all_metadata() {
-    local library=$1
-    local donor_number=""
-    local project_ids=("${!2}")
-    local dir_prefix=$3
-    local metadata_file_name=$4
 
     for project_id in "${project_ids[@]}"; do
-        local metadata_file="${dir_prefix}/${project_id}/${project_id}_scripts/metadata/${metadata_file_name}"
-        donor_number=$(extract_donor_number "$metadata_file" "$library")
-        if [ -n "$donor_number" ]; then
-            break
-        fi
+        while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file || [[ -n "$assay" ]]; do
+            expected_library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
+
+            if [ "$expected_library" == "$library" ]; then
+                donor_number="${n_donors}"
+                break 2
+            fi
+        done < "$metadata_file"
     done
 
     echo "$donor_number"
