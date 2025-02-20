@@ -522,6 +522,9 @@ extract_donor_number() {
 extract_donor_number_from_all_metadata() {
     local library=$1
     local donor_number=""
+    local project_ids=("${!2}")
+    local dir_prefix=$3
+    local metadata_file_name=$4
 
     for project_id in "${project_ids[@]}"; do
         local metadata_file="${dir_prefix}/${project_id}/${project_id}_scripts/metadata/${metadata_file_name}"
