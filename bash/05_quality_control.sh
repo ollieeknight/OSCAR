@@ -49,10 +49,10 @@ output_project_outs="${output_project_dir}/${output_project_id}_outs"
 for project_id in "${project_ids[@]}"; do
     project_dir="${dir_prefix}/${project_id}"
     project_scripts="${project_dir}/${project_id}_scripts"
-    metadata_file="${project_scripts}/metadata/${metadata_file_name}"
+    metadata_file="${project_scripts}/metadata/metadata.csv"
     
     if [ ! -f "${metadata_file}" ]; then
-        echo -e "\033[0;31mERROR:\033[0m Metadata file for ${project_id} not found, please check path"
+        echo -e "\033[0;31mERROR:\033[0m Metadata file for ${project_id} not found at ${metadata_file}, please check path"
         exit 1
     fi
 done
