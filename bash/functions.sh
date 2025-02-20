@@ -502,13 +502,13 @@ read_adt_csv() {
     echo "$fastq_dirs" "$fastq_libraries"
 }
 
-extract_donor_number() {
+extract_n_donors() {
     local library="$1"
     shift
     local project_ids=("$@")
-    local donor_number=""
+    local n_donors=""
 
-    echo "DEBUG: Starting extract_donor_number function"
+    echo "DEBUG: Starting extract_n_donors function"
     echo "DEBUG: Library: $library"
     echo "DEBUG: Project IDs: ${project_ids[*]}"
 
@@ -522,15 +522,14 @@ extract_donor_number() {
             echo "DEBUG: Assay: $assay, Experiment ID: $experiment_id, Historical Number: $historical_number, Replicate: $replicate, Modality: $modality, N Donors: $n_donors"
 
             if [ "$expected_library" == "$library" ]; then
-                donor_number="${n_donors}"
-                echo "DEBUG: Match found. Donor number: $donor_number"
+                echo "DEBUG: Match found. Donor number: $n_donors"
                 break 2
             fi
         done < "$metadata_file"
     done
 
-    echo "DEBUG: Final donor number: $donor_number"
-    echo "$donor_number"
+    echo "DEBUG: Final donor number: $n_donors"
+    echo "$n_donors"
 }
 
 extract_variables() {
