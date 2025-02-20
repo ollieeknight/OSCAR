@@ -56,7 +56,7 @@ for library in "${libraries[@]}"; do
 
         read assay experiment_id historical_number replicate modality < <(extract_variables "$library")
 
-        read n_donors < <(search_metadata "$library" "$assay" "$experiment_id" "$historical_number" "$replicate")        
+        n_donors=$(extract_donor_number "$metadata_file" "$library")
 
         feature_matrix_path=$(find "${project_outs}/${library}/" -type f -name "raw_feature_bc_matrix.h5" -print -quit)
         peak_matrix_path=$(find "${project_outs}/${library}/" -type f -name "raw_peak_bc_matrix.h5" -print -quit)
@@ -130,6 +130,7 @@ EOF
                         echo "Skipping genotyping for ${library}, as this is either a mouse run, or only contains 1 donor"
                         job_id=""
                 elif [[ "$n_donors" != '0' && "$n_donors" != '1' && "$n_donors" != 'NA' && "$job_id" != "" ]]; then
+                        echo "Number of donors is $n_donors"
                         read -p "Would you like to genotype ${library}? (Y/N): " choice
                         while [[ ! $choice =~ ^[YyNn]$ ]]; do
                                 echo "Invalid input. Please enter Y or N."
@@ -201,6 +202,7 @@ EOF
                                 echo "Skipping genotyping for ${library}"
                         fi
                 elif [[ "$n_donors" != '0' && "$n_donors" != '1' && "$n_donors" != 'NA' && "$job_id" == "" ]]; then
+                        echo "Number of donors is $n_donors"
                         read -p "Would you like to genotype ${library}? (Y/N): " choice
                         while [[ ! $choice =~ ^[YyNn]$ ]]; do
                                 echo "Invalid input. Please enter Y or N."
@@ -220,16 +222,20 @@ sbatch <<EOF
 # Source the functions
 source "${oscar_dir}/functions.sh"
 
-# Log input variables
-log "Input variables:"
-log "experiment_id: ${experiment_id}"
-log "library: ${library}"
-log "project_outs: ${project_outs}"
-log "oscar_dir: ${oscar_dir}"
-log "qc_container: ${qc_container}"
-log "n_donors: ${n_donors}"
+echo ""
 
-log ""
+log "Input variables:"
+log "----------------------------------------"
+log "Variable                | Value"
+log "----------------------------------------"
+log "Input sample          | ${project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam"
+log "Input cell barcodes   | ${project_outs}/${library}/cellbender/output_cell_barcodes.csv"
+log "Output folder         | ${project_outs}/${library}/vireo"
+log "VCF file              | /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz"
+log "Number of donors      | $n_donors"
+log "----------------------------------------"
+
+echo ""
 
 cd ${project_outs}/${library}
 mkdir -p ${project_outs}/${library}/vireo
@@ -247,7 +253,6 @@ apptainer exec -B /data ${qc_container} cellsnp-lite \
         --minCOUNT 20 \
         --gzip \
         -p \$(nproc)
-check_status "Cellsnp-lite processing"
 
 log ""
 
@@ -258,7 +263,6 @@ apptainer run -B /data ${qc_container} vireo \
         -o ${project_outs}/${library}/vireo \
         -N $n_donors \
         -p \$(nproc)
-check_status "Vireo processing"
 
 log ""
 
@@ -274,6 +278,8 @@ EOF
                 fi
         elif [ -n "$peak_matrix_path" ]; then
                 if [[ "$n_donors" != '0' && "$n_donors" != '1' && "$n_donors" != 'NA' ]]; then
+                        echo "Number of donors is $n_donors"
+
                         read -p "Would you like to genotype ${library}? (Y/N): " choice
                         while [[ ! $choice =~ ^[YyNn]$ ]]; do
                                 echo "Invalid input. Please enter Y or N."
@@ -286,14 +292,30 @@ sbatch <<EOF
 #SBATCH --output ${project_outs}/logs/geno_${library}.out
 #SBATCH --error ${project_outs}/logs/geno_${library}.out
 #SBATCH --ntasks=16
-#SBATCH --mem=64GB
+#SBATCH --mem=128GB
 #SBATCH --time=96:00:00
+
 # Source the functions
 source "${oscar_dir}/functions.sh"
 
+echo ""
+
+log "Input variables:"
+log "----------------------------------------"
+log "Variable                | Value"
+log "----------------------------------------"
+log "Input sample          | ${project_outs}/${library}/outs/possorted_bam.bam"
+log "Output name           | output"
+log "Output folder         | ${project_outs}/${library}/mgatk"
+log "Input barcodes             | ${project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv"
+log "Number of donors      | $n_donors"
+log "----------------------------------------"
+
+echo ""
+
 cd ${project_outs}/${library}
 
-log ""
+echo ""
 
 # Run mgatk mtDNA genotyping
 log "Starting mgatk mtDNA genotyping..."
@@ -305,9 +327,8 @@ apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
         -bt CB \
         -b ${project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
         --skip-R
-check_status "mgatk processing"
 
-log ""
+echo ""
 
 rm -r ${project_outs}/${library}/.snakemake
 
@@ -322,9 +343,8 @@ apptainer run -B /data ${qc_container} AMULET \
         /opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed \
         ${project_outs}/${library}/AMULET \
         /opt/AMULET/
-check_status "AMULET processing"
 
-log ""
+echo ""
 
 mkdir -p ${project_outs}/${library}/vireo
 
@@ -340,9 +360,8 @@ apptainer exec -B /data ${qc_container} cellsnp-lite \
         --gzip \
         -p \$(nproc) \
         --UMItag None
-check_status "Cellsnp-lite processing"
 
-log ""
+echo ""
 
 # Run vireo
 log "Starting vireo donor demultiplexing..."
@@ -351,16 +370,13 @@ apptainer run -B /data ${qc_container} vireo \
         -o ${project_outs}/${library}/vireo \
         -N $n_donors \
         -p \$(nproc)
-check_status "Vireo processing"
 
-log ""
-
-log "All processing completed successfully!"
 EOF
                         else
                                 echo "Skipping genotyping"
                         fi
                 elif [[ "$n_donors" == '0' || "$n_donors" == '1' || "$n_donors" == 'NA' ]]; then
+                        echo "Number of donors is $n_donors"
                         read -p "Would you like to perform mitochondrial genotyping for ${library}? (Y/N): " choice
                         while [[ ! $choice =~ ^[YyNn]$ ]]; do
                                 echo "Invalid input. Please enter Y or N."
@@ -373,22 +389,26 @@ sbatch <<EOF
 #SBATCH --output ${project_outs}/logs/geno_${library}.out
 #SBATCH --error ${project_outs}/logs/geno_${library}.out
 #SBATCH --ntasks=16
-#SBATCH --mem=64GB
+#SBATCH --mem=128GB
 #SBATCH --time=48:00:00
 
 # Source the functions
 source "${oscar_dir}/functions.sh"
 
-# Log input variables
-log "Input variables:"
-log "experiment_id: ${experiment_id}"
-log "library: ${library}"
-log "project_outs: ${project_outs}"
-log "oscar_dir: ${oscar_dir}"
-log "qc_container: ${qc_container}"
-log "n_donors: ${n_donors}"
+echo ""
 
-log ""
+log "Input variables:"
+log "----------------------------------------"
+log "Variable                | Value"
+log "----------------------------------------"
+log "Input sample          | ${project_outs}/${library}/outs/possorted_bam.bam"
+log "Output name           | output"
+log "Output folder         | ${project_outs}/${library}/mgatk"
+log "Input barcodes             | ${project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv"
+log "Number of donors      | $n_donors"
+log "----------------------------------------"
+
+echo ""
 
 cd ${project_outs}/${library}
 
@@ -402,9 +422,8 @@ apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
         -bt CB \
         -b ${project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
         --skip-R
-check_status "mgatk processing"
 
-log ""
+echo ""
 
 rm -r ${project_outs}/${library}/.snakemake
 
@@ -419,11 +438,7 @@ apptainer run -B /data ${qc_container} AMULET \
         /opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed \
         ${project_outs}/${library}/AMULET \
         /opt/AMULET/
-check_status "AMULET processing"
 
-log ""
-
-log "Processing completed successfully!"
 EOF
                         else
                                 echo "Skipping genotyping"

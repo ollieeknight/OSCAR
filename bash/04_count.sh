@@ -79,7 +79,7 @@ for library in "${libraries[@]}"; do
         fastq_names=""
         fastq_dirs=""
 
-        read fastq_names fastq_dirs < <(count_read_csv "${output_project_libraries}" "$library")
+        read fastq_names fastq_dirs < <(read_library_csv "${output_project_libraries}" "$library")
 
         # echo "Library: ${library}"
         # echo "FASTQ names: ${fastq_names}"
@@ -206,7 +206,7 @@ EOF
                 continue
             elif [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
 
-                read fastq_dirs fastq_libraries < <(count_read_adt_csv "${output_project_libraries}" "${adt_library_csv}")
+                read fastq_dirs fastq_libraries < <(read_adt_csv "${output_project_libraries}" "${adt_library_csv}")
 
                 ADT_index_folder=${output_project_outs}/$library/adt_index
                 ADT_outs=${output_project_outs}/$library/ADT/

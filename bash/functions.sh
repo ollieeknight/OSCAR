@@ -6,16 +6,6 @@ log() {
     echo -e "$timestamp $1"
 }
 
-# Function to check last command status and exit if failed
-check_status() {
-    if [ $? -eq 0 ]; then
-        log "SUCCESS: $1"
-    else
-        log "ERROR: $1 failed"
-        exit 1
-    fi
-}
-
 # Function to check if project_id is defined
 check_project_id() {
     if [ -z "${project_id}" ]; then
@@ -439,7 +429,7 @@ handle_atac_mode() {
     fi
 }
 
-count_read_csv() {
+read_library_csv() {
     local library_folder=$1
     local library=$2
     local fastq_names=""
@@ -486,7 +476,7 @@ extract_adt_file() {
     echo "$ADT_file"
 }
 
-count_read_adt_csv() {
+read_adt_csv() {
     local library_folder=$1
     local library=$2
     local library_csv="${library}"
@@ -512,6 +502,23 @@ count_read_adt_csv() {
     echo "$fastq_dirs" "$fastq_libraries"
 }
 
+extract_donor_number() {
+    local metadata_file=$1
+    local library=$2
+    local donor_number=""
+
+    while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file || [[ -n "$assay" ]]; do
+        expected_library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
+
+        if [ "$expected_library" == "$library" ]; then
+            donor_number="${n_donors}"
+            break
+        fi
+    done < "$metadata_file"
+
+    echo "$donor_number"
+}
+
 extract_variables() {
     local library="$1"
     local assay remainder experiment_id historical_number replicate modality
@@ -527,23 +534,4 @@ extract_variables() {
     modality="${remainder#*}"
 
     echo "$assay" "$experiment_id" "$historical_number" "$replicate" "$modality"
-}
-
-search_metadata() {
-    local library="$1"
-    local assay="$2"
-    local experiment_id="$3"
-    local historical_number="$4"
-    local replicate="$5"
-    local metadata_file="$project_scripts/metadata/metadata.csv"
-
-    awk -F, 'NR>1 {
-        if ($1 == "'$assay'" && 
-            $2 == "'$experiment_id'" && 
-            $3 == "'$historical_number'" && 
-            $4 == "'$replicate'") {
-            print $10  # n_donors is in column 10
-            exit      # stop after first match
-        }
-    }' "$metadata_file"
 }
