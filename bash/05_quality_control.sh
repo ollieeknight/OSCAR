@@ -66,7 +66,7 @@ qc_container=${TMPDIR}/OSCAR/oscar-qc_latest.sif
 
 metadata_file="${output_project_scripts}/metadata/metadata.csv"
 
-libraries=($(find ${output+project_outs}/ -maxdepth 1 -mindepth 1 -type d -not -name 'logs' -exec basename {} \;))
+libraries=($(find ${output_project_outs}/ -maxdepth 1 -mindepth 1 -type d -not -name 'logs' -exec basename {} \;))
 mapfile -t libraries < <(printf '%s\n' "${libraries[@]}" | sort)
 
 for library in "${libraries[@]}"; do
