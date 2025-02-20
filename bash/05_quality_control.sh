@@ -34,32 +34,49 @@ while [[ "${#}" -gt 0 ]]; do
         exit 1
     fi
 done
+
 check_project_id
 
-# Define project directories
-project_dir="${dir_prefix}/${project_id}"
-project_outs="${project_dir}/${project_id}_outs"
-project_scripts="${project_dir}/${project_id}_scripts"
+IFS=',' read -r -a project_ids <<< "${project_id}"
 
-check_folder_exists "${project_outs}"
+output_project_id="${project_ids[0]}"
+output_project_dir="${dir_prefix}/${output_project_id}"
+output_project_scripts="${output_project_dir}/${output_project_id}_scripts"
+output_project_libraries="${output_project_scripts}/libraries"
+output_project_outs="${output_project_dir}/${output_project_id}_outs"
+
+# Check if metadata file exists for all project IDs
+for project_id in "${project_ids[@]}"; do
+    project_dir="${dir_prefix}/${project_id}"
+    project_scripts="${project_dir}/${project_id}_scripts"
+    metadata_file="${project_scripts}/metadata/${metadata_file_name}"
+    
+    if [ ! -f "${metadata_file}" ]; then
+        echo -e "\033[0;31mERROR:\033[0m Metadata file for ${project_id} not found, please check path"
+        exit 1
+    fi
+done
+
+check_folder_exists "${output_project_outs}"
 
 # Pull necessary OSCAR containers
 check_and_pull_oscar_containers
+
 qc_container=${TMPDIR}/OSCAR/oscar-qc_latest.sif
 
-metadata_file="${project_dir}/${project_id}_scripts/metadata/metadata.csv"
+metadata_file="${output_project_scripts}/metadata/metadata.csv"
 
-libraries=($(find ${project_outs}/ -maxdepth 1 -mindepth 1 -type d -not -name 'logs' -exec basename {} \;))
+libraries=($(find ${output+project_outs}/ -maxdepth 1 -mindepth 1 -type d -not -name 'logs' -exec basename {} \;))
 mapfile -t libraries < <(printf '%s\n' "${libraries[@]}" | sort)
 
 for library in "${libraries[@]}"; do
 
         read assay experiment_id historical_number replicate modality < <(extract_variables "$library")
 
-        n_donors=$(extract_donor_number "$metadata_file" "$library")
+        n_donors=$(extract_donor_number_from_all_metadata "$library")
 
-        feature_matrix_path=$(find "${project_outs}/${library}/" -type f -name "raw_feature_bc_matrix.h5" -print -quit)
-        peak_matrix_path=$(find "${project_outs}/${library}/" -type f -name "raw_peak_bc_matrix.h5" -print -quit)
+        feature_matrix_path=$(find "${output_project_outs}/${library}/" -type f -name "raw_feature_bc_matrix.h5" -print -quit)
+        peak_matrix_path=$(find "${output_project_outs}/${library}/" -type f -name "raw_peak_bc_matrix.h5" -print -quit)
 
         if [ -n "$feature_matrix_path" ]; then
                 read -p "Submit ambient RNA removal with cellbender for ${library}? (Y/N): " choice
@@ -73,8 +90,8 @@ for library in "${libraries[@]}"; do
 job_id=$(sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name cellbender_${experiment_id}
-#SBATCH --output ${project_outs}/logs/cellbender_${library}.out
-#SBATCH --error ${project_outs}/logs/cellbender_${library}.out
+#SBATCH --output ${output_project_outs}/logs/cellbender_${library}.out
+#SBATCH --error ${output_project_outs}/logs/cellbender_${library}.out
 #SBATCH --ntasks 1
 #SBATCH --partition "gpu"
 #SBATCH --gres gpu:1
@@ -95,15 +112,15 @@ log "----------------------------------------"
 log "Variable                | Value"
 log "----------------------------------------"
 log "Feature matrix          | ${feature_matrix_path}"
-log "Output path             | ${project_outs}/${library}/cellbender"
+log "Output path             | ${output_project_outs}/${library}/cellbender"
 log "Output file             | output.h5"
 log "----------------------------------------"
 
 echo ""
 
-cd ${project_outs}/${library}
+cd ${output_project_outs}/${library}
 
-mkdir -p ${project_outs}/${library}/cellbender
+mkdir -p ${output_project_outs}/${library}/cellbender
 
 echo ""
 
@@ -112,7 +129,7 @@ log "Starting CellBender remove-background..."
 apptainer run --nv -B /data ${qc_container} cellbender remove-background \
         --cuda \
         --input ${feature_matrix_path} \
-        --output ${project_outs}/${library}/cellbender/output.h5
+        --output ${output_project_outs}/${library}/cellbender/output.h5
 
 echo ""
 
@@ -141,8 +158,8 @@ EOF
 sbatch --dependency=afterok:$job_id <<EOF
 #!/bin/bash
 #SBATCH --job-name geno_${experiment_id}
-#SBATCH --output ${project_outs}/logs/geno_${library}.out
-#SBATCH --error ${project_outs}/logs/geno_${library}.out
+#SBATCH --output ${output_project_outs}/logs/geno_${library}.out
+#SBATCH --error ${output_project_outs}/logs/geno_${library}.out
 #SBATCH --ntasks=32
 #SBATCH --mem=32GB
 #SBATCH --time=96:00:00
@@ -159,24 +176,24 @@ log "Input variables:"
 log "----------------------------------------"
 log "Variable                | Value"
 log "----------------------------------------"
-log "Input sample          | ${project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam"
-log "Input cell barcodes   | ${project_outs}/${library}/cellbender/output_cell_barcodes.csv"
-log "Output folder         | ${project_outs}/${library}/vireo"
+log "Input sample          | ${output_project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam"
+log "Input cell barcodes   | ${output_project_outs}/${library}/cellbender/output_cell_barcodes.csv"
+log "Output folder         | ${output_project_outs}/${library}/vireo"
 log "VCF file              | /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz"
 log "Number of donors      | $n_donors"
 log "----------------------------------------"
 
 echo ""
 
-cd ${project_outs}/${library}
-mkdir -p ${project_outs}/${library}/vireo
+cd ${output_project_outs}/${library}
+mkdir -p ${output_project_outs}/${library}/vireo
 
 # Run cellsnp-lite
 log "Starting cellsnp-lite processing..."
 apptainer exec -B /data ${qc_container} cellsnp-lite \
-        -s ${project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam \
-        -b ${project_outs}/${library}/cellbender/output_cell_barcodes.csv \
-        -O ${project_outs}/${library}/vireo \
+        -s ${output_project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam \
+        -b ${output_project_outs}/${library}/cellbender/output_cell_barcodes.csv \
+        -O ${output_project_outs}/${library}/vireo \
         -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz \
         --minMAF 0.1 \
         --minCOUNT 20 \
@@ -188,8 +205,8 @@ echo ""
 # Run vireo
 log "Starting vireo processing..."
 apptainer run -B /data ${qc_container} vireo \
-        -c ${project_outs}/${library}/vireo \
-        -o ${project_outs}/${library}/vireo \
+        -c ${output_project_outs}/${library}/vireo \
+        -o ${output_project_outs}/${library}/vireo \
         -N $n_donors \
         -p \$(nproc)
 
@@ -213,8 +230,8 @@ EOF
 sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name geno_${experiment_id}
-#SBATCH --output ${project_outs}/logs/geno_${library}.out
-#SBATCH --error ${project_outs}/logs/geno_${library}.out
+#SBATCH --output ${output_project_outs}/logs/geno_${library}.out
+#SBATCH --error ${output_project_outs}/logs/geno_${library}.out
 #SBATCH --ntasks=32
 #SBATCH --mem=32GB
 #SBATCH --time=96:00:00
@@ -228,26 +245,26 @@ log "Input variables:"
 log "----------------------------------------"
 log "Variable                | Value"
 log "----------------------------------------"
-log "Input sample          | ${project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam"
-log "Input cell barcodes   | ${project_outs}/${library}/cellbender/output_cell_barcodes.csv"
-log "Output folder         | ${project_outs}/${library}/vireo"
+log "Input sample          | ${output_project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam"
+log "Input cell barcodes   | ${output_project_outs}/${library}/cellbender/output_cell_barcodes.csv"
+log "Output folder         | ${output_project_outs}/${library}/vireo"
 log "VCF file              | /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz"
 log "Number of donors      | $n_donors"
 log "----------------------------------------"
 
 echo ""
 
-cd ${project_outs}/${library}
-mkdir -p ${project_outs}/${library}/vireo
+cd ${output_project_outs}/${library}
+mkdir -p ${output_project_outs}/${library}/vireo
 
 log ""
 
 # Run cellsnp-lite
 log "Starting cellsnp-lite processing..."
 # apptainer exec -B /data ${qc_container} cellsnp-lite \
-#         -s ${project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam \
-#         -b ${project_outs}/${library}/cellbender/output_cell_barcodes.csv \
-#         -O ${project_outs}/${library}/vireo \
+#         -s ${output_project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam \
+#         -b ${output_project_outs}/${library}/cellbender/output_cell_barcodes.csv \
+#         -O ${output_project_outs}/${library}/vireo \
 #         -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz \
 #         --minMAF 0.1 \
 #         --minCOUNT 20 \
@@ -259,8 +276,8 @@ log ""
 # Run vireo
 log "Starting vireo processing..."
 apptainer run -B /data ${qc_container} vireo \
-        -c ${project_outs}/${library}/vireo \
-        -o ${project_outs}/${library}/vireo \
+        -c ${output_project_outs}/${library}/vireo \
+        -o ${output_project_outs}/${library}/vireo \
         -N $n_donors \
         -p \$(nproc)
 
@@ -289,8 +306,8 @@ EOF
 sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name geno_${experiment_id}
-#SBATCH --output ${project_outs}/logs/geno_${library}.out
-#SBATCH --error ${project_outs}/logs/geno_${library}.out
+#SBATCH --output ${output_project_outs}/logs/geno_${library}.out
+#SBATCH --error ${output_project_outs}/logs/geno_${library}.out
 #SBATCH --ntasks=16
 #SBATCH --mem=128GB
 #SBATCH --time=96:00:00
@@ -304,56 +321,56 @@ log "Input variables:"
 log "----------------------------------------"
 log "Variable                | Value"
 log "----------------------------------------"
-log "Input sample          | ${project_outs}/${library}/outs/possorted_bam.bam"
+log "Input sample          | ${output_project_outs}/${library}/outs/possorted_bam.bam"
 log "Output name           | output"
-log "Output folder         | ${project_outs}/${library}/mgatk"
-log "Input barcodes             | ${project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv"
+log "Output folder         | ${output_project_outs}/${library}/mgatk"
+log "Input barcodes             | ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv"
 log "Number of donors      | $n_donors"
 log "----------------------------------------"
 
 echo ""
 
-cd ${project_outs}/${library}
+cd ${output_project_outs}/${library}
 
 echo ""
 
 # Run mgatk mtDNA genotyping
 log "Starting mgatk mtDNA genotyping..."
 # apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
-#         -i ${project_outs}/${library}/outs/possorted_bam.bam \
+#         -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
 #         -n output \
-#         -o ${project_outs}/${library}/mgatk \
+#         -o ${output_project_outs}/${library}/mgatk \
 #         -c 1 \
 #         -bt CB \
-#         -b ${project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
+#         -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
 #         --skip-R
 
 echo ""
 
-rm -r ${project_outs}/${library}/.snakemake
+rm -r ${output_project_outs}/${library}/.snakemake
 
-mkdir -p ${project_outs}/${library}/AMULET
+mkdir -p ${output_project_outs}/${library}/AMULET
 
 # Run AMULET doublet detection
 log "Starting AMULET doublet detection..."
 apptainer run -B /data ${qc_container} AMULET \
-        ${project_outs}/${library}/outs/fragments.tsv.gz \
-        ${project_outs}/${library}/outs/singlecell.csv \
+        ${output_project_outs}/${library}/outs/fragments.tsv.gz \
+        ${output_project_outs}/${library}/outs/singlecell.csv \
         /opt/AMULET/human_autosomes.txt \
         /opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed \
-        ${project_outs}/${library}/AMULET \
+        ${output_project_outs}/${library}/AMULET \
         /opt/AMULET/
 
 echo ""
 
-mkdir -p ${project_outs}/${library}/vireo
+mkdir -p ${output_project_outs}/${library}/vireo
 
 # Run cellsnp-lite
 log "Starting donor SNP genotyping with cellsnp-lite..."
 # apptainer exec -B /data ${qc_container} cellsnp-lite \
-#         -s ${project_outs}/${library}/outs/possorted_bam.bam \
-#         -b ${project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
-#         -O ${project_outs}/${library}/vireo \
+#         -s ${output_project_outs}/${library}/outs/possorted_bam.bam \
+#         -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
+#         -O ${output_project_outs}/${library}/vireo \
 #         -R /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz \
 #         --minMAF 0.1 \
 #         --minCOUNT 20 \
@@ -366,8 +383,8 @@ echo ""
 # Run vireo
 log "Starting vireo donor demultiplexing..."
 apptainer run -B /data ${qc_container} vireo \
-        -c ${project_outs}/${library}/vireo \
-        -o ${project_outs}/${library}/vireo \
+        -c ${output_project_outs}/${library}/vireo \
+        -o ${output_project_outs}/${library}/vireo \
         -N $n_donors \
         -p \$(nproc)
 
@@ -386,8 +403,8 @@ EOF
 sbatch <<EOF
 #!/bin/bash
 #SBATCH --job-name geno_${experiment_id}
-#SBATCH --output ${project_outs}/logs/geno_${library}.out
-#SBATCH --error ${project_outs}/logs/geno_${library}.out
+#SBATCH --output ${output_project_outs}/logs/geno_${library}.out
+#SBATCH --error ${output_project_outs}/logs/geno_${library}.out
 #SBATCH --ntasks=16
 #SBATCH --mem=128GB
 #SBATCH --time=48:00:00
@@ -401,42 +418,42 @@ log "Input variables:"
 log "----------------------------------------"
 log "Variable                | Value"
 log "----------------------------------------"
-log "Input sample          | ${project_outs}/${library}/outs/possorted_bam.bam"
+log "Input sample          | ${output_project_outs}/${library}/outs/possorted_bam.bam"
 log "Output name           | output"
-log "Output folder         | ${project_outs}/${library}/mgatk"
-log "Input barcodes             | ${project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv"
+log "Output folder         | ${output_project_outs}/${library}/mgatk"
+log "Input barcodes             | ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv"
 log "Number of donors      | $n_donors"
 log "----------------------------------------"
 
 echo ""
 
-cd ${project_outs}/${library}
+cd ${output_project_outs}/${library}
 
 # Run mgatk mtDNA genotyping
 log "Starting mgatk mtDNA genotyping..."
 # apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
-#         -i ${project_outs}/${library}/outs/possorted_bam.bam \
+#         -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
 #         -n output \
-#         -o ${project_outs}/${library}/mgatk \
+#         -o ${output_project_outs}/${library}/mgatk \
 #         -c 8 \
 #         -bt CB \
-#         -b ${project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
+#         -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
 #         --skip-R
 
 echo ""
 
-rm -r ${project_outs}/${library}/.snakemake
+rm -r ${output_project_outs}/${library}/.snakemake
 
-mkdir -p ${project_outs}/${library}/AMULET
+mkdir -p ${output_project_outs}/${library}/AMULET
 
 # Run AMULET doublet detection
 log "Starting AMULET doublet detection..."
 apptainer run -B /data ${qc_container} AMULET \
-        ${project_outs}/${library}/outs/fragments.tsv.gz \
-        ${project_outs}/${library}/outs/singlecell.csv \
+        ${output_project_outs}/${library}/outs/fragments.tsv.gz \
+        ${output_project_outs}/${library}/outs/singlecell.csv \
         /opt/AMULET/human_autosomes.txt \
         /opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed \
-        ${project_outs}/${library}/AMULET \
+        ${output_project_outs}/${library}/AMULET \
         /opt/AMULET/
 
 EOF
