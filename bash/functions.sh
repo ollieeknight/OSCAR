@@ -512,6 +512,8 @@ extract_n_donors() {
     echo "DEBUG: Library: $library"
     echo "DEBUG: Project IDs: ${project_ids[*]}"
 
+    library=$(echo "$library" | sed -E 's/_(ATAC|GEX)$//')
+
     for project_id in "${project_ids[@]}"; do
         metadata_file="${dir_prefix}/${project_id}/${project_id}_scripts/metadata/metadata.csv"
         echo "DEBUG: Checking metadata file: $metadata_file"
