@@ -181,6 +181,7 @@ log "Input cell barcodes   | ${output_project_outs}/${library}/cellbender/output
 log "Output folder         | ${output_project_outs}/${library}/vireo"
 log "VCF file              | /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz"
 log "Number of donors      | $n_donors"
+log "Number of cores       | \$(nproc)"
 log "----------------------------------------"
 
 echo ""
@@ -250,6 +251,7 @@ log "Input cell barcodes   | ${output_project_outs}/${library}/cellbender/output
 log "Output folder         | ${output_project_outs}/${library}/vireo"
 log "VCF file              | /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz"
 log "Number of donors      | $n_donors"
+log "Number of cores       | \$(nproc)"
 log "----------------------------------------"
 
 echo ""
@@ -323,28 +325,12 @@ log "Input barcodes          | ${output_project_outs}/${library}/outs/filtered_p
 log "mgatk output folder     | ${output_project_outs}/${library}/mgatk"
 log "Vireo output folder     | ${output_project_outs}/${library}/vireo"
 log "Number of donors        | $n_donors"
+log "Number of cores         | \$(nproc)"
 log "----------------------------------------"
 
 echo ""
 
 cd ${output_project_outs}/${library}
-
-echo ""
-
-# Run mgatk mtDNA genotyping
-log "Starting mgatk mtDNA genotyping..."
-apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
-        -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
-        -n output \
-        -o ${output_project_outs}/${library}/mgatk \
-        -c 1 \
-        -bt CB \
-        -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
-        --skip-R
-
-echo ""
-
-rm -r ${output_project_outs}/${library}/.snakemake
 
 mkdir -p ${output_project_outs}/${library}/AMULET
 
@@ -385,6 +371,19 @@ apptainer run -B /data ${qc_container} vireo \
         -N $n_donors \
         -p \$(nproc)
 
+# Run mgatk mtDNA genotyping
+log "Starting mgatk mtDNA genotyping..."
+apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
+        -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
+        -n output \
+        -o ${output_project_outs}/${library}/mgatk \
+        -c \$(nproc) \
+        -bt CB \
+        -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
+        --skip-R
+
+rm -r ${output_project_outs}/${library}/.snakemake
+
 EOF
                         else
                                 echo "Skipping genotyping"
@@ -415,31 +414,18 @@ log "Input variables:"
 log "----------------------------------------"
 log "Variable                | Value"
 log "----------------------------------------"
-log "Input sample          | ${output_project_outs}/${library}/outs/possorted_bam.bam"
-log "Output name           | output"
-log "Output folder         | ${output_project_outs}/${library}/mgatk"
-log "Input barcodes             | ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv"
-log "Number of donors      | $n_donors"
+log "Input sample            | ${output_project_outs}/${library}/outs/possorted_bam.bam"
+log "Output name             | output"
+log "Output folder           | ${output_project_outs}/${library}/mgatk"
+log "Input barcodes          | ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv"
+log "Number of donors        | $n_donors"
+log "Number of cores         | \$(nproc)"
+
 log "----------------------------------------"
 
 echo ""
 
 cd ${output_project_outs}/${library}
-
-# Run mgatk mtDNA genotyping
-log "Starting mgatk mtDNA genotyping..."
-apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
-        -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
-        -n output \
-        -o ${output_project_outs}/${library}/mgatk \
-        -c 8 \
-        -bt CB \
-        -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
-        --skip-R
-
-echo ""
-
-rm -r ${output_project_outs}/${library}/.snakemake
 
 mkdir -p ${output_project_outs}/${library}/AMULET
 
@@ -452,6 +438,19 @@ apptainer run -B /data ${qc_container} AMULET \
         /opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed \
         ${output_project_outs}/${library}/AMULET \
         /opt/AMULET/
+
+# Run mgatk mtDNA genotyping
+log "Starting mgatk mtDNA genotyping..."
+apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
+        -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
+        -n output \
+        -o ${output_project_outs}/${library}/mgatk \
+        -c \$(nproc) \
+        -bt CB \
+        -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
+        --skip-R
+
+rm -r ${output_project_outs}/${library}/.snakemake
 
 EOF
                         else
