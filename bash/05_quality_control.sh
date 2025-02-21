@@ -161,7 +161,7 @@ sbatch --dependency=afterok:$job_id <<EOF
 #SBATCH --output ${output_project_outs}/logs/geno_${library}.out
 #SBATCH --error ${output_project_outs}/logs/geno_${library}.out
 #SBATCH --ntasks=32
-#SBATCH --mem=32GB
+#SBATCH --mem=64GB
 #SBATCH --time=96:00:00
 
 # Source the functions
@@ -234,7 +234,7 @@ sbatch <<EOF
 #SBATCH --output ${output_project_outs}/logs/geno_${library}.out
 #SBATCH --error ${output_project_outs}/logs/geno_${library}.out
 #SBATCH --ntasks=32
-#SBATCH --mem=32GB
+#SBATCH --mem=64GB
 #SBATCH --time=96:00:00
 
 # Source the functions
@@ -307,7 +307,7 @@ sbatch <<EOF
 #SBATCH --job-name geno_${experiment_id}
 #SBATCH --output ${output_project_outs}/logs/geno_${library}.out
 #SBATCH --error ${output_project_outs}/logs/geno_${library}.out
-#SBATCH --ntasks=16
+#SBATCH --ntasks=32
 #SBATCH --mem=128GB
 #SBATCH --time=96:00:00
 
@@ -401,7 +401,7 @@ sbatch <<EOF
 #SBATCH --job-name geno_${experiment_id}
 #SBATCH --output ${output_project_outs}/logs/geno_${library}.out
 #SBATCH --error ${output_project_outs}/logs/geno_${library}.out
-#SBATCH --ntasks=16
+#SBATCH --ntasks=32
 #SBATCH --mem=128GB
 #SBATCH --time=48:00:00
 
