@@ -23,7 +23,6 @@ From: ubuntu:latest
     eval ${@}
 
 %post
-    # Use bash
     #!/bin/bash
     
     # Update and upgrade the package lists

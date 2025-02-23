@@ -2,16 +2,13 @@ Bootstrap: docker
 From: ubuntu:latest
 
 %labels
-    # Metadata about the container
     name "Oliver Knight"
     email "oliver.knight@charite.de"
 
 %files
-    # Copy the conda environment file into the container
     ../conda/oscar_qc.yml /opt/environment.yml
 
 %environment
-    # Set environment variables
     export LC_ALL=C
     export LC_NUMERIC=en_GB.UTF-8
     export PATH="/opt/AMULET/:$PATH"
@@ -19,12 +16,11 @@ From: ubuntu:latest
     conda activate oscar_qc
 
 %runscript
-    #!/bin/sh
+    #!/bin/bash
     alias AMULET="/opt/AMULET/AMULET.sh"
     eval "$@"
 
 %post
-    # Use bash
     #!/bin/bash
 
     # Update and upgrade the package lists and install necessary packages
@@ -50,8 +46,7 @@ From: ubuntu:latest
     # Make all files in the AMULET directory executable
     chmod -R +x /opt/AMULET/
 
-    # Install "Miniforge" if it is not already installed
-    [ ! -d "/opt/miniforge3" ] && curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -o Miniforge3-Linux-x86_64.sh && bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3" && rm Miniforge3-Linux-x86_64.sh
+    curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -o Miniforge3-Linux-x86_64.sh && bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3" && rm Miniforge3-Linux-x86_64.sh
 
     # Source the conda profile script
     . /opt/miniforge3/etc/profile.d/conda.sh
