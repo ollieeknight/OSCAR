@@ -248,6 +248,7 @@ print_options() {
                 echo "${option}"
             done
         else
+            :
 #            echo "Default options set for ${option_name}"
         fi
     fi
