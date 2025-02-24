@@ -47,6 +47,7 @@ done
 check_project_id
 
 # Split project_ids, gene_expression_options, vdj_options, and adt_options into arrays
+
 IFS=',' read -r -a project_ids <<< "${project_id}"
 IFS=';' read -r -a gene_expression_options <<< "${gene_expression_options}"
 IFS=';' read -r -a vdj_options <<< "${vdj_options}"
@@ -148,6 +149,8 @@ for project_id in "${project_ids[@]}"; do
         done < "${metadata_file}"
 done
 
+project_ids_string=$(IFS=','; echo "${project_ids[*]}")
+
 # Ask the user if they want to submit the libraries for counting
 echo "Would you like to proceed to counting? (Y/N)"
 echo "Submitted script would be: bash ${oscar_dir}/04_count.sh --project-id "${project_ids_string}""
@@ -159,7 +162,6 @@ done
 
 # Process choices
 if [ "${choice}" = "Y" ] || [ "${choice}" = "y" ]; then
-        project_ids_string=$(IFS=','; echo "${project_ids[*]}")
         bash ${oscar_dir}/04_count.sh --project-id "${project_ids_string}"
         elif [ "${choice}" = "N" ] || [ "${choice}" = "n" ]; then
         :
