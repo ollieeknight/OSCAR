@@ -83,10 +83,6 @@ for library in "${libraries[@]}"; do
 
         read fastq_names fastq_dirs < <(read_library_csv "${output_project_libraries}" "$library")
 
-        # echo "Library: ${library}"
-        # echo "FASTQ names: ${fastq_names}"
-        # echo "FASTQ directories: ${fastq_dirs}"
-
         extra_arguments=$(check_dogma_chemistry "${output_project_libraries}" "$library")
 
         read -p "${library} as an ATAC library; process with cellranger-atac? (Y/N): " choice
@@ -353,10 +349,9 @@ echo ""
 rm -r ${ADT_index_folder}
 
 EOF
+            fi
         fi
-        
-    # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
-    elif [[ "${library}" == GEX* || "${library}" == CITE* || "${library}" == Multiome* || "${library}" == DOGMA* ]] && [[ "${library}" != *ATAC* ]]; then
+    elif [[ ("${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* || "${library}" == *DOGMA*) && "${library}" != *ATAC* ]]; then
         echo "Processing ${library} as a GEX library"
 
         # Ask the user if they want to submit the indices for FASTQ generation
