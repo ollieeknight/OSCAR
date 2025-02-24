@@ -68,6 +68,8 @@ libraries=($(ls "${output_project_libraries}" | awk -F/ '{print $NF}' | awk -F. 
 
 mkdir -p ${output_project_outs}/
 
+echo "starting counting"
+
 # Iterate over each library file to submit counting jobs
 for library in "${libraries[@]}"; do
     # Skip processing lines with 'ADT' in the library name

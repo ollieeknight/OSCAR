@@ -391,7 +391,7 @@ handle_gex_mode() {
             if [ "${adt_file}" != "NA" ]; then
                 write_adt_data
             fi
-            echo -e "\033[0;33mWriting ${modality} for ${library}\033[0m"
+#            echo -e "\033[0;33mWriting ${modality} for ${library}\033[0m"
             echo "" >> "${library_output}"
             echo "[libraries]" >> "${library_output}"
             echo "fastq_id,fastqs,feature_types" >> "${library_output}"
