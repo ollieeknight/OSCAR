@@ -349,7 +349,7 @@ EOF
     continue
 
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
-    elif [[ "${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* && "${library}" != *ATAC* || "${library}" == *DOGMA* && "${library}" != *ATAC* ]]; then
+    elif [[ "${library}" == GEX* || "${library}" == CITE* || "${library}" == Multiome* && "${library}" != ATAC* || "${library}" == DOGMA* && "${library}" != *ATAC* ]]; then
         echo "Processing ${library} as a GEX library"
 
         read -p "${library} is a GEX or CITE library, process with cellranger multi? (Y/N): " choice
@@ -423,4 +423,6 @@ EOF
         library_out_name=""
 
     fi
+
+    echo "Finishing, exiting"
 done
