@@ -166,7 +166,7 @@ EOF
 
         if [[ "${library}" == *ASAP* ]]; then
 
-           temp_library="${library/_ATAC/}"
+            temp_library="${library/_ATAC/}"
             ADT_file=""
             for project_id in "${project_ids[@]}"; do
                 project_dir="${dir_prefix}/${project_id}"
@@ -349,7 +349,7 @@ EOF
     continue
 
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
-    elif [[ ("${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* || "${library}" == *DOGMA*) && "${library}" != *ATAC* ]]; then
+    elif [[ "${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* && "${library}" != *ATAC* || "${library}" == *DOGMA* && "${library}" != *ATAC* ]]; then
         echo "Processing ${library} as a GEX library"
 
         read -p "${library} is a GEX or CITE library, process with cellranger multi? (Y/N): " choice
