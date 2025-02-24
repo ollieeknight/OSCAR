@@ -68,18 +68,13 @@ libraries=($(ls "${output_project_libraries}" | awk -F/ '{print $NF}' | awk -F. 
 
 mkdir -p ${output_project_outs}/
 
-echo "Found libraries: ${libraries[@]}"
-
 # Iterate over each library file to submit counting jobs
 for library in "${libraries[@]}"; do
-
-    echo "Currently processing library: ${library}"  # Add this line
-    
     # Skip processing lines with 'ADT' in the library name
-    if [[ "${library}" == *ADT* ||  "${library}" == *HTO* ]]; then
+    if [[ "${library}" == *_ADT ||  "${library}" == *_HTO ]]; then
         echo "Processing ${library} as an ADT/HTO library"
-    fi
-    if [[ "${library}" == *ATAC* ]]; then
+        continue
+    elif [[ "${library}" == *ATAC* ]]; then
         echo "Processing ${library} as an ATAC library"
         fastq_names=""
         fastq_dirs=""
@@ -162,12 +157,12 @@ EOF
         fi
 
         if [[ "${library}" == *DOGMA* || "${library}" == *ATAC_* ]]; then
-            echo "Not processing ADT/HTO libraries"
+            continue
         fi
 
         if [[ "${library}" == *ASAP* ]]; then
 
-            temp_library="${library/_ATAC/}"
+           temp_library="${library/_ATAC/}"
             ADT_file=""
             for project_id in "${project_ids[@]}"; do
                 project_dir="${dir_prefix}/${project_id}"
@@ -185,7 +180,7 @@ EOF
             # Check if the ADT file exists
             if [[ ! -f "${ADT_file}" ]]; then
                 echo "INFO: ${ADT_file} not found!"
-                exit 1
+                continue
             fi
             
 #            echo "DEBUG: ${ADT_file} found."
@@ -348,9 +343,10 @@ EOF
         fi
         
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
-    elif [[ "${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* || "${library}" == *DOGMA* ]] && [[ "${library}" != *ATAC* ]]; then
+    elif [[ "${library}" == GEX* || "${library}" == CITE* || "${library}" == Multiome* || "${library}" == DOGMA* ]] && [[ "${library}" != *ATAC* ]]; then
         echo "Processing ${library} as a GEX library"
 
+        # Ask the user if they want to submit the indices for FASTQ generation
         read -p "${library} is a GEX or CITE library, process with cellranger multi? (Y/N): " choice
         while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
             echo "Invalid input. Please enter Y or N."
@@ -406,6 +402,9 @@ EOF
         echo -e "       Please check that library output .csv files are correct"
         exit 1
     fi
+
+    echo "Resetting variables"
+
         # Reset variables
         job_id=""
         fastq_names=""
@@ -421,5 +420,4 @@ EOF
         ADT_outs=""
         library_out_name=""
 
-    fi
 done
