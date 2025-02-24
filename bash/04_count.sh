@@ -75,6 +75,8 @@ echo "Found libraries: ${libraries[@]}"
 # Iterate over each library file to submit counting jobs
 for library in "${libraries[@]}"; do
 
+    library=$(echo "${library}" | tr -dc '[:print:]')  # Remove non-printable characters
+
     echo "Currently processing library: ${library}"  # Add this line
     
     # Skip processing lines with 'ADT' in the library name
@@ -424,6 +426,4 @@ EOF
         library_out_name=""
 
     fi
-
-    echo "Finishing, exiting"
 done
