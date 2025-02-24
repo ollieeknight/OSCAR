@@ -162,7 +162,7 @@ EOF
         fi
 
         if [[ "${library}" == *DOGMA* || "${library}" == *ATAC_* ]]; then
-            continue
+            echo "Not processing ADT/HTO libraries"
         fi
 
         if [[ "${library}" == *ASAP* ]]; then
@@ -185,7 +185,7 @@ EOF
             # Check if the ADT file exists
             if [[ ! -f "${ADT_file}" ]]; then
                 echo "INFO: ${ADT_file} not found!"
-                continue
+                exit 1
             fi
             
 #            echo "DEBUG: ${ADT_file} found."
