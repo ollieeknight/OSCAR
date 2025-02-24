@@ -294,15 +294,6 @@ EOF
                 fi
         elif [ -n "$peak_matrix_path" ]; then
                 if [[ "$n_donors" != '0' && "$n_donors" != '1' && "$n_donors" != 'NA' ]]; then
-                        echo "Number of donors is $n_donors"
-echo "apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
-        -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
-        -n output \
-        -o ${output_project_outs}/${library}/mgatk \
-        -c \$(nproc) \
-        -bt CB \
-        -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
-        --skip-R"
                         read -p "Would you like to genotype ${library}? (Y/N): " choice
                         while [[ ! $choice =~ ^[YyNn]$ ]]; do
                                 echo "Invalid input. Please enter Y or N."
@@ -380,7 +371,7 @@ apptainer run -B /data ${qc_container} vireo \
 
 # Run mgatk mtDNA genotyping
 log "Starting mgatk mtDNA genotyping..."
-apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
+apptainer exec -B /data,/usr ${qc_container} mgatk \
         -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
         -n output \
         -o ${output_project_outs}/${library}/mgatk \
@@ -396,7 +387,6 @@ EOF
                                 echo "Skipping genotyping"
                         fi
                 elif [[ "$n_donors" == '0' || "$n_donors" == '1' || "$n_donors" == 'NA' ]]; then
-                        echo "Number of donors is $n_donors"
                         read -p "Would you like to perform mitochondrial genotyping for ${library}? (Y/N): " choice
                         while [[ ! $choice =~ ^[YyNn]$ ]]; do
                                 echo "Invalid input. Please enter Y or N."
@@ -448,7 +438,7 @@ apptainer run -B /data ${qc_container} AMULET \
 
 # Run mgatk mtDNA genotyping
 log "Starting mgatk mtDNA genotyping..."
-apptainer exec -B /data,/usr ${qc_container} mgatk tenx \
+apptainer exec -B /data,/usr ${qc_container} mgatk \
         -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
         -n output \
         -o ${output_project_outs}/${library}/mgatk \

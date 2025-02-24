@@ -62,7 +62,7 @@ From: ubuntu:latest
 
     # Clone the mgatk repository and install it
     mkdir -p /opt/mgatk/
-    git clone "https://github.com/ollieeknight/mgatk" /opt/mgatk/
+    git clone "https://github.com/ollieeknight/mgatk-lite" /opt/mgatk/
     cd /opt/mgatk/
     pip install .
     
