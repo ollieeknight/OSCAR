@@ -70,6 +70,8 @@ mkdir -p ${output_project_outs}/
 
 echo "starting counting"
 
+echo "Found libraries: ${libraries[@]}"
+
 # Iterate over each library file to submit counting jobs
 for library in "${libraries[@]}"; do
     # Skip processing lines with 'ADT' in the library name
