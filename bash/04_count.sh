@@ -68,14 +68,10 @@ libraries=($(ls "${output_project_libraries}" | awk -F/ '{print $NF}' | awk -F. 
 
 mkdir -p ${output_project_outs}/
 
-echo "starting counting"
-
 echo "Found libraries: ${libraries[@]}"
 
 # Iterate over each library file to submit counting jobs
 for library in "${libraries[@]}"; do
-
-    library=$(echo "${library}" | tr -dc '[:print:]')  # Remove non-printable characters
 
     echo "Currently processing library: ${library}"  # Add this line
     
@@ -352,8 +348,8 @@ EOF
         fi
         
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
-    elif [[ ("${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* || "${library}" == *DOGMA*) && "${library}" != *ATAC* ]]; then        
-    echo "Processing ${library} as a GEX library"
+    elif [[ "${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* || "${library}" == *DOGMA* ]] && [[ "${library}" != *ATAC* ]]; then
+        echo "Processing ${library} as a GEX library"
 
         read -p "${library} is a GEX or CITE library, process with cellranger multi? (Y/N): " choice
         while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
