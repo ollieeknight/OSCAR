@@ -68,13 +68,15 @@ libraries=($(ls "${output_project_libraries}" | awk -F/ '{print $NF}' | awk -F. 
 
 mkdir -p ${output_project_outs}/
 
-# Iterate over each library file to submit counting jobs
 for library in "${libraries[@]}"; do
-    # Skip processing lines with 'ADT' in the library name
+
     if [[ "${library}" == *_ADT ||  "${library}" == *_HTO ]]; then
+
         echo "Processing ${library} as an ADT/HTO library"
         continue
+
     elif [[ "${library}" == *ATAC* ]]; then
+
         echo "Processing ${library} as an ATAC library"
         fastq_names=""
         fastq_dirs=""
@@ -88,12 +90,16 @@ for library in "${libraries[@]}"; do
         extra_arguments=$(check_dogma_chemistry "${output_project_libraries}" "$library")
 
         read -p "${library} as an ATAC library; process with cellranger-atac? (Y/N): " choice
+
         while [[ ! $choice =~ ^[YyNn]$ ]]; do
+
             echo "Invalid input. Please enter Y or N."
             read -p "Submit ${library} for cellranger-atac count? (Y/N): " choice
+
         done
-        # Process choices
+
         if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
+
             mkdir -p ${output_project_outs}/logs
             # Submit the job to slurm for counting
             job_id=$(sbatch <<EOF
@@ -150,20 +156,28 @@ EOF
             )
             count_submitted='YES'
             job_id=$(echo "$job_id" | awk '{print $4}')
+
         elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
+
             count_submitted='NO'
+
         else
+
             echo -e "\033[0;31mERROR:\033[0m Invalid choice. Exiting"
+
         fi
 
         if [[ "${library}" == *DOGMA* || "${library}" == *ATAC_* ]]; then
+
             continue
+
         fi
 
         if [[ "${library}" == *ASAP* ]]; then
 
-           temp_library="${library/_ATAC/}"
+            temp_library="${library/_ATAC/}"
             ADT_file=""
+
             for project_id in "${project_ids[@]}"; do
                 project_dir="${dir_prefix}/${project_id}"
                 project_scripts="${project_dir}/${project_id}_scripts"
@@ -175,6 +189,7 @@ EOF
                 if [[ -f "${ADT_file}" ]]; then
                     break
                 fi
+
             done
 
             # Check if the ADT file exists
@@ -183,8 +198,6 @@ EOF
                 continue
             fi
             
-#            echo "DEBUG: ${ADT_file} found."
-
             # Determine the correct ADT CSV file name by replacing _ATAC with _ADT
             adt_library_csv="${library/_ATAC/_ADT}.csv"
             adt_library_csv="${output_project_libraries}/${adt_library_csv}"
@@ -405,19 +418,19 @@ EOF
 
     echo "Resetting variables"
 
-        # Reset variables
-        job_id=""
-        fastq_names=""
-        fastq_dirs=""
-        extra_arguments=""
-        count_submitted=""
-        sbatch_dependency=""
-        ADT_file=""
-        adt_library_csv=""
-        ADT_index_folder=""
-        corrected_fastq=""
-        fastq_libraries=""
-        ADT_outs=""
-        library_out_name=""
+    # Reset variables
+    job_id=""
+    fastq_names=""
+    fastq_dirs=""
+    extra_arguments=""
+    count_submitted=""
+    sbatch_dependency=""
+    ADT_file=""
+    adt_library_csv=""
+    ADT_index_folder=""
+    corrected_fastq=""
+    fastq_libraries=""
+    ADT_outs=""
+    library_out_name=""
 
 done
