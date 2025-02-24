@@ -77,8 +77,8 @@ for library in "${libraries[@]}"; do
     # Skip processing lines with 'ADT' in the library name
     if [[ "${library}" == *ADT* ||  "${library}" == *HTO* ]]; then
         echo "Processing ${library} as an ADT/HTO library"
-        continue
-    elif [[ "${library}" == *ATAC* ]]; then
+    fi
+    if [[ "${library}" == *ATAC* ]]; then
         echo "Processing ${library} as an ATAC library"
         fastq_names=""
         fastq_dirs=""
@@ -349,7 +349,8 @@ EOF
     continue
 
     # Check if the modality GEX appears anywhere in the csv file. cellranger multi will process this
-    elif [[ ("${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* || "${library}" == *DOGMA*) && "${library}" != *ATAC* ]]; then        echo "Processing ${library} as a GEX library"
+    elif [[ ("${library}" == *GEX* || "${library}" == *CITE* || "${library}" == *Multiome* || "${library}" == *DOGMA*) && "${library}" != *ATAC* ]]; then        
+    echo "Processing ${library} as a GEX library"
 
         read -p "${library} is a GEX or CITE library, process with cellranger multi? (Y/N): " choice
         while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
