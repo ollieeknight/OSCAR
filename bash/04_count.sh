@@ -74,6 +74,9 @@ echo "Found libraries: ${libraries[@]}"
 
 # Iterate over each library file to submit counting jobs
 for library in "${libraries[@]}"; do
+
+    echo "Currently processing library: ${library}"  # Add this line
+    
     # Skip processing lines with 'ADT' in the library name
     if [[ "${library}" == *ADT* ||  "${library}" == *HTO* ]]; then
         echo "Processing ${library} as an ADT/HTO library"
