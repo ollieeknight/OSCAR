@@ -122,7 +122,7 @@ for project_id in "${project_ids[@]}"; do
                 # Define the library name
                 library="${assay}_${experiment_id}_exp${historical_number}_lib${replicate}"
 
-                echo -e "\033[34mINFO:\033[0m Generating ${modality} library for ${library}"
+                echo -e "\033[34mINFO:\033[0m Processing ${modality} for ${library}"
 
                 # Determine the full modality
                 full_modality=$(determine_full_modality "${modality}" "${library}")
@@ -150,6 +150,7 @@ done
 
 # Ask the user if they want to submit the libraries for counting
 echo "Would you like to proceed to counting? (Y/N)"
+echo "Submitted script would be: bash ${oscar_dir}/04_count.sh --project-id "${project_ids_string}""
 read -r choice
 while [[ ! ${choice} =~ ^[YyNn]$ ]]; do
         echo "Invalid input. Please enter y or n"

@@ -248,7 +248,7 @@ print_options() {
                 echo "${option}"
             done
         else
-            echo "Default options set for ${option_name}"
+#            echo "Default options set for ${option_name}"
         fi
     fi
 }
@@ -281,7 +281,7 @@ determine_full_modality() {
 }
 
 write_human_reference() {
-    echo -e "\033[0;33mWriting human reference files for ${library}\033[0m"
+#    echo -e "\033[0;33mWriting human reference files for ${library}\033[0m"
     echo "[gene-expression]" >> "${library_output}"
     echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/hs/GRCh38-hardmasked-optimised-arc" >> "${library_output}"
     echo "create-bam,true" >> "${library_output}"
@@ -306,7 +306,7 @@ write_human_reference() {
 }
 
 write_mouse_reference() {
-    echo -e "\033[0;33mWriting mouse reference files for ${library}\033[0m"
+#    echo -e "\033[0;33mWriting mouse reference files for ${library}\033[0m"
     echo "[gene-expression]" >> "${library_output}"
     echo "reference,/data/cephfs-2/unmirrored/groups/romagnani/work/ref/mm/GRCm38-hardmasked-optimised-arc" >> "${library_output}"
     echo "create-bam,true" >> "${library_output}"
