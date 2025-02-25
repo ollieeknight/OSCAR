@@ -390,6 +390,8 @@ log "----------------------------------------"
 
 echo ""
 
+cd ${output_project_outs}/
+
 # Run the CellRanger multi command
 log "Running cellranger multi"
 apptainer run -B /data "${count_container}" cellranger multi \
