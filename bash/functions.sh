@@ -334,7 +334,7 @@ write_mouse_reference() {
 write_adt_data() {
     echo "" >> "${library_output}"
     echo "[feature]" >> "${library_output}"
-    echo "reference,$project_scripts/ADT_files/${adt_file}.csv" >> "${library_output}"
+    echo "reference,$project_scripts/adt_files/${adt_file}.csv" >> "${library_output}"
     if [ "${adt_options}" != "" ]; then
         IFS=',' read -ra values <<< "${adt_options}"
         for value in "${values[@]}"; do
