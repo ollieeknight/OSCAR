@@ -338,7 +338,7 @@ mkdir -p ${output_project_outs}/${library}/AMULET
 
 # Run AMULET doublet detection
 log "Starting AMULET doublet detection..."
-apptainer run -B /data ${qc_container} AMULET \
+apptainer run -B /data ${qc_container} AMULET.sh \
         ${output_project_outs}/${library}/outs/fragments.tsv.gz \
         ${output_project_outs}/${library}/outs/singlecell.csv \
         /opt/AMULET/human_autosomes.txt \
@@ -432,7 +432,7 @@ mkdir -p ${output_project_outs}/${library}/AMULET
 
 # Run AMULET doublet detection
 log "Starting AMULET doublet detection..."
-apptainer run -B /data ${qc_container} AMULET \
+apptainer run -B /data ${qc_container} AMULET.sh \
         ${output_project_outs}/${library}/outs/fragments.tsv.gz \
         ${output_project_outs}/${library}/outs/singlecell.csv \
         /opt/AMULET/human_autosomes.txt \
