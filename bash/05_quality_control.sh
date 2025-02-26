@@ -375,7 +375,7 @@ apptainer run -B /data ${qc_container} vireo \
 
 # Run mgatk mtDNA genotyping
 log "Starting mgatk mtDNA genotyping..."
-apptainer exec -B /data,/usr ${qc_container} mgatk \
+apptainer exec -B /data,/usr ${qc_container} mgatk-lite \
         -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
         -n output \
         -o ${output_project_outs}/${library}/mgatk \
@@ -442,7 +442,7 @@ apptainer run -B /data ${qc_container} AMULET.sh \
 
 # Run mgatk mtDNA genotyping
 log "Starting mgatk mtDNA genotyping..."
-apptainer exec -B /data,/usr ${qc_container} mgatk \
+apptainer exec -B /data,/usr ${qc_container} mgatk-lite \
         -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
         -n output \
         -o ${output_project_outs}/${library}/mgatk \
