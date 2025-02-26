@@ -17,7 +17,7 @@ From: ubuntu:latest
 
 %runscript
     #!/bin/bash
-    alias AMULET="/opt/AMULET/AMULET.sh"
+    # alias AMULET="/opt/AMULET/AMULET.sh"  # Remove the alias
     eval "$@"
 
 %post
@@ -65,7 +65,7 @@ From: ubuntu:latest
     git clone "https://github.com/ollieeknight/mgatk-lite" /opt/mgatk/
     cd /opt/mgatk/
     pip install .
-    
+
     # Clean up conda and pip caches
     conda clean -y -a
     pip cache purge
