@@ -61,9 +61,10 @@ From: ubuntu:latest
     conda activate oscar_qc
 
     # Clone the mgatk repository and install it
-    mkdir -p /opt/mgatk/
-    git clone "https://github.com/ollieeknight/mgatk-lite" /opt/mgatk/
-    cd /opt/mgatk/
+    mkdir -p /opt/
+    cd /opt/
+    git clone "https://github.com/ollieeknight/mgatk-lite"
+    cd mgatk-lite
     pip install .
 
     # Clean up conda and pip caches
