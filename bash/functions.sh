@@ -179,78 +179,50 @@ check_base_masks_step3() {
                     elif [[ ${file} == *VDJ* ]]; then
                         base_mask=$base_mask_SI_5prime_v1_VDJ
                     fi
+                fi
             fi
         elif [[ ${file} == *_DI_* ]]; then
             index_type='DI'
             filter_option='--filter-dual-index'
-            if [[ ${file} == *3prime*
-                if [[ ${file} == *GEX* ]]; then
-                        base_mask=$base_mask_SI_3prime_v2_GEX
+            if [[ ${file} == *3prime* ]]; then
+                if [[ ${file} == *v2* ]]; then
+                    if [[ ${file} == *GEX* ]]; then
+                        base_mask=$base_mask_DI_3prime_v2_GEX
                     elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
-                        base_mask=$base_mask_SI_3prime_v2_ADT
+                        base_mask=$base_mask_DI_3prime_v2_ADT
                     fi
                 elif [[ ${file} == *v3* ]]; then
                     if [[ ${file} == *GEX* ]]; then
-                        base_mask=$base_mask_SI_3prime_v3_GEX
-                    elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
-                        base_mask=$base_mask_SI_3prime_v3_ADT
-                    fi
-                fi
-            elif [[ ${file} == *5prime* ]]; then
-                if [[ ${file} == *v1* ]]; then
-                    if [[ ${file} == *GEX* ]]; then
-                        base_mask=$base_mask_SI_5prime_v1_GEX
-                    elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
-                        base_mask=$base_mask_SI_5prime_v1_ADT
-                    elif [[ ${file} == *VDJ* ]]; then
-                        base_mask=$base_mask_SI_5prime_v1_VDJ
-                    fi
-            fi 
-
-        elif [[ ${file} == *_DI_* ]]; then
-            index_type='DI'
-            filter_option='--filter-dual-index'
-            if [[ ${file} == *v2* ]]; then
-                if [[ ${file} == *_3prime* ]]; then
-                    if [[ ${file} == *_GEX* ]]; then
-                        base_mask=$base_mask_DI_3prime_v2_GEX
-                    elif [[ ${file} == *_ADT* ]] || [[ ${file} == *_HTO* ]]; then
-                        base_mask=$base_mask_DI_3prime_v2_ADT
-                    fi
-                elif [[ ${file} == *_5prime* ]]; then
-                    if [[ ${file} == *_GEX* ]]; then
-                        base_mask=$base_mask_DI_5prime_v2_GEX
-                    elif [[ ${file} == *_ADT* ]] || [[ ${file} == *_HTO* ]]; then
-                        base_mask=$base_mask_DI_5prime_v2_ADT
-                    elif [[ ${file} == *_VDJ* ]]; then
-                        base_mask=$base_mask_DI_5prime_v2_VDJ
-                    fi
-                fi
-            elif [[ ${file} == *v3* ]]; then
-                if [[ ${file} == *_3prime* ]]; then
-                    if [[ ${file} == *_GEX* ]]; then
                         base_mask=$base_mask_DI_3prime_v3_GEX
-                    elif [[ ${file} == *_ADT* ]] || [[ ${file} == *_HTO* ]]; then
+                    elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
                         base_mask=$base_mask_DI_3prime_v3_ADT
                     fi
-                elif [[ ${file} == *_5prime* ]]; then
-                    if [[ ${file} == *_GEX* ]]; then
-                        base_mask=$base_mask_DI_5prime_v3_GEX
-                    elif [[ ${file} == *_ADT* ]] || [[ ${file} == *_HTO* ]]; then
-                        base_mask=$base_mask_DI_5prime_v3_ADT
-                    elif [[ ${file} == *_VDJ* ]]; then
-                        base_mask=$base_mask_DI_5prime_v3_VDJ
-                    fi
-                fi
-            elif [[ ${file} == *v4* ]]; then
-                if [[ ${file} == *_3prime* ]]; then
-                    if [[ ${file} == *_GEX* ]]; then
+                elif [[ ${file} == *v4* ]]; then
+                    if [[ ${file} == *GEX* ]]; then
                         base_mask=$base_mask_DI_3prime_v4_GEX
-                    elif [[ ${file} == *_ADT* ]] || [[ ${file} == *_HTO* ]]; then
+                    elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
                         base_mask=$base_mask_DI_3prime_v4_ADT
                     fi
                 fi
-            fi   
+            elif [[ ${file} == *5prime* ]]; then
+                if [[ ${file} == *v2* ]]; then
+                    if [[ ${file} == *GEX* ]]; then
+                        base_mask=$base_mask_DI_5prime_v2_GEX
+                    elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
+                        base_mask=$base_mask_DI_5prime_v2_ADT
+                    elif [[ ${file} == *VDJ* ]]; then
+                        base_mask=$base_mask_DI_5prime_v2_VDJ
+                    fi
+                elif [[ ${file} == *v3* ]]; then
+                    if [[ ${file} == *GEX* ]]; then
+                        base_mask=$base_mask_DI_5prime_v3_GEX
+                    elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
+                        base_mask=$base_mask_DI_5prime_v3_ADT
+                    elif [[ ${file} == *VDJ* ]]; then
+                        base_mask=$base_mask_DI_5prime_v3_VDJ
+                    fi
+                fi
+            fi
         fi
     elif [[ ${file} == Multiome_* ]]; then
         cellranger_command='cellranger mkfastq'
@@ -298,11 +270,6 @@ check_base_masks_step3() {
     # Export the variables if needed
     echo "${cellranger_command// /.}" "${index_type// /.}" "${filter_option// /.}" "${base_mask// /.}"
 }
-
-
-
-
-
 
 validate_mode() {
     local mode=$1
