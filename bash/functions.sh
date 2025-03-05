@@ -103,26 +103,38 @@ check_base_masks_step1() {
 
 check_base_masks_step2() {
     if [[ ${reads} == 3 ]]; then
-        base_mask_SI_3prime_GEX='Y28n*,I8n*,Y90n*'
-        base_mask_DI_3prime_GEX='Y28n*,I8n*,Y90n*'
-        base_mask_SI_3prime_ADT='Y28n*,I8n*,Y90n*'
+        base_mask_SI_3prime_v2_GEX='Y26n*,I8n*,Y98n*'
+        base_mask_SI_3prime_v2_ADT='Y26n*,I8n*,Y98n*'
+        base_mask_SI_3prime_v3_GEX='Y28n*,I8n*,Y91n*'
+        base_mask_SI_3prime_v3_ADT='Y28n*,I8n*,Y91n*'
+        base_mask_SI_5prime_v1_GEX='Y26n*,I8n*,Y91n*'
+        base_mask_SI_5prime_v1_ADT='Y26n*,I8n*,Y91n*'
+        base_mask_SI_5prime_v1_VDJ='Y26n*,I8n*,Y91n*'
         base_mask_DOGMA_ADT='Y28n*,I8n*,Y90n*'
     elif [[ ${reads} == 4 ]]; then
-        base_mask_SI_3prime_GEX='Y28n*,I8n*,N*,Y90n*'
-        base_mask_SI_5prime_GEX='Y26n*,I10n*,I10n*,Y90n*'
-        base_mask_DI_3prime_GEX='Y28n*,I8n*,I8n*,Y90n*'
-        base_mask_DI_5prime_GEX='Y26n*,I10n*,I10n*,Y90n*'
-        base_mask_SI_3prime_ADT='Y28n*,I8n*,N*,Y90n*'
-        base_mask_DI_5prime_ADT='Y26n*,I10n*,I10n*,Y90n*'
+        base_mask_DI_3prime_v2_GEX='Y26n*,I8n*,N*,Y98n*'
+        base_mask_DI_3prime_v2_ADT='Y26n*,I8n*,N*,Y98n*'
+        base_mask_DI_3prime_v3_GEX='Y28n*,I10n*,I10n*,Y90n*'
+        base_mask_DI_3prime_v3_ADT='Y28n*,I10n*,I10n*,Y90n*'
+        base_mask_DI_3prime_v4_GEX='Y28n*,I10n*,I10n*,Y90n*'
+        base_mask_DI_3prime_v4_ADT='Y28n*,I10n*,I10n*,Y90n*'
+        base_mask_DI_5prime_v2_GEX='Y26n*,I10n*,I10n*,Y90n*'
+        base_mask_DI_5prime_v2_ADT='Y26n*,I10n*,I10n*,Y90n*'
+        base_mask_DI_5prime_v2_VDJ='Y26n*,I10n*,I10n*,Y90n*'
+        base_mask_DI_5prime_v3_GEX='Y28n*,I10n*,I10n*,Y90n*'
+        base_mask_DI_5prime_v3_ADT='Y28n*,I10n*,I10n*,Y90n*'
+        base_mask_DI_5prime_v3_VDJ='Y28n*,I10n*,I10n*,Y90n*'
+        base_mask_Multiome_GEX='Y28n*,I10n*,I10n*,Y90n*'
+        base_mask_Multiome_ATAC='50n*,I8n*,Y24n*,Y49n*'
         base_mask_DOGMA_GEX='Y28n*,I10n*,I10n*,Y90n*'
         base_mask_DOGMA_ATAC='Y100n*,I8n*,Y24n*,Y100n*'
         base_mask_DOGMA_ADT='Y28n*,I8n*,N*,Y90n*'
-        base_mask_ATAC_ATAC='Y100n*,I8n*,Y16n*,Y100n*'
+        base_mask_ATAC_ATAC='Y50n*,I8n*,Y16n*,Y50n*'
         base_mask_ASAP_ATAC='Y100n*,I8n*,Y16n*,Y100n*'
         base_mask_ASAP_ADT='Y100n*,I8n*,Y16n*,Y100n*'
         base_mask_ASAP_GENO='Y100n*,I8n*,Y16n*,Y100n*'
     else
-        echo -e "\033[0;31mERROR:\033[0m Cannot determine number of reads, check RunInfo.xml file"
+        echo -e "\033[0;31mERROR:\033[0m Cannot determine number of reads, check RunInfo.xml file and check_base_masks_step2 criteria"
         exit 1
     fi
 }

@@ -416,8 +416,6 @@ EOF
         exit 1
     fi
 
-    echo "Resetting variables"
-
     # Reset variables
     job_id=""
     fastq_names=""
