@@ -130,7 +130,9 @@ log "Starting CellBender remove-background..."
 apptainer run --nv -B /data ${qc_container} cellbender remove-background \
         --cuda \
         --input ${feature_matrix_path} \
-        --output ${output_project_outs}/${library}/cellbender/output.h5
+        --output ${output_project_outs}/${library}/cellbender/output.h5 \
+        --cpu-threads $(nproc) \
+        --checkpoint-mins 10000
 
 echo ""
 
