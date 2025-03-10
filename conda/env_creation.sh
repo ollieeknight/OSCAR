@@ -29,7 +29,7 @@ conda deactivate
 
 # Create a new conda environment named 'oscar_qc' with specified packages from the 'nvidia' channel
 conda create -y -n oscar_qc -c nvidia \
-    python=3.7 \
+    python=3.8 \
     cellsnp-lite \
     numpy=1.19 \
     pandas \
@@ -42,8 +42,7 @@ conda create -y -n oscar_qc -c nvidia \
     bioconductor-genomicranges \
     bioconductor-summarizedexperiment \
     cuda-toolkit \
-    cuda-nvcc \
-    compilers
+    cuda-nvcc
 
 # Activate the 'oscar_qc' environment
 conda activate oscar_qc
