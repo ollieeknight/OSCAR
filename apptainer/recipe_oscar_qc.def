@@ -6,7 +6,7 @@ From: ubuntu:latest
     email "oliver.knight@charite.de"
 
 %files
-    ../conda/oscar_qc.yml /opt/environment.yml
+    ../conda/oscar_qc.yml /opt/oscar_qc_environment.yml
 
 %environment
     export LC_ALL=C
@@ -46,7 +46,9 @@ From: ubuntu:latest
     # Make all files in the AMULET directory executable
     chmod -R +x /opt/AMULET/
 
-    curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -o Miniforge3-Linux-x86_64.sh && bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3" && rm Miniforge3-Linux-x86_64.sh
+    curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -o Miniforge3-Linux-x86_64.sh 
+    bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3" 
+    rm Miniforge3-Linux-x86_64.sh
 
     # Source the conda profile script
     . /opt/miniforge3/etc/profile.d/conda.sh
@@ -55,7 +57,7 @@ From: ubuntu:latest
     conda upgrade --all -y
 
     # Create the conda environment from the environment file
-    conda env create -f /opt/environment.yml
+    conda env create -f /opt/oscar_qc_environment.yml
 
     # Activate the conda environment
     conda activate oscar_qc
