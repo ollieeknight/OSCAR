@@ -14,7 +14,6 @@ From: ubuntu:latest
     export LC_ALL=C
     export LC_NUMERIC=en_GB.UTF-8
     export PATH="/opt/cellranger-atac-2.1.0:/opt/cellranger-9.0.1:/opt/kallisto/:$PATH"
-    export TENX_DISABLE_TELEMETRY=1
     . /opt/miniforge3/etc/profile.d/conda.sh
     conda activate oscar_count
     
@@ -36,9 +35,6 @@ From: ubuntu:latest
     tar -xf /opt/cellranger-9.0.1.tar.gz -C /opt/
     tar -xf /opt/cellranger-atac-2.1.0.tar.gz -C /opt/
     rm /opt/cellranger-9.0.1.tar.gz /opt/cellranger-atac-2.1.0.tar.gz
-
-    mkdir -p /etc/tenx/telemetry/
-    touch /etc/tenx/telemetry/disable_upload
 
     # Download and extract kallisto, then remove the tarball
     mkdir -p /opt/kallisto/
