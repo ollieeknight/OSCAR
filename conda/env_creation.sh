@@ -29,7 +29,7 @@ conda deactivate
 
 # Create a new conda environment named 'oscar_qc' with specified packages from the 'nvidia' channel
 conda create -y -n oscar_qc -c nvidia \
-    python=3.8 \
+    python=3.7 \
     cellsnp-lite \
     numpy=1.19 \
     pandas \
@@ -48,7 +48,7 @@ conda create -y -n oscar_qc -c nvidia \
 conda activate oscar_qc
 
 # Install additional packages using pip
-pip install vireoSNP cellbender
+pip install vireoSNP
 
 # Export the 'oscar_qc' environment to a YAML file
 conda env export > oscar_qc.yml

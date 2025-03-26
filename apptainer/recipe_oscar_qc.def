@@ -69,6 +69,10 @@ From: ubuntu:latest
     cd mgatk-lite
     pip install .
 
+    git clone "https://github.com/broadinstitute/CellBender"
+    cd CellBender
+    pip install .
+
     # Clean up conda and pip caches
     conda clean -y -a
     pip cache purge
