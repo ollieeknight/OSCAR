@@ -124,9 +124,9 @@ check_base_masks_step2() {
         base_mask_DI_5prime_v3_GEX='Y28n*,I10n*,I10n*,Y90n*'
         base_mask_DI_5prime_v3_ADT='Y28n*,I10n*,I10n*,Y90n*'
         base_mask_DI_5prime_v3_VDJ='Y28n*,I10n*,I10n*,Y90n*'
-        base_mask_Multiome_GEX='Y28n*,I10n*,I10n*,Y90n*'
+        base_mask_Multiome_ARCv1_GEX='Y28n*,I10n*,I10n*,Y90n*'
         base_mask_Multiome_ATAC='50n*,I8n*,Y24n*,Y49n*'
-        base_mask_DOGMA_GEX='Y28n*,I10n*,I10n*,Y90n*'
+        base_mask_DOGMA_ARCv1_GEX='Y28n*,I10n*,I10n*,Y90n*'
         base_mask_DOGMA_ATAC='Y100n*,I8n*,Y24n*,Y100n*'
         base_mask_DOGMA_ADT='Y28n*,I8n*,N*,Y90n*'
         base_mask_ATAC_ATAC='Y50n*,I8n*,Y16n*,Y50n*'
@@ -229,7 +229,7 @@ check_base_masks_step3() {
         index_type='DI'
         filter_option='--filter-dual-index'
         if [[ ${file} == *_GEX ]]; then
-            base_mask=$base_mask_Multiome_GEX
+            base_mask=$base_mask_Multiome_ARCv1_GEX
         elif [[ ${file} == *_ATAC ]]; then
             base_mask=$base_mask_Multiome_ATAC
         fi
@@ -238,7 +238,7 @@ check_base_masks_step3() {
         filter_option='--filter-dual-index'
         if [[ ${file} == *_GEX ]]; then
             cellranger_command='cellranger mkfastq'
-            base_mask=$base_mask_DOGMA_GEX
+            base_mask=$base_mask_DOGMA_ARCv1_GEX
         elif [[ ${file} == *_ADT ]] || [[ ${file} == *_HTO ]]; then
             cellranger_command='cellranger mkfastq'
             base_mask=$base_mask_DOGMA_ADT
