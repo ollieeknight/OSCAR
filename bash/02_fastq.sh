@@ -73,13 +73,16 @@ flowcell_id=$(grep "<Flowcell>" "${project_dir}/${project_id}_bcl/RunInfo.xml" |
 for file in "${index_files[@]}"; do
     index_file="${file%.*}"
 
-    # Check base masks for step 3 and parse the command, index type, filter option, and base mask
-    read -r cellranger_command index_type filter_option base_mask < <(check_base_masks_step3 "$file" "$run_type")
-    cellranger_command="${cellranger_command//./ }"
-    index_type="${index_type//./ }"
-    filter_option="${filter_option//./ }"
-    base_mask="${base_mask//./ }"
-    echo "Base mask will be ${base_mask}"
+  # Check base masks for step 3 and parse the command, index type, filter option, base mask, and chemistry
+  read -r cellranger_command index_type filter_option base_mask chemistry < <(check_base_masks_step3 "$file" "$run_type")
+  cellranger_command="${cellranger_command//./ }"
+  index_type="${index_type//./ }"
+  filter_option="${filter_option//./ }"
+  base_mask="${base_mask//./ }"
+  chemistry="${chemistry//./ }"
+
+  echo "Base mask will be ${base_mask}"
+  echo "Chemistry will be ${chemistry}"
 
     # Prompt the user for confirmation
     read -p $'\033[0;33mINPUT REQUIRED:\033[0m Submit '"${index_file}"' for FASTQ demultiplexing? (Y/N) ' choice
