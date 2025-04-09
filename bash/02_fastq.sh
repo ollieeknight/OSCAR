@@ -86,7 +86,6 @@ for file in "${index_files[@]}"; do
   echo "Index type will be ${index_type}"
   echo "Filter option will be ${filter_option}"
   echo "Base mask will be ${base_mask}"
-  echo "Chemistry will be ${chemistry}"
 
     # Prompt the user for confirmation
     read -p $'\033[0;33mINPUT REQUIRED:\033[0m Submit '"${index_file}"' for FASTQ demultiplexing? (Y/N) ' choice
