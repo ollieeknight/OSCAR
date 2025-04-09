@@ -166,7 +166,7 @@ check_base_masks_step3() {
                     fi
                 elif [[ ${file} == *v3* ]]; then
                     chemistry="3prime_v3"
-                    if [[ ${file} == *_GEX ]]; then
+                    if [[ ${file} == *_GEX* ]]; then
                         base_mask=$base_mask_SI_3prime_v3_GEX
                     elif [[ ${file} == *_ADT ]] || [[ ${file} == *_HTO ]]; then
                         base_mask=$base_mask_SI_3prime_v3_ADT
