@@ -72,6 +72,7 @@ flowcell_id=$(grep "<Flowcell>" "${project_dir}/${project_id}_bcl/RunInfo.xml" |
 # Loop through each index file
 for file in "${index_files[@]}"; do
     index_file="${file%.*}"
+    echo "Processing index file: ${index_file}"
 
   # Check base masks for step 3 and parse the command, index type, filter option, base mask, and chemistry
   read -r cellranger_command index_type filter_option base_mask chemistry < <(check_base_masks_step3 "$file" "$run_type")
@@ -81,6 +82,9 @@ for file in "${index_files[@]}"; do
   base_mask="${base_mask//./ }"
   chemistry="${chemistry//./ }"
 
+  echo "cellranger_command will be ${cellranger_command}"
+  echo "Index type will be ${index_type}"
+  echo "Filter option will be ${filter_option}"
   echo "Base mask will be ${base_mask}"
   echo "Chemistry will be ${chemistry}"
 
