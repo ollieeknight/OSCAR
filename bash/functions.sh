@@ -280,7 +280,7 @@ check_base_masks_step3() {
     fi
 
     # Export the variables if needed
-    echo "${cellranger_command// /.}" "${index_type// /.}" "${filter_option// /.}" "${base_mask// /.}"
+    echo "${cellranger_command// /.}" "${index_type// /.}" "${filter_option// /.}" "${base_mask// /.}" "${chemistry// /.}"
 }
 
 validate_mode() {
