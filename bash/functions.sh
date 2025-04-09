@@ -158,12 +158,14 @@ check_base_masks_step3() {
             filter_option='--filter-single-index'
             if [[ ${file} == *3prime* ]]; then
                 if [[ ${file} == *v2* ]]; then
+                    chemistry="3prime_v2"
                     if [[ ${file} == *GEX* ]]; then
                         base_mask=$base_mask_SI_3prime_v2_GEX
                     elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
                         base_mask=$base_mask_SI_3prime_v2_ADT
                     fi
                 elif [[ ${file} == *v3* ]]; then
+                    chemistry="3prime_v3"
                     if [[ ${file} == *GEX* ]]; then
                         base_mask=$base_mask_SI_3prime_v3_GEX
                     elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
@@ -172,6 +174,7 @@ check_base_masks_step3() {
                 fi
             elif [[ ${file} == *5prime* ]]; then
                 if [[ ${file} == *v1* ]]; then
+                    chemistry="5prime_v1"
                     if [[ ${file} == *GEX* ]]; then
                         base_mask=$base_mask_SI_5prime_v1_GEX
                     elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
@@ -186,18 +189,21 @@ check_base_masks_step3() {
             filter_option='--filter-dual-index'
             if [[ ${file} == *3prime* ]]; then
                 if [[ ${file} == *v2* ]]; then
+                   chemistry="3prime_v2"
                     if [[ ${file} == *GEX* ]]; then
                         base_mask=$base_mask_DI_3prime_v2_GEX
                     elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
                         base_mask=$base_mask_DI_3prime_v2_ADT
                     fi
                 elif [[ ${file} == *v3* ]]; then
+                    chemistry="3prime_v3"
                     if [[ ${file} == *GEX* ]]; then
                         base_mask=$base_mask_DI_3prime_v3_GEX
                     elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
                         base_mask=$base_mask_DI_3prime_v3_ADT
                     fi
                 elif [[ ${file} == *v4* ]]; then
+                    chemistry="3prime_v4"
                     if [[ ${file} == *GEX* ]]; then
                         base_mask=$base_mask_DI_3prime_v4_GEX
                     elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
@@ -206,6 +212,7 @@ check_base_masks_step3() {
                 fi
             elif [[ ${file} == *5prime* ]]; then
                 if [[ ${file} == *v2* ]]; then
+                    chemistry="5prime_v2"
                     if [[ ${file} == *GEX* ]]; then
                         base_mask=$base_mask_DI_5prime_v2_GEX
                     elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
@@ -214,6 +221,7 @@ check_base_masks_step3() {
                         base_mask=$base_mask_DI_5prime_v2_VDJ
                     fi
                 elif [[ ${file} == *v3* ]]; then
+                    chemistry="5prime_v3"
                     if [[ ${file} == *GEX* ]]; then
                         base_mask=$base_mask_DI_5prime_v3_GEX
                     elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
@@ -228,6 +236,7 @@ check_base_masks_step3() {
         cellranger_command='cellranger mkfastq'
         index_type='DI'
         filter_option='--filter-dual-index'
+        chemistry="ARCv1"
         if [[ ${file} == *_GEX ]]; then
             base_mask=$base_mask_Multiome_ARCv1_GEX
         elif [[ ${file} == *_ATAC ]]; then
@@ -236,6 +245,7 @@ check_base_masks_step3() {
     elif [[ ${file} == DOGMA_* ]]; then
         index_type='DI'
         filter_option='--filter-dual-index'
+        chemistry="ARCv1"
         if [[ ${file} == *_GEX ]]; then
             cellranger_command='cellranger mkfastq'
             base_mask=$base_mask_DOGMA_ARCv1_GEX
@@ -250,6 +260,7 @@ check_base_masks_step3() {
         cellranger_command='cellranger-atac mkfastq'
         index_type='DI'
         filter_option='--filter-dual-index'
+        chemistry="ATAC"
         if [[ ${file} == *_ATAC ]]; then
             base_mask=$base_mask_ASAP_ATAC
         elif [[ ${file} == *_ADT ]] || [[ ${file} == *_HTO ]]; then
@@ -258,6 +269,7 @@ check_base_masks_step3() {
             base_mask=$base_mask_ASAP_GENO
         fi
     elif [[ ${file} == ATAC_* ]]; then
+        chemistry="ATAC"
         cellranger_command='cellranger-atac mkfastq'
         index_type='DI'
         filter_option='--filter-dual-index'
