@@ -68,7 +68,7 @@ while IFS=',' read -r assay experiment_id historical_number replicate modality c
     echo ""
     echo "Processing library component ${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${chemistry}_${modality}"
 
-    sample="${project_indices}/${assay}_${index_type}_${modality}_${chemistry}"
+    sample="${project_indices}/${assay}_${index_type}_${chemistry}_${modality}"
 
     output_file="${sample}.csv"
 
