@@ -159,27 +159,27 @@ check_base_masks_step3() {
             if [[ ${file} == *3prime* ]]; then
                 if [[ ${file} == *v2* ]]; then
                     chemistry="3prime_v2"
-                    if [[ ${file} == *GEX* ]]; then
+                    if [[ ${file} == *_GEX ]]; then
                         base_mask=$base_mask_SI_3prime_v2_GEX
-                    elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
+                    elif [[ ${file} == *_ADT ]] || [[ ${file} == *_HTO ]]; then
                         base_mask=$base_mask_SI_3prime_v2_ADT
                     fi
                 elif [[ ${file} == *v3* ]]; then
                     chemistry="3prime_v3"
-                    if [[ ${file} == *GEX* ]]; then
+                    if [[ ${file} == *_GEX ]]; then
                         base_mask=$base_mask_SI_3prime_v3_GEX
-                    elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
+                    elif [[ ${file} == *_ADT ]] || [[ ${file} == *_HTO ]]; then
                         base_mask=$base_mask_SI_3prime_v3_ADT
                     fi
                 fi
             elif [[ ${file} == *5prime* ]]; then
                 if [[ ${file} == *v1* ]]; then
                     chemistry="5prime_v1"
-                    if [[ ${file} == *GEX* ]]; then
+                    if [[ ${file} == *_GEX ]]; then
                         base_mask=$base_mask_SI_5prime_v1_GEX
-                    elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
+                    elif [[ ${file} == *_ADT ]] || [[ ${file} == *_HTO ]]; then
                         base_mask=$base_mask_SI_5prime_v1_ADT
-                    elif [[ ${file} == *VDJ* ]]; then
+                    elif [[ ${file} == *_VDJ ]]; then
                         base_mask=$base_mask_SI_5prime_v1_VDJ
                     fi
                 fi
@@ -190,43 +190,43 @@ check_base_masks_step3() {
             if [[ ${file} == *3prime* ]]; then
                 if [[ ${file} == *v2* ]]; then
                    chemistry="3prime_v2"
-                    if [[ ${file} == *GEX* ]]; then
+                    if [[ ${file} == *_GEX ]]; then
                         base_mask=$base_mask_DI_3prime_v2_GEX
-                    elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
+                    elif [[ ${file} == *_ADT ]] || [[ ${file} == *_HTO ]]; then
                         base_mask=$base_mask_DI_3prime_v2_ADT
                     fi
                 elif [[ ${file} == *v3* ]]; then
                     chemistry="3prime_v3"
-                    if [[ ${file} == *GEX* ]]; then
+                    if [[ ${file} == *_GEX ]]; then
                         base_mask=$base_mask_DI_3prime_v3_GEX
-                    elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
+                    elif [[ ${file} == *_ADT ]] || [[ ${file} == *_HTO ]]; then
                         base_mask=$base_mask_DI_3prime_v3_ADT
                     fi
                 elif [[ ${file} == *v4* ]]; then
                     chemistry="3prime_v4"
-                    if [[ ${file} == *GEX* ]]; then
+                    if [[ ${file} == *_GEX ]]; then
                         base_mask=$base_mask_DI_3prime_v4_GEX
-                    elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
+                    elif [[ ${file} == *_ADT ]] || [[ ${file} == *_HTO ]]; then
                         base_mask=$base_mask_DI_3prime_v4_ADT
                     fi
                 fi
             elif [[ ${file} == *5prime* ]]; then
                 if [[ ${file} == *v2* ]]; then
                     chemistry="5prime_v2"
-                    if [[ ${file} == *GEX* ]]; then
+                    if [[ ${file} == *_GEX ]]; then
                         base_mask=$base_mask_DI_5prime_v2_GEX
-                    elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
+                    elif [[ ${file} == *ADT ]] || [[ ${file} == *_HTO ]]; then
                         base_mask=$base_mask_DI_5prime_v2_ADT
-                    elif [[ ${file} == *VDJ* ]]; then
+                    elif [[ ${file} == *_VDJ ]]; then
                         base_mask=$base_mask_DI_5prime_v2_VDJ
                     fi
                 elif [[ ${file} == *v3* ]]; then
                     chemistry="5prime_v3"
-                    if [[ ${file} == *GEX* ]]; then
+                    if [[ ${file} == *_GEX ]]; then
                         base_mask=$base_mask_DI_5prime_v3_GEX
-                    elif [[ ${file} == *ADT* ]] || [[ ${file} == *HTO* ]]; then
+                    elif [[ ${file} == *_ADT ]] || [[ ${file} == *_HTO ]]; then
                         base_mask=$base_mask_DI_5prime_v3_ADT
-                    elif [[ ${file} == *VDJ* ]]; then
+                    elif [[ ${file} == *_VDJ ]]; then
                         base_mask=$base_mask_DI_5prime_v3_VDJ
                     fi
                 fi
