@@ -75,7 +75,7 @@ for file in "${index_files[@]}"; do
     echo "Processing index file: ${index_file}"
 
   # Check base masks for step 3 and parse the command, index type, filter option, base mask, and chemistry
-  read -r cellranger_command index_type filter_option base_mask chemistry < <(check_base_masks_step3 "$file" "$run_type")
+  read -r cellranger_command index_type filter_option base_mask chemistry < <(check_base_masks_step3 "$index_file" "$run_type")
   cellranger_command="${cellranger_command//./ }"
   index_type="${index_type//./ }"
   filter_option="${filter_option//./ }"
