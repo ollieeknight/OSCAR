@@ -66,14 +66,9 @@ while IFS=',' read -r assay experiment_id historical_number replicate modality c
   # Skip the first header line
   if [[ "${assay}" != "assay" ]]; then
     echo ""
-    echo "Processing library component ${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${modality}"
+    echo "Processing library component ${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${chemistry}_${modality}"
 
-    # Determine the output file name based on chemistry
-    if [ "${chemistry}" != "NA" ] && ( [ "${assay}" == "CITE" ] || [ "${assay}" == "GEX" ] ); then
-      sample="${project_indices}/${assay}_${index_type}_${modality}_${chemistry}"
-    else
-      sample="${project_indices}/${assay}_${index_type}_${modality}"
-    fi
+    sample="${project_indices}/${assay}_${index_type}_${modality}_${chemistry}"
 
     output_file="${sample}.csv"
 
@@ -81,10 +76,10 @@ while IFS=',' read -r assay experiment_id historical_number replicate modality c
     if [ ! -f "${output_file}" ]; then
       echo "Creating ${output_file} and appending line"
       echo "lane,sample,index" > "${output_file}"  # Create new CSV file with header
-      echo "*,${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${modality},${index}" >> "${output_file}"  # Add data line
+      echo "*,${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${chemistry}_${modality},${index}" >> "${output_file}"  # Add data line
     else
       echo "Appending line to ${output_file}"
-      echo "*,${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${modality},${index}" >> "${output_file}"  # Append data line
+      echo "*,${assay}_${experiment_id}_exp${historical_number}_lib${replicate}_${chemistry}_${modality},${index}" >> "${output_file}"  # Append data line
     fi
   fi
 done < "${metadata_file}"
