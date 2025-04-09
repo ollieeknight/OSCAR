@@ -79,8 +79,8 @@ for file in "${index_files[@]}"; do
   cellranger_command="${cellranger_command//./ }"
   index_type="${index_type//./ }"
   filter_option="${filter_option//./ }"
-  base_mask="${base_mask//./ }"
   chemistry="${chemistry//./ }"
+  base_mask="${base_mask//./ }"
 
   echo "cellranger_command will be ${cellranger_command}"
   echo "Index type will be ${index_type}"
