@@ -186,7 +186,7 @@ check_base_masks_step3() {
                         base_mask=$base_mask_SI_5prime_v1_GEX
                     elif [[ ${file} == *_ADT ]] || [[ ${file} == *_HTO ]]; then
                         base_mask=$base_mask_SI_5prime_v1_ADT
-                    elif [[ ${file} == *_VDJ ]]; then
+                    elif [[ ${file} == *_VDJ* ]]; then
                         base_mask=$base_mask_SI_5prime_v1_VDJ
                     fi
                 fi
@@ -224,7 +224,7 @@ check_base_masks_step3() {
                         base_mask=$base_mask_DI_5prime_v2_GEX
                     elif [[ ${file} == *ADT ]] || [[ ${file} == *_HTO ]]; then
                         base_mask=$base_mask_DI_5prime_v2_ADT
-                    elif [[ ${file} == *_VDJ ]]; then
+                    elif [[ ${file} == *_VDJ* ]]; then
                         base_mask=$base_mask_DI_5prime_v2_VDJ
                     fi
                 elif [[ ${file} == *v3* ]]; then
@@ -233,7 +233,7 @@ check_base_masks_step3() {
                         base_mask=$base_mask_DI_5prime_v3_GEX
                     elif [[ ${file} == *_ADT ]] || [[ ${file} == *_HTO ]]; then
                         base_mask=$base_mask_DI_5prime_v3_ADT
-                    elif [[ ${file} == *_VDJ ]]; then
+                    elif [[ ${file} == *_VDJ* ]]; then
                         base_mask=$base_mask_DI_5prime_v3_VDJ
                     fi
                 fi
