@@ -144,10 +144,7 @@ apptainer run -B /data ${count_container} cellranger-atac count \
     --localmem 128 \
     $extra_arguments
 
-echo ""
-
 rm -r ${output_project_outs}/$library/_* ${output_project_outs}/$library/SC_ATAC_COUNTER_CS
-
 EOF
             )
             count_submitted='YES'
@@ -348,7 +345,6 @@ echo ""
 
 # Cleanup
 rm -r ${ADT_index_folder}
-
 EOF
             fi
         fi
@@ -391,23 +387,17 @@ log "Input config .csv       | ${output_project_libraries}/${library}.csv"
 log "Cores                   | \$(nproc)"
 log "----------------------------------------"
 
-echo ""
-
 cd ${output_project_outs}/
 
 # Run the CellRanger multi command
-log "Running cellranger multi"
 apptainer run -B /data "${count_container}" cellranger multi \
     --id "${library}" \
     --csv "${output_project_libraries}/${library}.csv" \
     --localcores "\$(nproc)" \
     --localmem 128
 
-echo ""
-
 # Clean up temporary files
 rm -r ${output_project_outs}/${library}/SC_MULTI_CS ${output_project_outs}/${library}/_*
-
 EOF
         fi
     else

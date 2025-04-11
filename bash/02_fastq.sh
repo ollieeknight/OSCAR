@@ -134,13 +134,6 @@ log "----------------------------------------"
 mkdir -p ${project_dir}/${project_id}_fastq/logs
 cd ${project_dir}/${project_id}_fastq/
 
-echo ""
-
-# Run cellranger
-log "Running ${cellranger_command}"
-
-echo ""
-
 apptainer run -B /data ${count_container} \
     ${cellranger_command} \
     --run ${project_dir}/${project_id}_bcl \
@@ -151,8 +144,6 @@ apptainer run -B /data ${count_container} \
     --barcode-mismatches 1 \
     ${filter_option}
 
-log ""
-
 mkdir -p ${project_dir}/${project_id}_fastq/${index_file}/fastqc
 
 # Run FastQC
@@ -161,22 +152,13 @@ find "${project_dir}/${project_id}_fastq/${index_file}/outs/fastq_path/${flowcel
     parallel -j \$(nproc) "apptainer run -B /data ${count_container} fastqc {} \
     --outdir ${project_dir}/${project_id}_fastq/${index_file}/fastqc"
 
-echo ""
-
 # Run MultiQC to aggregate FastQC reports
-log "Running MultiQC"
 apptainer run -B /data ${count_container} multiqc \
     "${project_dir}/${project_id}_fastq/${index_file}" \
     -o "${project_dir}/${project_id}_fastq/${index_file}/multiqc"
 
-echo ""
 
-# Clean up temporary files
-log "Cleaning up temporary files"
 rm -r ${project_dir}/${project_id}_fastq/${index_file}/_* ${project_dir}/${project_id}_fastq/${index_file}/MAKE*
-echo ""
-
-log "All processing completed successfully"
 EOF
     elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
         :
