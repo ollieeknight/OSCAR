@@ -482,6 +482,8 @@ handle_gex_mode() {
 
 handle_atac_mode() {
     if [[ (${modality} == 'ADT' || ${modality} == 'HTO') && ${assay} != 'ASAP' ]]; then
+        library_output=${output_project_libraries}/${library}_ADT.csv
+        touch ${library_output}
         if [[ -f ${library_output} ]]; then
             echo -e "\033[34mDEBUG:\033[0m Found existing library output for ${library}"
         else
