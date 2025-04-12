@@ -491,6 +491,7 @@ handle_atac_mode() {
         write_fastq_files
     elif [[ (${modality} == 'ADT' || ${modality} == 'HTO') && ${assay} == 'ASAP' ]]; then
         library_output=${output_project_libraries}/${library}_ADT.csv
+        touch ${library_output}
         write_fastq_files
     elif [[ ${modality} == 'ATAC' ]]; then
         write_fastq_files
