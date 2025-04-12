@@ -526,11 +526,12 @@ read_library_csv() {
 check_dogma_chemistry() {
     local library_folder=$1
     local library=$2
-    local extra_arguments=""
+    local extra_arguments
 
     if [[ "${library}" == *DOGMA* ]]; then
         extra_arguments="--chemistry ARC-v1"
-        # echo "Adding $extra_arguments as it is a DOGMA/MULTIOME run"
+    else
+        unset extra_arguments
     fi
 
     echo "$extra_arguments"
