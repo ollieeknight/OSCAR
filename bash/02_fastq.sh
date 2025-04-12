@@ -140,7 +140,6 @@ apptainer run -B /data ${count_container} \
     --id ${index_file} \
     --csv ${project_scripts}/indices/${file} \
     --use-bases-mask ${base_mask} \
-    --delete-undetermined \
     --barcode-mismatches 1 \
     ${filter_option}
 
@@ -148,7 +147,7 @@ mkdir -p ${project_dir}/${project_id}_fastq/${index_file}/fastqc
 
 # Run FastQC
 log "Running FastQC"
-find "${project_dir}/${project_id}_fastq/${index_file}/outs/fastq_path/${flowcell_id}"* -name "*.fastq.gz" | \
+find "${project_dir}/${project_id}_fastq/${index_file}/outs/fastq_path/"* -name "*.fastq.gz" | \
     parallel -j \$(nproc) "apptainer run -B /data ${count_container} fastqc {} \
     --outdir ${project_dir}/${project_id}_fastq/${index_file}/fastqc"
 
