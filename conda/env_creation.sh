@@ -14,7 +14,8 @@ conda create -y -n oscar_count -c https://repo.prefix.dev/romitools \
     bcl2fastq2 \
     fastqc \
     multiqc \
-    bustools
+    bustools \
+    pandas
 
 # Activate the 'oscar_count' environment
 conda activate oscar_count
@@ -36,7 +37,7 @@ conda create -y -n oscar_qc -c nvidia \
     scipy \
     statsmodels \
     openjdk \
-    r-base=4.2.3 \
+    r-base \
     r-data.table \
     r-matrix \
     bioconductor-genomicranges \

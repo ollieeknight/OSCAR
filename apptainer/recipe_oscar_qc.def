@@ -68,11 +68,7 @@ From: ubuntu:latest
     git clone "https://github.com/ollieeknight/mgatk-lite"
     cd mgatk-lite
     pip install .
-
-    # git clone "https://github.com/broadinstitute/CellBender"
-    # cd CellBender
-    # pip install .
-
+    
     pip install --no-cache-dir -U git+https://github.com/broadinstitute/CellBender.git@4334e8966217c3591bf7c545f31ab979cdc6590d
 
     # Clean up conda and pip caches
