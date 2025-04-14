@@ -134,11 +134,8 @@ apptainer run --nv -B /data ${qc_container} cellbender remove-background \
         --cpu-threads $(nproc) \
         --checkpoint-mins 10000
 
-echo ""
-
 # Cleanup
 rm ckpt.tar.gz
-
 EOF
 )
                 job_id=$(echo "$job_id" | awk '{print $4}')
@@ -214,10 +211,6 @@ apptainer run -B /data ${qc_container} vireo \
         -o ${output_project_outs}/${library}/vireo \
         -N $n_donors \
         -p \$(nproc)
-
-echo ""
-
-log "All processing completed successfully!"
 EOF
                                 job_id=""
                         else
@@ -287,7 +280,6 @@ apptainer run -B /data ${qc_container} vireo \
         -o ${output_project_outs}/${library}/vireo \
         -N $n_donors \
         -p \$(nproc)
-
 EOF
                                 job_id=""
                         else
@@ -387,7 +379,6 @@ apptainer exec -B /data,/usr ${qc_container} mgatk-lite \
         --skip-R
 
 rm -r ${output_project_outs}/${library}/.snakemake
-
 EOF
                         else
                                 echo "Skipping genotyping"
@@ -454,7 +445,6 @@ apptainer exec -B /data,/usr ${qc_container} mgatk-lite \
         --skip-R
 
 rm -r ${output_project_outs}/${library}/.snakemake
-
 EOF
                         else
                                 echo "Skipping genotyping"

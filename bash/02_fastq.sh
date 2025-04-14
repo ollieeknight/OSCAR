@@ -156,7 +156,6 @@ apptainer run -B /data ${count_container} multiqc \
     "${project_dir}/${project_id}_fastq/${index_file}" \
     -o "${project_dir}/${project_id}_fastq/${index_file}/multiqc"
 
-
 rm -r ${project_dir}/${project_id}_fastq/${index_file}/_* ${project_dir}/${project_id}_fastq/${index_file}/MAKE*
 EOF
     elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
