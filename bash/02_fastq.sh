@@ -98,7 +98,7 @@ for file in "${index_files[@]}"; do
     if [ "$choice" = "Y" ] || [ "$choice" = "y" ]; then
 
         # Create logs directory
-        mkdir -p "${project_dir}/${project_id}_fastq/logs/"
+        mkdir -p "${project_dir}/${project_id}_fastq/logs"
 
         # Submit the job to SLURM
 sbatch <<EOF

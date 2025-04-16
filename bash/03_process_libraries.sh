@@ -56,7 +56,7 @@ IFS=';' read -r -a adt_options <<< "${adt_options}"
 # Define output directories
 output_project_id="${project_ids[0]}"
 output_project_dir="${dir_prefix}/${output_project_id}"
-output_project_scripts="${output_project_dir}/${output_project_id}_scripts/"
+output_project_scripts="${output_project_dir}/${output_project_id}_scripts"
 output_project_libraries=${output_project_scripts}/libraries
 
 # Check if metadata file exists for all project IDs
