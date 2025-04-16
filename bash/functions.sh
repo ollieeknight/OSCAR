@@ -481,6 +481,7 @@ handle_gex_mode() {
         if [[ -f ${library_output} ]]; then
             :
         else
+            echo -e "\033[0;31mError when processing ${library_output}\033[0m"
             echo -e "\033[0;31mERROR:\033[0m Please ensure that in the metadata file, GEX libraries for all samples are first, before ADT/HTO/VDJ-T/CRISPR"
             exit 1
         fi
