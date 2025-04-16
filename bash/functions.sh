@@ -508,8 +508,7 @@ handle_atac_mode() {
     elif [[ ${modality} == 'GENO' ]]; then
         continue
     else
-        echo -e "\033[0;31mERROR:\033[0m Cannot determine modality for this ATAC run. Are you sure the only modalities are either ATAC, ADT, HTO, or GENO?"
-        echo -e "\033[0;31mERROR:\033[0m Library: ${library}, modality: ${modality}"
+        echo -e "\033[0;31mERROR:\033[0m Cannot determine modality for this ATAC run, ${library}, modality: ${modality}. Are you sure the only modalities are either ATAC, ADT, HTO, or GENO?"
         exit 1
     fi
 }
