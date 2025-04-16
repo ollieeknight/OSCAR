@@ -174,7 +174,7 @@ check_base_masks_step3() {
         cellranger_command='cellranger mkfastq'
         if [[ ${file} == *_SI_* ]]; then
             filter_option='--filter-single-index'
-            if [[ ${file} == *3prime* ]]; then
+            if [[ ${file} == *SC3P* ]]; then
                 if [[ ${file} == *v2* ]]; then
                     if [[ ${file} == *_GEX ]]; then
                         base_mask=$base_mask_SI_SC3Pv2_GEX
@@ -199,7 +199,7 @@ check_base_masks_step3() {
             fi
         elif [[ ${file} == *_DI_* ]]; then
             filter_option='--filter-dual-index'
-            if [[ ${file} == *3prime* ]]; then
+            if [[ ${file} == *SC3P* ]]; then
                 if [[ ${file} == *v2* ]]; then
                     if [[ ${file} == *_GEX ]]; then
                         base_mask=$base_mask_DI_SC3Pv2_GEX
