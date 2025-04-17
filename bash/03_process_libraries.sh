@@ -104,8 +104,6 @@ for project_id in "${project_ids[@]}"; do
                 exit 1
         fi
 
-        # Determine the run type
-
         # List index files and extract flowcell ID from RunInfo.xml for the first project ID
         flowcell_id=$(grep "<Flowcell>" "${project_dir}/${project_id}_bcl/RunInfo.xml" | sed -e 's|.*<Flowcell>\(.*\)</Flowcell>.*|\1|')
 
@@ -147,6 +145,10 @@ for project_id in "${project_ids[@]}"; do
         full_modality==""
 
         done < "${metadata_file}"
+done
+
+for library in "${output_project_libraries}"/*.csv; do
+        awk '!seen[$0]++' "${library}" > "${library}.tmp" && mv "${library}.tmp" "${library}"
 done
 
 project_ids_string=$(IFS=','; echo "${project_ids[*]}")
