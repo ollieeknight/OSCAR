@@ -148,7 +148,7 @@ for project_id in "${project_ids[@]}"; do
 done
 
 for library in "${output_project_libraries}"/*.csv; do
-        awk '!seen[$0]++' "${library}" > "${library}.tmp" && mv "${library}.tmp" "${library}"
+        awk 'NF == 0 || !seen[$0]++' "${library}" > "${library}.tmp" && mv "${library}.tmp" "${library}"
 done
 
 project_ids_string=$(IFS=','; echo "${project_ids[*]}")
