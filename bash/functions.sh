@@ -190,11 +190,11 @@ check_base_masks_step3() {
                 fi
             elif [[ ${file} == *SC5P* ]]; then
                 if [[ ${file} == *_GEX ]]; then
-                    base_mask=$base_mask_SI_SC5P_R2_GEX
+                    base_mask=$base_mask_SI_SC5P_PE_GEX
                 elif [[ ${file} == *_ADT ]] || [[ ${file} == *_HTO ]]; then
-                    base_mask=$base_mask_SI_SC5P_R2_ADT
+                    base_mask=$base_mask_SI_SC5P_PE_ADT
                 elif [[ ${file} == *_VDJ* ]]; then
-                    base_mask=$base_mask_SI_SC5P_R2_VDJ
+                    base_mask=$base_mask_SI_SC5P_PE_VDJ
                 fi
             fi
         elif [[ ${file} == *_DI_* ]]; then
@@ -220,21 +220,21 @@ check_base_masks_step3() {
                     fi
                 fi
             elif [[ ${file} == *SC5P* ]]; then
-                if [[ ${file} == *v2* ]]; then
-                    if [[ ${file} == *_GEX ]]; then
-                        base_mask=$base_mask_DI_SC5P_R2_GEX
-                    elif [[ ${file} == *ADT ]] || [[ ${file} == *_HTO ]]; then
-                        base_mask=$base_mask_DI_SC5P_R2_ADT
-                    elif [[ ${file} == *_VDJ* ]]; then
-                        base_mask=$base_mask_DI_SC5P_R2_VDJ
-                    fi
-                elif [[ ${file} == *v3* ]]; then
+                if [[ ${file} == *v3* ]]; then
                     if [[ ${file} == *_GEX ]]; then
                         base_mask=$base_mask_DI_SC5P_R2_v3_GEX
-                    elif [[ ${file} == *_ADT ]] || [[ ${file} == *_HTO ]]; then
+                    elif [[ ${file} == *ADT ]] || [[ ${file} == *_HTO ]]; then
                         base_mask=$base_mask_DI_SC5P_R2_v3_ADT
                     elif [[ ${file} == *_VDJ* ]]; then
                         base_mask=$base_mask_DI_SC5P_R2_v3_VDJ
+                    fi
+                else
+                    if [[ ${file} == *_GEX ]]; then
+                        base_mask=$base_mask_DI_SC5P_R2_GEX
+                    elif [[ ${file} == *_ADT ]] || [[ ${file} == *_HTO ]]; then
+                        base_mask=$base_mask_DI_SC5P_R2_ADT
+                    elif [[ ${file} == *_VDJ* ]]; then
+                        base_mask=$base_mask_DI_SC5P_R2_VDJ
                     fi
                 fi
             fi
