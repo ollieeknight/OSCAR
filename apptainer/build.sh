@@ -5,10 +5,10 @@ if [[ ! -f cellranger-9.0.1.tar.gz ]] && [[ ! -f cellranger-atac-2.1.0.tar.gz ]]
     # If not, prompt the user to download them
     echo "First, you need to download cellranger-8.0.0.tar.gz, cellranger-atac-2.1.0.tar.gz into this folder, then come back."
     echo "You can download them from here:"
-    echo "https://www.10xgenomics.com/support/software/cell-ranger/downloads"
-    echo "https://support.10xgenomics.com/single-cell-atac/software/downloads/latest"
+    echo "https://www.10xgenomics.com/support/software/cell-ranger/downloads/previous-versions"
+    echo "https://www.10xgenomics.com/support/software/cell-ranger-atac/downloads/previous-versions"
 
-elif [[ -f cellranger-9.0.1.tar.gz ]] && [[ -f cellranger-atac-2.1.0.tar.gz ]]; then
+elif [[ -f cellranger-9.0.1.tar.gz ]] && [[ -f cellranger-atac-2.2.0.tar.gz ]]; then
 
     # Ask the user if they want to build the counting file
     echo "Do you want to build the counting file? (Y/N)"

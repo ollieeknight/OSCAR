@@ -1,67 +1,94 @@
 Bootstrap: docker
-From: ubuntu:latest
+From: ubuntu:22.04
 
 %labels
     name "Oliver Knight"
     email "oliver.knight@charite.de"
 
-%files
-    ../conda/oscar_qc.yml /opt/oscar_qc_environment.yml
-
 %environment
     export LC_ALL=C
     export LC_NUMERIC=en_GB.UTF-8
     export PATH="/opt/AMULET/:$PATH"
+    . /opt/miniforge3/etc/profile.d/conda.sh
+    conda activate oscar_qc
 
 %runscript
     #!/bin/bash
-    set -e
-    source /opt/miniforge3/etc/profile.d/conda.sh
-    conda activate oscar_qc
-    exec "$@"
+    . /opt/miniforge3/etc/profile.d/conda.sh
+    
+    # Activate cellbender environment if running cellbender, otherwise use oscar_qc
+    if [[ "$1" == "cellbender" ]]; then
+        conda activate cellbender
+    else
+        conda activate oscar_qc
+    fi
+    
+    eval ${@}
 
 %post
     #!/bin/bash
     set -e
 
-    # Install system dependencies
-    apt-get update -qq
-    apt-get upgrade -y -qq
-    apt-get install -y curl git unzip tar nano build-essential wget
-    apt-get clean
+    # Install runtime dependencies
+    apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
+        git \
+        unzip && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
     # Install Miniforge
-    curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -o Miniforge3-Linux-x86_64.sh 
-    bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3" 
+    curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -o Miniforge3-Linux-x86_64.sh && \
+    bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3" && \
     rm Miniforge3-Linux-x86_64.sh
 
-    # Initialize conda for bash
     . /opt/miniforge3/etc/profile.d/conda.sh
-    conda init bash
 
-    # Create environment
-    conda env create -f /opt/oscar_qc_environment.yml
+    # Create main oscar_qc environment with Python 3.10+ packages
+    conda create -y -n oscar_qc -c nvidia -c bioconda -c conda-forge \
+        python=3.10 \
+        cellsnp-lite \
+        cuda-toolkit \
+        cuda-nvcc \
+        pip && \
+    conda clean -y -a
+
+    # Activate oscar_qc and install pip packages
     conda activate oscar_qc
+    
+    pip install --no-cache-dir vireoSNP && \
+    pip install --no-cache-dir git+https://github.com/ollieeknight/mgatk2.git && \
+    pip cache purge
 
-    # Install mgatk-lite and CellBender in the conda environment
-    cd /opt/
-    git clone "https://github.com/ollieeknight/mgatk-lite"
-    cd mgatk-lite
-    pip install --no-cache-dir .
+    # Create separate cellbender environment with Python 3.7
+    conda create -y -n cellbender -c conda-forge \
+        python=3.7 \
+        pip && \
+    conda clean -y -a
 
-    pip install --no-cache-dir -U git+https://github.com/broadinstitute/CellBender.git@4334e8966217c3591bf7c545f31ab979cdc6590d
+    # Activate cellbender and install CellBender
+    conda activate cellbender
+    
+    pip install --no-cache-dir -U git+https://github.com/broadinstitute/CellBender.git@4334e8966217c3591bf7c545f31ab979cdc6590d && \
+    pip cache purge
 
     # Download SNP data
     mkdir -p /opt/SNP/
     curl -L -o /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz "https://www.dropbox.com/scl/fi/qpsdse6dqqjnje53mtyps/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz?rlkey=cxfnlxp8d4zref5eixg0x9uah&st=h5bxgja6&dl=1"
 
     # Install AMULET
-    git clone https://github.com/UcarLab/AMULET /opt/AMULET/
-    curl -sSL -o /opt/AMULET/RestrictionRepeatLists.zip "https://github.com/UcarLab/AMULET/releases/download/v1.0/RestrictionRepeatLists.zip"
-    unzip -q /opt/AMULET/RestrictionRepeatLists.zip -d /opt/AMULET/ && rm /opt/AMULET/RestrictionRepeatLists.zip
-    chmod -R +x /opt/AMULET/
+    git clone --depth 1 https://github.com/UcarLab/AMULET /opt/AMULET/ && \
+    curl -sSL -o /opt/AMULET/RestrictionRepeatLists.zip "https://github.com/UcarLab/AMULET/releases/download/v1.0/RestrictionRepeatLists.zip" && \
+    unzip -q /opt/AMULET/RestrictionRepeatLists.zip -d /opt/AMULET/ && \
+    rm /opt/AMULET/RestrictionRepeatLists.zip && \
+    chmod +x /opt/AMULET/*.py
 
-    # Clean up
-    conda clean -y -a
-    pip cache purge
+    # Remove git (no longer needed)
+    apt-get purge -y --auto-remove git && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+    # Final cleanup
+    conda clean -y --all --force-pkgs-dirs
