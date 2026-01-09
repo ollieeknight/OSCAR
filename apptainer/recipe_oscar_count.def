@@ -1,0 +1,73 @@
+Bootstrap: docker
+From: ubuntu:latest
+
+%labels
+    name "Oliver Knight"
+    email "oliver.knight@charite.de"
+
+%files
+    cellranger-9.0.1.tar.gz /opt/
+    cellranger-atac-2.1.0.tar.gz /opt/
+    ../conda/oscar_count.yml /opt/oscar_count.yml
+
+%environment
+    export LC_ALL=C
+    export LC_NUMERIC=en_GB.UTF-8
+    export PATH="/opt/cellranger-atac-2.1.0:/opt/cellranger-9.0.1:/opt/kallisto/:$PATH"
+    . /opt/miniforge3/etc/profile.d/conda.sh
+    conda activate oscar_count
+
+%runscript
+    alias featuremap='/opt/kite/featuremap/featuremap.py'
+    alias asap_to_kite='/opt/asap_to_kite/asap_to_kite.py'
+    eval ${@}
+
+%post
+    #!/bin/bash
+
+    apt-get update -qq
+    apt-get upgrade -y -qq
+    apt-get install -y curl git unzip tar nano build-essential bash cmake g++ zlib1g-dev
+
+    tar -xf /opt/cellranger-9.0.1.tar.gz -C /opt/
+    tar -xf /opt/cellranger-atac-2.1.0.tar.gz -C /opt/
+    rm /opt/cellranger-9.0.1.tar.gz /opt/cellranger-atac-2.1.0.tar.gz
+
+    curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -o Miniforge3-Linux-x86_64.sh 
+    bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3"
+    rm Miniforge3-Linux-x86_64.sh
+
+    . /opt/miniforge3/etc/profile.d/conda.sh
+
+    conda upgrade --all -y
+
+    conda env create -f /opt/oscar_count.yml
+
+    # Install Kallisto from source
+    mkdir -p /opt/kallisto/
+    git clone https://github.com/pachterlab/kallisto /opt/kallisto/
+    cd /opt/kallisto
+    mkdir build
+    cd build
+    cmake .. -DENABLE_AVX2=OFF -DCOMPILATION_ARCH=OFF
+    make
+    make install
+
+    mkdir -p /opt/asap_to_kite/
+    git clone "https://github.com/ollieeknight/asap_to_kite" /opt/asap_to_kite/
+    sed -i '1s|^.*$|#!/opt/miniforge3/envs/oscar_count/bin/python\n&|' /opt/asap_to_kite/asap_to_kite.py
+    chmod -R +x /opt/asap_to_kite
+
+    mkdir -p /opt/kite/
+    git clone "https://github.com/pachterlab/kite" /opt/kite/
+    sed -i '1s|^.*$|#!/opt/miniforge3/envs/oscar_count/bin/python\n&|' /opt/kite/featuremap/featuremap.py
+    chmod -R +x /opt/kite/
+
+    conda activate oscar_count
+
+    conda clean -y -a
+    pip cache purge
+
+    apt-get clean
+    apt-get autoremove
+    rm -rf /var/lib/apt/lists/*

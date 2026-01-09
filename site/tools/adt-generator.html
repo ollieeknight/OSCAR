@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Generate feature barcode reference files for Cell Ranger, Kallisto, and Tapestri workflows.">
+    <title>Feature barcode reference generator - OSCAR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="helpers/styles.css">
+</head>
+<body>
+    <div class="github-link">
+        <a href="https://github.com/ollieeknight/OSCAR" target="_blank">
+            <span>github.com/ollieeknight/OSCAR</span>
+            <img src="files/github.png" alt="GitHub Repository">
+        </a>
+    </div>
+    <div class="container">
+        <div class="back-to-tools">
+            <a href="index.html">← Back to Tools</a>
+        </div>
+        <h1>Feature barcode reference generator</h1>
+        <div class="pagescontent">
+
+        <section>
+            <p>
+                Supported formats include:
+            </p>
+            <ul>
+                <li>
+                    <a href="https://www.10xgenomics.com/support/software/cell-ranger/latest" target="_blank">Cell Ranger</a> (for 10x Genomics scRNA-seq experiments such as 3' and 5' assays, and DOGMA-seq).
+                </li>
+                <li>
+                    <a href="https://github.com/pachterlab/kite" target="_blank">Kallisto Indexing and Tag Extractor (KITE)</a> (for ASAP-seq experiments).
+                </li>
+                <li>
+                    Tapestri (for DNA and protein sequencing experiments).
+                </li>
+            </ul>
+            <p>
+                Antibody lists are sourced directly from the 
+                <a href="https://www.biolegend.com/en-gb/totalseq/barcode-lookup" target="_blank">BioLegend barcode lookup</a> website and are slightly reformatted to facilitate accurate searches. In some cases, markers have been renamed to their CD numbers for consistency:
+            </p>
+            <ul>
+                <li><a href="https://www.thefcn.org/mouse-cd-list" target="_blank">Mouse CD List</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/List_of_human_clusters_of_differentiation" target="_blank">Human CD List</a></li>
+            </ul>
+            <p>
+                You can search for the antibody clone and catalogue number on the 
+                <a href="https://www.biolegend.com/en-gb/search-results?Applications=PG" target="_blank">BioLegend website</a>.
+            </p>
+        </section>
+    </div>
+    <br>
+        <hr> <!-- Horizontal line to separate sections -->
+        <br>
+
+        <form id="csvForm">
+            <div class="form-group">
+                <label for="species">Species</label>
+                <select id="species" class="dynamic-width-dropdown" onchange="adtConfirmReset('species')" aria-label="Select species for antibody panel">
+                    <option value="" selected disabled>Unselected</option>
+                    <option value="Human">Human (hs)</option>
+                    <option value="Mouse">Mouse (mm)</option>
+                </select>
+            </div>
+            <br>
+            <div class="form-group">
+                <label for="format">TotalSeq format</label>
+                <select id="format" class="dynamic-width-dropdown" onchange="adtConfirmReset('format')" aria-label="Select TotalSeq format">
+                    <option value="" selected disabled>Unselected</option>
+                    <option value="totalseq_a.csv">TotalSeq-A</option>
+                    <option value="totalseq_b.csv">TotalSeq-B</option>
+                    <option value="totalseq_c.csv">TotalSeq-C</option>
+                    <option value="totalseq_d.csv">TotalSeq-D</option>
+                </select>
+            </div>
+            <br>
+            <div class="form-group">
+                <label for="output-format">CSV output format</label>
+                <select id="output-format" class="dynamic-width-dropdown" aria-label="Select CSV output format">
+                    <option value="" selected disabled>Unselected</option>
+                    <option value="cellranger">Cell Ranger (for CITE-, DOGMA-seq)</option>
+                    <option value="kallisto">Kallisto (for ASAP-seq)</option>
+                    <option value="tapestri">Tapestri (DNA + protein)</option>
+                </select>
+            </div>
+            <br>
+            <label for="search">Search</label>
+            <div class="dropdown">
+                <input 
+                    type="text" 
+                    id="search" 
+                    placeholder="Marker, clone, or TotalSeq ID" 
+                    oninput="adtShowDropdown(document.getElementById('format').value)" 
+                    autocomplete="off" 
+                    autocorrect="off" 
+                    autocapitalize="off" 
+                    spellcheck="false" 
+                    style="width: auto;"
+                    aria-label="Search for markers by name, clone, or TotalSeq ID"
+                    aria-describedby="search-instructions">
+                <div id="dropdown-content" class="dropdown-content" role="listbox" aria-label="Marker search results"></div>
+            </div>
+            <br><br>
+            <table id="csvTable">
+                <thead>
+                    <tr>
+                        <th>TotalSeq ID</th>
+                        <th>Marker</th>
+                        <th>Export name</th>
+                        <th>BioLegend catalogue number</th>
+                        <th>Clone</th>
+                        <th>Reactivity</th>
+                        <th>Barcode sequence</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="rowsContainer">
+                    <!-- Rows will be added here dynamically -->
+                </tbody>
+            </table>
+        </form>
+
+        <div class="separator"></div>
+    </div>
+    <div class="adt-file-generate-container">
+        <label for="csv-name-input" style="font-weight: 500; margin-bottom: 5px; display: block;">File name</label>
+        <input type="text" id="csv-name-input" class="csv-name-input" placeholder="File name" aria-label="Enter CSV file name">
+        <button type="button" class="generate-csv-button" onclick="adtGenerateCSV()" aria-label="Download CSV file">Download CSV</button>
+    </div>
+    <script src="helpers/functions.js"></script>
+    <script>
+        let markersData = [];
+        let speciesSelected = false;
+        let formatSelected = false;
+        let outputFormatSelected = false;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            document.querySelector('.generate-csv-button').addEventListener('click', adtGenerateCSV);
+        });
+
+        function adtRemoveRow(button) {
+            const row = button.closest('tr');
+            row.remove();
+        }
+    </script>
+
+</body>
+</html>

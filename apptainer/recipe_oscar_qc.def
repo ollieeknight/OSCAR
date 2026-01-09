@@ -1,0 +1,67 @@
+Bootstrap: docker
+From: ubuntu:latest
+
+%labels
+    name "Oliver Knight"
+    email "oliver.knight@charite.de"
+
+%files
+    ../conda/oscar_qc.yml /opt/oscar_qc_environment.yml
+
+%environment
+    export LC_ALL=C
+    export LC_NUMERIC=en_GB.UTF-8
+    export PATH="/opt/AMULET/:$PATH"
+
+%runscript
+    #!/bin/bash
+    set -e
+    source /opt/miniforge3/etc/profile.d/conda.sh
+    conda activate oscar_qc
+    exec "$@"
+
+%post
+    #!/bin/bash
+    set -e
+
+    # Install system dependencies
+    apt-get update -qq
+    apt-get upgrade -y -qq
+    apt-get install -y curl git unzip tar nano build-essential wget
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+    # Install Miniforge
+    curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -o Miniforge3-Linux-x86_64.sh 
+    bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3" 
+    rm Miniforge3-Linux-x86_64.sh
+
+    # Initialize conda for bash
+    . /opt/miniforge3/etc/profile.d/conda.sh
+    conda init bash
+
+    # Create environment
+    conda env create -f /opt/oscar_qc_environment.yml
+    conda activate oscar_qc
+
+    # Install mgatk-lite and CellBender in the conda environment
+    cd /opt/
+    git clone "https://github.com/ollieeknight/mgatk-lite"
+    cd mgatk-lite
+    pip install --no-cache-dir .
+
+    pip install --no-cache-dir -U git+https://github.com/broadinstitute/CellBender.git@4334e8966217c3591bf7c545f31ab979cdc6590d
+
+    # Download SNP data
+    mkdir -p /opt/SNP/
+    curl -L -o /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz "https://www.dropbox.com/scl/fi/qpsdse6dqqjnje53mtyps/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz?rlkey=cxfnlxp8d4zref5eixg0x9uah&st=h5bxgja6&dl=1"
+
+    # Install AMULET
+    git clone https://github.com/UcarLab/AMULET /opt/AMULET/
+    curl -sSL -o /opt/AMULET/RestrictionRepeatLists.zip "https://github.com/UcarLab/AMULET/releases/download/v1.0/RestrictionRepeatLists.zip"
+    unzip -q /opt/AMULET/RestrictionRepeatLists.zip -d /opt/AMULET/ && rm /opt/AMULET/RestrictionRepeatLists.zip
+    chmod -R +x /opt/AMULET/
+
+    # Clean up
+    conda clean -y -a
+    pip cache purge
