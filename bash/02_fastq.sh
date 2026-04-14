@@ -143,15 +143,15 @@ apptainer run -B /data ${count_container} \
     --barcode-mismatches 1 \
     ${filter_option}
 
-mkdir -p ${project_dir}/${project_id}_fastq/${index_file}/fastqc
+mkdir -p ${project_dir}/${project_id}_fastq/${index_file}/falco
 
-# Run FastQC
-log "Running FastQC"
+# Run Falco
+log "Running Falco"
 find "${project_dir}/${project_id}_fastq/${index_file}/outs/fastq_path/"* -name "*.fastq.gz" | \
-    parallel -j \$(nproc) "apptainer run -B /data ${count_container} fastqc {} \
-    --outdir ${project_dir}/${project_id}_fastq/${index_file}/fastqc"
+    parallel -j \$(nproc) "apptainer run -B /data ${count_container} falco {} \
+    --outdir ${project_dir}/${project_id}_fastq/${index_file}/falco"
 
-# Run MultiQC to aggregate FastQC reports
+# Run MultiQC to aggregate Falco reports
 apptainer run -B /data ${count_container} multiqc \
     "${project_dir}/${project_id}_fastq/${index_file}" \
     -o "${project_dir}/${project_id}_fastq/${index_file}/multiqc"

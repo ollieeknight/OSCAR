@@ -1,0 +1,76 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%labels
+    name "Oliver Knight"
+    email "oliver.knight@charite.de"
+
+%environment
+    export LC_ALL=C
+    export LC_NUMERIC=en_GB.UTF-8
+    export PATH="/opt/miniforge3/envs/oscar_qc/bin:/opt/AMULET/:$PATH"
+
+%runscript
+    #!/bin/bash
+    set -e
+    
+    # Activate conda environment by sourcing
+    source /opt/miniforge3/etc/profile.d/conda.sh
+    conda activate oscar_qc
+    
+    # Execute the command
+    exec "$@"
+
+%post
+    #!/bin/bash
+    set -e
+
+    # Install runtime dependencies
+    apt-get update -qq
+    apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
+        git \
+        unzip
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+    # Install Miniforge
+    curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -o Miniforge3-Linux-x86_64.sh
+    bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3"
+    rm Miniforge3-Linux-x86_64.sh
+
+    . /opt/miniforge3/etc/profile.d/conda.sh
+
+    # Create main oscar_qc environment with Python 3.10+ packages
+    conda create -y -n oscar_qc -c bioconda -c conda-forge \
+        python=3.10 \
+        cellsnp-lite \
+        pip
+    conda clean -y -a
+
+    # Activate oscar_qc and install pip packages
+    conda activate oscar_qc
+    
+    pip install --no-cache-dir vireoSNP
+    pip install --no-cache-dir git+https://github.com/ollieeknight/mgatk2.git
+    pip cache purge
+
+    # Download SNP data
+    mkdir -p /opt/SNP/
+    curl -L -o /opt/SNP/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz "https://www.dropbox.com/scl/fi/qpsdse6dqqjnje53mtyps/genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz?rlkey=cxfnlxp8d4zref5eixg0x9uah&st=h5bxgja6&dl=1"
+
+    # Install AMULET
+    git clone --depth 1 https://github.com/UcarLab/AMULET /opt/AMULET/
+    curl -sSL -o /opt/AMULET/RestrictionRepeatLists.zip "https://github.com/UcarLab/AMULET/releases/download/v1.0/RestrictionRepeatLists.zip"
+    unzip -q /opt/AMULET/RestrictionRepeatLists.zip -d /opt/AMULET/
+    rm /opt/AMULET/RestrictionRepeatLists.zip
+    chmod +x /opt/AMULET/*.py
+
+    # Remove git (no longer needed)
+    apt-get purge -y --auto-remove git
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+    # Final cleanup
+    conda clean -y --all --force-pkgs-dirs

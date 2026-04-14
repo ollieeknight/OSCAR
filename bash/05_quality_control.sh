@@ -62,7 +62,8 @@ check_folder_exists "${output_project_outs}"
 # Pull necessary OSCAR containers
 check_and_pull_oscar_containers
 
-qc_container=${TMPDIR}/OSCAR/oscar-qc_latest.sif
+qc_cellbender_container=${TMPDIR}/OSCAR/oscar-qc-cellbender_latest.sif
+qc_postprocessing_container=${TMPDIR}/OSCAR/oscar-qc-postprocessing_latest.sif
 
 metadata_file="${output_project_scripts}/metadata/metadata.csv"
 
@@ -127,7 +128,7 @@ echo ""
 
 # Run cellbender
 log "Starting CellBender remove-background..."
-apptainer run --nv -B /data ${qc_container} cellbender remove-background \
+apptainer run --nv -B /data ${qc_cellbender_container} cellbender remove-background \
         --cuda \
         --input ${feature_matrix_path} \
         --output ${output_project_outs}/${library}/cellbender/output.h5 \
@@ -192,7 +193,7 @@ mkdir -p ${output_project_outs}/${library}/vireo
 
 # Run cellsnp-lite
 log "Starting cellsnp-lite processing..."
-apptainer exec -B /data ${qc_container} cellsnp-lite \
+apptainer exec -B /data ${qc_postprocessing_container} cellsnp-lite \
         -s ${output_project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam \
         -b ${output_project_outs}/${library}/cellbender/output_cell_barcodes.csv \
         -O ${output_project_outs}/${library}/vireo \
@@ -206,7 +207,7 @@ echo ""
 
 # Run vireo
 log "Starting vireo processing..."
-apptainer run -B /data ${qc_container} vireo \
+apptainer run -B /data ${qc_postprocessing_container} vireo \
         -c ${output_project_outs}/${library}/vireo \
         -o ${output_project_outs}/${library}/vireo \
         -N $n_donors \
@@ -261,7 +262,7 @@ echo ""
 
 # Run cellsnp-lite
 log "Starting cellsnp-lite processing..."
-apptainer exec -B /data ${qc_container} cellsnp-lite \
+apptainer exec -B /data ${qc_postprocessing_container} cellsnp-lite \
         -s ${output_project_outs}/${library}/outs/per_sample_outs/${library}/count/sample_alignments.bam \
         -b ${output_project_outs}/${library}/cellbender/output_cell_barcodes.csv \
         -O ${output_project_outs}/${library}/vireo \
@@ -275,7 +276,7 @@ echo ""
 
 # Run vireo
 log "Starting vireo processing..."
-apptainer run -B /data ${qc_container} vireo \
+apptainer run -B /data ${qc_postprocessing_container} vireo \
         -c ${output_project_outs}/${library}/vireo \
         -o ${output_project_outs}/${library}/vireo \
         -N $n_donors \
@@ -318,7 +319,7 @@ log "----------------------------------------"
 log "HPC cluster node        | \$(hostname)"
 log "Input sample bam        | ${output_project_outs}/${library}/outs/possorted_bam.bam"
 log "Input barcodes          | ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv"
-log "mgatk output folder     | ${output_project_outs}/${library}/mgatk"
+log "mgatk output folder     | ${output_project_outs}/${library}/mgatk2"
 log "Vireo output folder     | ${output_project_outs}/${library}/vireo"
 log "Number of donors        | $n_donors"
 log "Number of cores         | \$(nproc)"
@@ -332,7 +333,7 @@ mkdir -p ${output_project_outs}/${library}/AMULET
 
 # Run AMULET doublet detection
 log "Starting AMULET doublet detection..."
-apptainer run -B /data ${qc_container} AMULET.sh \
+apptainer run -B /data ${qc_postprocessing_container} AMULET.sh \
         ${output_project_outs}/${library}/outs/fragments.tsv.gz \
         ${output_project_outs}/${library}/outs/singlecell.csv \
         /opt/AMULET/human_autosomes.txt \
@@ -346,7 +347,7 @@ mkdir -p ${output_project_outs}/${library}/vireo
 
 # Run cellsnp-lite
 log "Starting donor SNP genotyping with cellsnp-lite..."
-apptainer exec -B /data ${qc_container} cellsnp-lite \
+apptainer exec -B /data ${qc_postprocessing_container} cellsnp-lite \
         -s ${output_project_outs}/${library}/outs/possorted_bam.bam \
         -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
         -O ${output_project_outs}/${library}/vireo \
@@ -361,22 +362,15 @@ echo ""
 
 # Run vireo
 log "Starting vireo donor demultiplexing..."
-apptainer run -B /data ${qc_container} vireo \
+apptainer run -B /data ${qc_postprocessing_container} vireo \
         -c ${output_project_outs}/${library}/vireo \
         -o ${output_project_outs}/${library}/vireo \
         -N $n_donors \
         -p \$(nproc)
 
-# Run mgatk mtDNA genotyping
+# Run 2 mtDNA genotyping
 log "Starting mgatk mtDNA genotyping..."
-apptainer exec -B /data,/usr ${qc_container} mgatk-lite \
-        -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
-        -n output \
-        -o ${output_project_outs}/${library}/mgatk \
-        -c \$(nproc) \
-        -bt CB \
-        -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
-        --skip-R
+apptainer exec -B /data,/usr ${qc_postprocessing_container} mgatk2 run
 
 rm -r ${output_project_outs}/${library}/.snakemake
 EOF
@@ -411,7 +405,7 @@ log "----------------------------------------"
 log "HPC cluster node        | \$(hostname)"
 log "Input sample            | ${output_project_outs}/${library}/outs/possorted_bam.bam"
 log "Output name             | output"
-log "Output folder           | ${output_project_outs}/${library}/mgatk"
+log "Output folder           | ${output_project_outs}/${library}/mgatk2"
 log "Input barcodes          | ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv"
 log "Number of donors        | $n_donors"
 log "Number of cores         | \$(nproc)"
@@ -425,7 +419,7 @@ mkdir -p ${output_project_outs}/${library}/AMULET
 
 # Run AMULET doublet detection
 log "Starting AMULET doublet detection..."
-apptainer run -B /data ${qc_container} AMULET.sh \
+apptainer run -B /data ${qc_postprocessing_container} AMULET.sh \
         ${output_project_outs}/${library}/outs/fragments.tsv.gz \
         ${output_project_outs}/${library}/outs/singlecell.csv \
         /opt/AMULET/human_autosomes.txt \
@@ -435,14 +429,7 @@ apptainer run -B /data ${qc_container} AMULET.sh \
 
 # Run mgatk mtDNA genotyping
 log "Starting mgatk mtDNA genotyping..."
-apptainer exec -B /data,/usr ${qc_container} mgatk-lite \
-        -i ${output_project_outs}/${library}/outs/possorted_bam.bam \
-        -n output \
-        -o ${output_project_outs}/${library}/mgatk \
-        -c \$(nproc) \
-        -bt CB \
-        -b ${output_project_outs}/${library}/outs/filtered_peak_bc_matrix/barcodes.tsv \
-        --skip-R
+apptainer exec -B /data,/usr ${qc_postprocessing_container} mgatk2 run
 
 rm -r ${output_project_outs}/${library}/.snakemake
 EOF

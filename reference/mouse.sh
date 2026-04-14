@@ -2,7 +2,7 @@
 
 # Define default paths and variables
 CONDA_ENV_PATH="$HOME/work/bin/miniforge3/envs/genome_processing"
-DEFAULT_CELLRANGER_PATH="$HOME/group/work/bin/cellranger-arc-2.0.2"
+DEFAULT_CELLRANGER_PATH="$HOME/group/work/bin/cellranger-arc-2.1.0"
 CELLRANGER_PATH=${1:-$DEFAULT_CELLRANGER_PATH}
 GENOME="GRCm38-hardmasked-optimised-arc"
 BUILD="${GENOME}-build"

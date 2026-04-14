@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DEFAULT_CELLRANGER_PATH="$HOME/group/work/bin/cellranger-arc-2.0.2"
+DEFAULT_CELLRANGER_PATH="$HOME/group/work/bin/cellranger-arc-2.1.0"
 CELLRANGER_PATH=${1:-$DEFAULT_CELLRANGER_PATH}
 GENOME="GRCh38-hardmasked-optimised-arc"
 BUILD="${GENOME}-build"

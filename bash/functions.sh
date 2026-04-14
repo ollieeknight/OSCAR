@@ -22,15 +22,27 @@ check_folder_exists() {
     fi
 }
 
-# Function to check run_type based on read length from RunInfo.xml
+# Function to check run_type based on read length from RunInfo.xml or manual override
 check_run_type() {
     project_id="$1"
     dir_prefix="$2"
+    manual_run_type="$3"
 
-    read_length=$(awk -F '"' '/<Read Number="1"/ {print $4}' "${dir_prefix}/${project_id}/${project_id}_bcl/RunInfo.xml")
+    if [ -n "${manual_run_type}" ]; then
+        echo "${manual_run_type}"
+        return
+    fi
+
+    local xml_file="${dir_prefix}/${project_id}/${project_id}_bcl/RunInfo.xml"
+    if [ ! -f "${xml_file}" ]; then
+        echo -e "\033[0;31mERROR:\033[0m RunInfo.xml not found and --run-type not provided. Please specify --run-type (ATAC or GEX) when starting from FASTQ files." >&2
+        exit 1
+    fi
+
+    read_length=$(awk -F '"' '/<Read Number="1"/ {print $4}' "${xml_file}")
 
     if [ -z "${read_length}" ]; then
-        echo -e "\033[0;31mERROR:\033[0m Unable to find read length. Please check ${dir_prefix}/${project_id}_bcl/RunInfo.xml"
+        echo -e "\033[0;31mERROR:\033[0m Unable to find read length. Please check ${xml_file}" >&2
         exit 1
     fi
 
@@ -39,7 +51,7 @@ check_run_type() {
     elif [ "${read_length}" -lt 45 ]; then
         run_type="GEX"
     else
-        echo -e "\033[0;31mERROR:\033[0m Cannot determine run type, please check ${dir_prefix}/${project_id}_bcl/RunInfo.xml"
+        echo -e "\033[0;31mERROR:\033[0m Cannot determine run type, please check ${xml_file}" >&2
         exit 1
     fi
 
@@ -58,23 +70,31 @@ check_metadata_file() {
 check_and_pull_oscar_containers() {
     local container_dir="${TMPDIR}/OSCAR"
     local container_count="${container_dir}/oscar-count_latest.sif"
-    local container_qc="${container_dir}/oscar-qc_latest.sif"
+    local container_qc_cellbender="${container_dir}/oscar-qc-cellbender_latest.sif"
+    local container_qc_postprocessing="${container_dir}/oscar-qc-postprocessing_latest.sif"
 
     mkdir -p "${container_dir}"
 
     if [ ! -f "${container_count}" ]; then
         echo "oscar-count_latest.sif singularity file not found, pulling..."
-        apptainer pull --dir "${container_dir}" library://romagnanilab/oscar/oscar-count:latest
+        apptainer pull --dir "${container_dir}" library://romagnanilab/romagnanilab/oscar-count:latest
     fi
 
-    if [ ! -f "${container_qc}" ]; then
-        echo "oscar-qc_latest.sif singularity file not found, pulling..."
-        apptainer pull --dir "${container_dir}" library://romagnanilab/oscar/oscar-qc:latest
-        echo "All images are present under ${container_dir}"
+    if [ ! -f "${container_qc_cellbender}" ]; then
+        echo "oscar-qc-cellbender_latest.sif singularity file not found, pulling..."
+        apptainer pull --dir "${container_dir}" library://romagnanilab/romagnanilab/oscar-qc-cellbender:latest
     fi
+
+    if [ ! -f "${container_qc_postprocessing}" ]; then
+        echo "oscar-qc-postprocessing_latest.sif singularity file not found, pulling..."
+        apptainer pull --dir "${container_dir}" library://romagnanilab/romagnanilab/oscar-qc-postpro:latest
+    fi
+
+    echo "All images are present under ${container_dir}"
 
     touch "${container_count}"
-    touch "${container_qc}"
+    touch "${container_qc_cellbender}"
+    touch "${container_qc_postprocessing}"
 }
 
 check_base_masks_step1() {
@@ -426,38 +446,45 @@ write_adt_data() {
 
 write_fastq_files() {
     declare -A unique_lines
-    for folder in "${project_dir}/${project_id}_fastq"/*/outs; do
-        matching_fastq_files=($(find "${folder}" -type f -name "${library}*${modality}*" | sort -u))
-        for fastq_file in "${matching_fastq_files[@]}"; do
-            directory=$(dirname "${fastq_file}")
-            fastq_name=$(basename "${fastq_file}" | sed -E 's/\.fastq\.gz$//' | sed -E 's/(_S[0-9]+)?(_[SL][0-9]+_[IR][0-9]+_[0-9]+)*$//')
-            
-            # Define line_identifier and output suffix based on conditions
-            if [[ "${modality}" == "ADT" && "${assay}" == "ASAP" || "${modality}" == "HTO" && "${assay}" == "ASAP" ]]; then
-                line_identifier="${fastq_name},${directory}"
-                suffix="_ADT"
-            elif [[ "${modality}" == "ATAC" || "${assay}" == "ASAP" ]]; then
-                line_identifier="${fastq_name},${directory}"
-                suffix="_ATAC"
-            else
-                line_identifier="${fastq_name},${directory},${full_modality}"
-                suffix=""
-            fi
+    local fastq_parent_dir="${project_dir}/${project_id}_fastq"
+    
+    if [ ! -d "${fastq_parent_dir}" ]; then
+        echo -e "\033[0;31mERROR:\033[0m FASTQ directory ${fastq_parent_dir} not found." >&2
+        return 1
+    fi
 
-            # Construct the final output file name
-            output_file="${library_output%.csv}"
-            if [[ ! "${output_file}" =~ ${suffix}$ ]]; then
-                output_file="${output_file}${suffix}"
-            fi
-            if [[ ! "${output_file}" =~ \.csv$ ]]; then
-                output_file="${output_file}.csv"
-            fi
+    # Find all FASTQ files matching the library and modality recursively
+    matching_fastq_files=($(find "${fastq_parent_dir}" -type f -name "${library}*${modality}*" | sort -u))
+    
+    for fastq_file in "${matching_fastq_files[@]}"; do
+        directory=$(dirname "${fastq_file}")
+        fastq_name=$(basename "${fastq_file}" | sed -E 's/\.fastq\.gz$//' | sed -E 's/(_S[0-9]+)?(_[SL][0-9]+_[IR][0-9]+_[0-9]+)*$//')
+        
+        # Define line_identifier and output suffix based on conditions
+        if [[ "${modality}" == "ADT" && "${assay}" == "ASAP" || "${modality}" == "HTO" && "${assay}" == "ASAP" ]]; then
+            line_identifier="${fastq_name},${directory}"
+            suffix="_ADT"
+        elif [[ "${modality}" == "ATAC" || "${assay}" == "ASAP" ]]; then
+            line_identifier="${fastq_name},${directory}"
+            suffix="_ATAC"
+        else
+            line_identifier="${fastq_name},${directory},${full_modality}"
+            suffix=""
+        fi
 
-            if [ ! -v unique_lines["${line_identifier}"] ]; then
-                unique_lines["${line_identifier}"]=1
-                echo "${line_identifier}" >> "${output_file}"
-            fi
-        done
+        # Construct the final output file name
+        output_file="${library_output%.csv}"
+        if [[ ! "${output_file}" =~ ${suffix}$ ]]; then
+            output_file="${output_file}${suffix}"
+        fi
+        if [[ ! "${output_file}" =~ \.csv$ ]]; then
+            output_file="${output_file}.csv"
+        fi
+
+        if [ ! -v unique_lines["${line_identifier}"] ]; then
+            unique_lines["${line_identifier}"]=1
+            echo "${line_identifier}" >> "${output_file}"
+        fi
     done
 }
 

@@ -33,7 +33,7 @@ elif [[ -f cellranger-9.0.1.tar.gz ]] && [[ -f cellranger-atac-2.1.0.tar.gz ]]; 
 fi
 
 # Ask the user if they want to build the QC file
-echo "Do you want to build the QC file? (Y/N)"
+echo "Do you want to build the post-processing QC file? (Y/N)"
 read -r choice
 
 # Validate the user's input
@@ -46,8 +46,30 @@ done
 if [[ "$choice" = "Y" ]] || [[ "$choice" = "y" ]]; then
     # If yes, build the QC file using apptainer
     echo ""
-    echo "apptainer build oscar-qc.sif recipe_oscar_qc.def"
-    apptainer build oscar-qc.sif recipe_oscar_qc.def
+    echo "apptainer build oscar-qc-postprocessing.sif recipe_oscar_qc_postprocessing.def"
+    apptainer build oscar-qc-postprocessing.sif recipe_oscar_qc_postprocessing.def
+elif [[ "$choice" = "N" ]] || [[ "$choice" = "n" ]]; then
+    # If no, do nothing
+    :
+fi
+
+
+# Ask the user if they want to build the QC file
+echo "Do you want to build the Cellbender QC file? (Y/N)"
+read -r choice
+
+# Validate the user's input
+while [[ ! $choice =~ ^[YyNn]$ ]]; do
+    echo "Invalid input. Please enter Y or N."
+    read -r choice
+done
+
+# Process the user's choice for building the QC file
+if [[ "$choice" = "Y" ]] || [[ "$choice" = "y" ]]; then
+    # If yes, build the QC file using apptainer
+    echo ""
+    echo "apptainer build oscar-qc-cellbender.sif recipe_oscar_qc_cellbender.def"
+    apptainer build oscar-qc-cellbender.sif recipe_oscar_qc_cellbender.def
 elif [[ "$choice" = "N" ]] || [[ "$choice" = "n" ]]; then
     # If no, do nothing
     :

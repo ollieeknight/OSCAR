@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Set base directory and output directory
 REFERENCE_FOLDER="/data/cephfs-1/home/users/knighto_c/group/work/ref/hs/"
 
 mkdir -p ${REFERENCE_FOLDER}/source
@@ -17,7 +16,6 @@ gunzip Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
 
 export PATH="/data/cephfs-1/work/groups/romagnani/users/knighto_c/bin/kallisto"
 
-# Run kb ref command
 kb ref --workflow=standard \
   -i "$OUTPUT_DIR/index.idx" \
   -g t2g.txt \
@@ -41,5 +39,3 @@ kb ref --workflow=standard \
   --include-attribute gene_biotype:TR_C_gene \
   Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa \
   human_GRCh38_optimized_annotation_v2.gtf.gz
-
-echo "kb ref indexing completed. Index files are in $OUTPUT_DIR"

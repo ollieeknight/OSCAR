@@ -1,0 +1,46 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%labels
+    name "Oliver Knight"
+    email "oliver.knight@charite.de"
+    description "CellBender container"
+
+%runscript
+    #!/bin/bash
+    set -e
+
+    source /opt/miniforge3/etc/profile.d/conda.sh
+    conda activate cellbender
+
+    exec "$@"
+
+%post
+
+    #!/bin/bash
+    set -e
+
+    apt-get update -qq
+    apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
+        git
+
+    curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -o Miniforge3-Linux-x86_64.sh
+    bash Miniforge3-Linux-x86_64.sh -b -p "/opt/miniforge3"
+    rm Miniforge3-Linux-x86_64.sh
+    . /opt/miniforge3/etc/profile.d/conda.sh
+
+    conda create -y -n cellbender -c conda-forge \
+        python=3.7 \
+        pip \
+        cuda-toolkit \
+        cuda-nvcc
+
+    conda activate cellbender
+    pip install --no-cache-dir -U git+https://github.com/broadinstitute/CellBender.git@4334e8966217c3591bf7c545f31ab979cdc6590d
+
+    pip cache purge
+    conda clean -y --all --force-pkgs-dirs
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*

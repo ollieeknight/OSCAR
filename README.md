@@ -6,7 +6,7 @@ OSCAR is a comprehensive pipeline designed for processing single-cell RNA, ATAC,
 
 ## Features
 - **Comprehensive metadata tracking**: Generate your metadata file [here](https://ollieeknight.github.io/OSCAR/) and keep track of sequencing runs.
-- **FASTQ demultiplexing and QC**: Takes a raw bcl folder and demultiplexes FASTQ files, performs `fastqc` and `multiqc`.
+- **FASTQ demultiplexing and QC**: Takes a raw bcl folder and demultiplexes FASTQ files, performs `falco` and `multiqc`.
 - **scRNA pipeline**: Utilises `cellranger` for counting (with and without ADT/HTO), performs ambient-RNA correction with `CellBender`, and donor genotyping demultiplexing with `cellsnp-lite` and `vireo`.
 - **scATAC pipeiline**: Utilises `cellranger` for counting, AMULET for doublet prediction, donor genotyping demultiplexing with `cellsnp-lite` and `vireo`, and for ASAP-seq performs ADT/HTO counting with `kallisto`.
 - **Multiome pipeline**: All of the above
