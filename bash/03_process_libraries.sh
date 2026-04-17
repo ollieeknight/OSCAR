@@ -73,7 +73,7 @@ for project_id in "${project_ids[@]}"; do
     metadata_file="${project_scripts}/metadata/${metadata_file_name}"
     
     if [ ! -f "${metadata_file}" ]; then
-        echo -e "\033[0;31mERROR:\033[0m Metadata file for ${project_id} not found, please check path"
+        echo -e "\033[0;31mERROR:\033[0m Metadata file for ${project_id} not found. Expected it to be stored at: ${metadata_file}"
         exit 1
     fi
 done
@@ -107,7 +107,7 @@ for project_id in "${project_ids[@]}"; do
 
         # Check that the metadata file is available
         if [ ! -f "${metadata_file}" ]; then
-                echo -e "\033[0;31mERROR:\033[0m Metadata file for ${project_id} not found, please check path"
+                echo -e "\033[0;31mERROR:\033[0m Metadata file for ${project_id} not found. Expected it to be stored at: ${metadata_file}"
                 exit 1
         fi
 
@@ -115,6 +115,7 @@ for project_id in "${project_ids[@]}"; do
                 # List index files and extract flowcell ID from RunInfo.xml for the first project ID
                 flowcell_id=$(grep "<Flowcell>" "${project_dir}/${project_id}_bcl/RunInfo.xml" | sed -e 's|.*<Flowcell>\(.*\)</Flowcell>.*|\1|')
                 run_type=$(check_run_type "${project_id}" "${dir_prefix}" "${run_type}")
+                if [ $? -ne 0 ]; then exit 1; fi
                 # echo -e "\033[34mINFO:\033[0m ${run_type} run ${project_id} has flowcell ID ${flowcell_id}"
         else
                 # If skipping BCL, we either use the provided run_type or default to the mode
