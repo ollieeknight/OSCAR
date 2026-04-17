@@ -17,7 +17,8 @@ display_help() {
         echo "Options:"
         echo "  --project-id <id>                             Set the project ID. Can be multiple (comma-separated)"
         echo "  --dir-prefix <path>                           Set the directory prefix (default: ${HOME}/scratch/ngs)"
-        echo "  --run-type <GEX|ATAC>                         Set run type (GEX or ATAC). Used if starting from FASTQ files directly."
+        echo "  --skip-bcl                                    Skip checking BCL files and RunInfo.xml (assumes mode as run type)"
+        echo "  --run-type <GEX|ATAC>                         Set run type (GEX or ATAC). Overrides automatic detection."
         echo "  --gene-expression-options <id1,id2>           Define options for gene expression processing (comma-separated)"
         echo "  --vdj-options <id1,id2>                       Define options for VDJ processing (comma-separated)"
         echo "  --adt-options <id1,id2>                       Define options for ADT processing (comma-separated)"
@@ -31,6 +32,11 @@ while [[ "${#}" -gt 0 ]]; do
         if [[ "${1}" == --* ]]; then
                 if [[ "${1}" == "--help" ]]; then
                         display_help  # Display help message and exit
+                fi
+                if [[ "${1}" == "--skip-bcl" ]]; then
+                        skip_bcl="true"
+                        shift 1
+                        continue
                 fi
                 if [[ -z "${2}" ]]; then
                         echo "Error: Missing value for parameter ${1}"
@@ -105,7 +111,18 @@ for project_id in "${project_ids[@]}"; do
                 exit 1
         fi
 
-        run_type=$(check_run_type "${project_id}" "${dir_prefix}" "${run_type}")
+        if [[ "${skip_bcl}" != "true" ]]; then
+                # List index files and extract flowcell ID from RunInfo.xml for the first project ID
+                flowcell_id=$(grep "<Flowcell>" "${project_dir}/${project_id}_bcl/RunInfo.xml" | sed -e 's|.*<Flowcell>\(.*\)</Flowcell>.*|\1|')
+                run_type=$(check_run_type "${project_id}" "${dir_prefix}" "${run_type}")
+                # echo -e "\033[34mINFO:\033[0m ${run_type} run ${project_id} has flowcell ID ${flowcell_id}"
+        else
+                # If skipping BCL, we either use the provided run_type or default to the mode
+                if [[ -z "${run_type}" ]]; then
+                        run_type="${mode}"
+                fi
+                echo -e "\033[34mINFO:\033[0m Skipping BCL checks. Setting run_type to ${run_type}"
+        fi
 
         # Iterate through each line in metadata.csv
         while IFS=',' read -r assay experiment_id historical_number replicate modality chemistry index_type index species n_donors adt_file || [[ -n "$assay" ]]; do
