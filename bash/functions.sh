@@ -71,7 +71,7 @@ check_and_pull_oscar_containers() {
     local container_dir="${TMPDIR}/OSCAR"
     local container_count="${container_dir}/oscar-count_latest.sif"
     local container_qc_cellbender="${container_dir}/oscar-qc-cellbender_latest.sif"
-    local container_qc_postprocessing="${container_dir}/oscar-qc-postprocessing_latest.sif"
+    local container_qc_postprocessing="${container_dir}/oscar-qc-postpro_latest.sif"
 
     mkdir -p "${container_dir}"
 
