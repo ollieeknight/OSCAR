@@ -63,7 +63,7 @@ check_folder_exists "${output_project_outs}"
 check_and_pull_oscar_containers
 
 qc_cellbender_container=${TMPDIR}/OSCAR/oscar-qc-cellbender_latest.sif
-qc_postprocessing_container=${TMPDIR}/OSCAR/oscar-qc-postprocessing_latest.sif
+qc_postprocessing_container=${TMPDIR}/OSCAR/oscar-qc-postpro_latest.sif
 
 metadata_file="${output_project_scripts}/metadata/metadata.csv"
 
@@ -141,7 +141,7 @@ EOF
 )
                 job_id=$(echo "$job_id" | awk '{print $4}')
                 elif [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
-                        continue
+                        job_id=""
                 fi
 
                 if [[ "$n_donors" == '0' || "$n_donors" == '1' || "$n_donors" == 'NA' ]]; then
