@@ -92,16 +92,13 @@ def get_override_cycles(assay, chemistry, index_type, modality, num_reads, index
         def oc   = mask.replace(',', ';').replace('n', 'N')
 
         if (num_reads == 4 && index_seqs != null && !index_seqs.is_dual) {
-            def parts   = oc.split(';')
-            def seq_len = index_seqs.rows[0].i7.length()
-            def i_count = 0
-            def fixed   = parts.collect { p ->
-                if (p.startsWith('I')) {
-                    i_count++
-                    i_count == 1 ? "I${seq_len}N*" : 'N*'
-                } else {
-                    p
-                }
+            def parts     = oc.split(';') as List
+            def seq_len   = index_seqs.rows[0].i7.length()
+            def i_indices = (0..<parts.size()).findAll { parts[it].startsWith('I') }
+            def fixed     = parts.withIndex().collect { p, idx ->
+                if      (idx == i_indices[0])                               "I${seq_len}N*"
+                else if (i_indices.size() > 1 && idx == i_indices[1])      'N*'
+                else                                                         p
             }
             return fixed.join(';')
         }
