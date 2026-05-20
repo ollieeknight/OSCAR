@@ -221,6 +221,8 @@ process BCL_TO_FASTQ {
     tag "$demux_key"
     label 'process_medium'   // overridden to 16c/32GB/12h via withName: 'BCL_TO_FASTQ'
     container "${params.container_bclconvert}"
+    publishDir { "${params.outdir}" }, mode: 'symlink', pattern: 'fastqs/*.fastq.gz',
+        saveAs: { fn -> fn.tokenize('/')[-1] }
 
     input:
     tuple val(demux_key), val(metas), path(bcl_dir), path(samplesheet)
