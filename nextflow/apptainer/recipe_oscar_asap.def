@@ -1,0 +1,24 @@
+Bootstrap: docker
+From: python:3.11-slim
+
+# Custom container: asap_to_kite + kite featuremap
+# Used only for ASAP-seq ADT counting
+
+%labels
+    Description "ASAP-seq ADT tools: asap_to_kite, kite featuremap"
+
+%environment
+    export PATH="/opt/kite/featuremap:$PATH"
+
+%post
+    apt-get update -qq && apt-get install -y --no-install-recommends \
+        git curl \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+    pip install --no-cache-dir bio
+    pip install --no-cache-dir git+https://github.com/ollieeknight/asap_to_kite.git
+
+    git clone --depth 1 https://github.com/pachterlab/kite /opt/kite
+    sed -i '1s|.*|#!/usr/bin/env python3|' /opt/kite/featuremap/featuremap.py
+    chmod +x /opt/kite/featuremap/featuremap.py
+    ln -s /opt/kite/featuremap/featuremap.py /usr/local/bin/featuremap

@@ -1,0 +1,42 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+# Custom container: cellranger 9.0.1 + cellranger-atac 2.2.0 + bcl2fastq2
+# Pre-download tarballs before building:
+#   cellranger-9.0.1.tar.gz  (from 10x Genomics website)
+#   cellranger-atac-2.2.0.tar.gz  (from 10x Genomics website)
+
+%labels
+    Description "10x Genomics tools: cellranger 9.0.1, cellranger-atac 2.2.0, bcl2fastq2"
+
+%files
+    cellranger-9.0.1.tar.gz       /opt/
+    cellranger-atac-2.2.0.tar.gz  /opt/
+
+%environment
+    export LC_ALL=C
+    export LC_NUMERIC=en_GB.UTF-8
+    export PATH="/opt/cellranger-9.0.1:/opt/cellranger-atac-2.2.0:/opt/miniforge3/envs/oscar_10x/bin:/usr/local/bin:$PATH"
+
+%post
+    apt-get update -qq && apt-get install -y --no-install-recommends \
+        curl ca-certificates parallel \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+    # Extract 10x Genomics tools
+    cd /opt && tar -xzf cellranger-9.0.1.tar.gz && rm cellranger-9.0.1.tar.gz
+    cd /opt && tar -xzf cellranger-atac-2.2.0.tar.gz && rm cellranger-atac-2.2.0.tar.gz
+
+    # Disable cellranger telemetry
+    /opt/cellranger-9.0.1/bin/telemetry opt-out || true
+
+    # Install miniforge for falco + multiqc
+    curl -fsSL https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh \
+        -o /tmp/miniforge.sh
+    bash /tmp/miniforge.sh -b -p /opt/miniforge3 && rm /tmp/miniforge.sh
+
+    /opt/miniforge3/bin/conda create -y -n oscar_10x \
+        -c https://repo.prefix.dev/romitools \
+        -c bioconda -c conda-forge \
+        bcl2fastq2 falco multiqc parallel \
+    && /opt/miniforge3/bin/conda clean -a -y
