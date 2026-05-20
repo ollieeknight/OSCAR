@@ -142,8 +142,6 @@ process BCL_TO_FASTQ {
     }.join('\n')
 
     """
-    mkdir -p fastqs
-
     # Parse RunInfo.xml: count reads and extract cycle lengths (pure bash, no python)
     mapfile -t cycles < <(grep -o 'NumCycles="[0-9]*"' ${bcl_dir}/RunInfo.xml | grep -o '[0-9]*')
     num_reads=\${#cycles[@]}
