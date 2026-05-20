@@ -144,26 +144,17 @@ process BCL_TO_FASTQ {
     """
     mkdir -p fastqs
 
-    # Parse RunInfo.xml: count reads and extract cycle lengths
-    python3 << PYEOF > run_info.txt
-import xml.etree.ElementTree as ET
-tree = ET.parse('${bcl_dir}/RunInfo.xml')
-reads = sorted(tree.findall('.//Read'), key=lambda r: int(r.get('Number')))
-print(len(reads))
-for r in reads:
-    print(r.get('NumCycles'))
-PYEOF
-
-    mapfile -t ri < run_info.txt
-    num_reads=\${ri[0]}
-    r1=\${ri[1]}
-    i1=\${ri[2]}
+    # Parse RunInfo.xml: count reads and extract cycle lengths (pure bash, no python)
+    mapfile -t cycles < <(grep -o 'NumCycles="[0-9]*"' ${bcl_dir}/RunInfo.xml | grep -o '[0-9]*')
+    num_reads=\${#cycles[@]}
+    r1=\${cycles[0]}
+    i1=\${cycles[1]}
     if [ "\$num_reads" -eq 4 ]; then
-        i2=\${ri[3]}
-        r2=\${ri[4]}
+        i2=\${cycles[2]}
+        r2=\${cycles[3]}
         override_cycles="${oc_4}"
     else
-        r2=\${ri[3]}
+        r2=\${cycles[2]}
         override_cycles="${oc_3}"
     fi
 
