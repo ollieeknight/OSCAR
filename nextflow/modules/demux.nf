@@ -98,26 +98,28 @@ def get_base_mask(assay, chemistry, index_type, modality, num_reads) {
 // actual sequence length and the I2 position is fully masked (N*).
 // ATAC cell-barcode reads in position 3 are Y reads, not I, so they are untouched.
 def get_override_cycles(assay, chemistry, index_type, modality, num_reads, index_seqs = null) {
+    def mask
     try {
-        def mask = get_base_mask(assay, chemistry, index_type, modality, num_reads)
-        def oc   = mask.replace(',', ';').replace('n', 'N')
-
-        if (num_reads == 4 && index_seqs != null && !index_seqs.is_dual) {
-            def parts     = oc.split(';') as List
-            def seq_len   = index_seqs.rows[0].i7.length()
-            def i_indices = (0..<parts.size()).findAll { parts[it].startsWith('I') }
-            def fixed     = (0..<parts.size()).collect { idx ->
-                if      (idx == i_indices[0])                               "I${seq_len}N*"
-                else if (i_indices.size() > 1 && idx == i_indices[1])      'N*'
-                else                                                         parts[idx]
-            }
-            return fixed.join(';')
-        }
-
-        return oc
+        mask = get_base_mask(assay, chemistry, index_type, modality, num_reads)
     } catch (e) {
-        error "get_override_cycles failed for assay=${assay} chem=${chemistry} index_type=${index_type} modality=${modality} num_reads=${num_reads}: ${e.message}"
+        return null  // no entry for this num_reads; caller falls back to the other read count
     }
+
+    def oc = mask.replace(',', ';').replace('n', 'N')
+
+    if (num_reads == 4 && index_seqs != null && !index_seqs.is_dual) {
+        def parts     = oc.split(';') as List
+        def seq_len   = index_seqs.rows[0].i7.length()
+        def i_indices = (0..<parts.size()).findAll { parts[it].startsWith('I') }
+        def fixed     = (0..<parts.size()).collect { idx ->
+            if      (idx == i_indices[0])                               "I${seq_len}N*"
+            else if (i_indices.size() > 1 && idx == i_indices[1])      'N*'
+            else                                                         parts[idx]
+        }
+        return fixed.join(';')
+    }
+
+    return oc
 }
 
 // ─── BCL_TO_FASTQ ─────────────────────────────────────────────────────────────
