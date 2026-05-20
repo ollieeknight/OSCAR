@@ -40,9 +40,10 @@ reference,${ref_vdj}
 """ : ""
 
     // adt_csv is staged in the work dir when provided; name='NO_FILE' means absent
+    // toAbsolutePath() required — cellranger resolves paths from its own working dir
     def feature_section = (has_adt && adt_csv.name != 'NO_FILE') ? """
 [feature]
-reference,${adt_csv}
+reference,${adt_csv.toAbsolutePath()}
 """ : ""
 
     // fastq_id = meta.id (= BCL Convert Sample_ID = filename prefix)
