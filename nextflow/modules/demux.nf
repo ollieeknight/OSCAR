@@ -232,14 +232,18 @@ process BCL_TO_FASTQ {
     script:
     """
     bcl-convert \\
-        --bcl-input-directory   ${bcl_dir} \\
-        --output-directory      fastqs \\
-        --sample-sheet          ${samplesheet} \\
-        --bcl-num-parallel-tiles ${task.cpus} \\
-        --no-lane-splitting     false \\
-        --force
-
-    rm -f fastqs/Undetermined_*.fastq.gz
+        --bcl-input-directory              ${bcl_dir} \\
+        --output-directory                 fastqs \\
+        --sample-sheet                     ${samplesheet} \\
+        --no-lane-splitting                true \\
+        --force \\
+        --bcl-only-matched-reads           true \\
+        --bcl-num-parallel-tiles           4 \\
+        --bcl-num-conversion-threads       4 \\
+        --shared-thread-odirect-output     true \\
+        --bcl-enable-tile-metrics          false \\
+        --bcl-enable-adapter-cycle-metrics false \\
+        --num-unknown-barcodes-reported    0
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
