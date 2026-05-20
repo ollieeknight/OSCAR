@@ -1,5 +1,6 @@
-include { BCL_TO_FASTQ } from '../modules/demux'
-include { FALCO }        from '../modules/demux'
+include { GENERATE_SAMPLESHEET } from '../modules/demux'
+include { BCL_TO_FASTQ }        from '../modules/demux'
+include { FALCO }               from '../modules/demux'
 
 workflow DEMUX {
     take:
@@ -26,7 +27,8 @@ workflow DEMUX {
             }
             .set { ch_demux_input }
 
-        BCL_TO_FASTQ(ch_demux_input)
+        GENERATE_SAMPLESHEET(ch_demux_input)
+        BCL_TO_FASTQ(GENERATE_SAMPLESHEET.out.samplesheet)
 
         // Explode output back to individual metas by matching meta.id to FASTQ filename.
         // meta.id == BCL Convert Sample_ID == FASTQ filename prefix.

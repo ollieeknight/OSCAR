@@ -122,31 +122,28 @@ def get_override_cycles(assay, chemistry, index_type, modality, num_reads, index
     return oc
 }
 
-// ─── BCL_TO_FASTQ ─────────────────────────────────────────────────────────────
-// Direct BCL Convert (bclconvert) demultiplexing.
-// One job per unique {assay}_{index_type}_{chemistry}_{modality} combination.
-// Generates V2 SampleSheet from resolved meta.index_seqs at runtime.
+// ─── GENERATE_SAMPLESHEET ────────────────────────────────────────────────────
+// Builds a BCL Convert V2 SampleSheet for one demux group.
+// Reads RunInfo.xml at runtime to get actual cycle lengths, then resolves
+// OverrideCycles wildcards (*) to exact counts required by BCL Convert 4.x.
 // Input channel: [demux_key, metas_list, bcl_dir]
 
-process BCL_TO_FASTQ {
+process GENERATE_SAMPLESHEET {
     tag "$demux_key"
-    label 'process_medium'   // overridden to 16c/32GB/12h via withName: 'BCL_TO_FASTQ'
+    label 'process_low'
     container "${params.container_bclconvert}"
 
     input:
     tuple val(demux_key), val(metas), path(bcl_dir)
 
     output:
-    tuple val(metas), path("fastqs/*.fastq.gz"), emit: fastqs
-    path "versions.yml",                          emit: versions
+    tuple val(demux_key), val(metas), path(bcl_dir), path("SampleSheet.csv"), emit: samplesheet
 
     script:
-    def meta     = metas[0]
-    def oc_4     = get_override_cycles(meta.assay, meta.chemistry, meta.index_type, meta.modality, 4, meta.index_seqs)
-    def oc_3     = get_override_cycles(meta.assay, meta.chemistry, meta.index_type, meta.modality, 3, meta.index_seqs) ?: oc_4
-    def is_dual  = metas.any { m -> m.index_seqs.is_dual }
-
-    // Build [BCLConvert_Data] section (static — known from samplesheet)
+    def meta        = metas[0]
+    def oc_4        = get_override_cycles(meta.assay, meta.chemistry, meta.index_type, meta.modality, 4, meta.index_seqs)
+    def oc_3        = get_override_cycles(meta.assay, meta.chemistry, meta.index_type, meta.modality, 3, meta.index_seqs) ?: oc_4
+    def is_dual     = metas.any { m -> m.index_seqs.is_dual }
     def data_header = is_dual ? 'Sample_ID,Index,Index2' : 'Sample_ID,Index'
     def data_rows   = metas.collectMany { m ->
         m.index_seqs.rows.collect { row ->
@@ -155,7 +152,6 @@ process BCL_TO_FASTQ {
     }.join('\n')
 
     """
-    # Parse RunInfo.xml: count reads and extract cycle lengths (pure bash, no python)
     mapfile -t cycles < <(grep -o 'NumCycles="[0-9]*"' ${bcl_dir}/RunInfo.xml | grep -o '[0-9]*')
     num_reads=\${#cycles[@]}
     r1=\${cycles[0]}
@@ -163,13 +159,35 @@ process BCL_TO_FASTQ {
     if [ "\$num_reads" -eq 4 ]; then
         i2=\${cycles[2]}
         r2=\${cycles[3]}
-        override_cycles="${oc_4}"
+        raw_oc="${oc_4}"
+        read_lens=("\$r1" "\$i1" "\$i2" "\$r2")
     else
         r2=\${cycles[2]}
-        override_cycles="${oc_3}"
+        raw_oc="${oc_3}"
+        read_lens=("\$r1" "\$i1" "\$r2")
     fi
 
-    # Write V2 SampleSheet header + settings (dynamic, depends on RunInfo.xml)
+    # Resolve * to exact counts — BCL Convert 4.x rejects wildcards
+    IFS=';' read -ra oc_parts <<< "\$raw_oc"
+    expanded=()
+    for i in "\${!oc_parts[@]}"; do
+        part="\${oc_parts[\$i]}"
+        len="\${read_lens[\$i]}"
+        if [[ "\$part" == *'*' ]]; then
+            base="\${part%\\*}"
+            used=\$(echo "\$base" | grep -oE '[0-9]+' | awk '{s+=\$1}END{print s+0}')
+            rest=\$((len - used))
+            if [ "\$rest" -gt 0 ]; then
+                expanded+=("\${base}\${rest}")
+            else
+                expanded+=("\$(echo "\$base" | sed 's/[A-Z]\$//')")
+            fi
+        else
+            expanded+=("\$part")
+        fi
+    done
+    override_cycles=\$(IFS=';'; echo "\${expanded[*]}")
+
     {
         echo '[Header]'
         echo 'FileFormatVersion,2'
@@ -178,7 +196,7 @@ process BCL_TO_FASTQ {
         echo "Read1Cycles,\$r1"
         echo "Index1Cycles,\$i1"
         [ "\$num_reads" -eq 4 ] && echo "Index2Cycles,\$i2" || true
-        echo "Read2Cycles,\$([ "\$num_reads" -eq 4 ] && echo \$r2 || echo \$r2)"
+        echo "Read2Cycles,\$r2"
         echo ''
         echo '[BCLConvert_Settings]'
         echo "OverrideCycles,\$override_cycles"
@@ -188,21 +206,38 @@ process BCL_TO_FASTQ {
         echo '[BCLConvert_Data]'
     } > SampleSheet.csv
 
-    # Append sample rows (injected by Groovy, not shell variables)
     cat >> SampleSheet.csv << 'DATAEOF'
 ${data_header}
 ${data_rows}
 DATAEOF
+    """
+}
 
-    # Run BCL Convert
+// ─── BCL_TO_FASTQ ─────────────────────────────────────────────────────────────
+// Runs BCL Convert using a pre-built SampleSheet from GENERATE_SAMPLESHEET.
+// Input channel: [demux_key, metas_list, bcl_dir, samplesheet]
+
+process BCL_TO_FASTQ {
+    tag "$demux_key"
+    label 'process_medium'   // overridden to 16c/32GB/12h via withName: 'BCL_TO_FASTQ'
+    container "${params.container_bclconvert}"
+
+    input:
+    tuple val(demux_key), val(metas), path(bcl_dir), path(samplesheet)
+
+    output:
+    tuple val(metas), path("fastqs/*.fastq.gz"), emit: fastqs
+    path "versions.yml",                          emit: versions
+
+    script:
+    """
     bcl-convert \\
         --bcl-input-directory   ${bcl_dir} \\
         --output-directory      fastqs \\
-        --sample-sheet          SampleSheet.csv \\
+        --sample-sheet          ${samplesheet} \\
         --bcl-num-parallel-tiles ${task.cpus} \\
         --no-lane-splitting     false
 
-    # Remove undetermined reads
     rm -f fastqs/Undetermined_*.fastq.gz
 
     cat <<-END_VERSIONS > versions.yml
