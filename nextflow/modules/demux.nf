@@ -240,7 +240,6 @@ process BCL_TO_FASTQ {
         --bcl-only-matched-reads           true \\
         --bcl-num-parallel-tiles           4 \\
         --bcl-num-conversion-threads       4 \\
-        --shared-thread-odirect-output     true \\
         --bcl-enable-tile-metrics          false \\
         --bcl-enable-adapter-cycle-metrics false \\
         --num-unknown-barcodes-reported    0
