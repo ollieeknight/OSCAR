@@ -45,11 +45,12 @@ workflow DEMUX {
             }
             .set { ch_fastqs }
 
-        // Run Falco on all FASTQs per demux job for MultiQC
+        // Run Falco per R-read FASTQ (R1/R2/R3 only; I1/I2 index reads skipped)
         BCL_TO_FASTQ.out.fastqs
-            .map { metas, fq_files ->
-                def key = "${metas[0].assay}_${metas[0].index_type}_${metas[0].chemistry}_${metas[0].modality}"
-                [key, fq_files instanceof List ? fq_files : [fq_files]]
+            .flatMap { metas, fq_files ->
+                (fq_files instanceof List ? fq_files : [fq_files])
+                    .findAll { f -> f.name =~ /_R[0-9]+_/ }
+                    .collect { f -> [f.name.replaceAll(/\.fastq\.gz$/, ''), f] }
             }
             .set { ch_falco_input }
 

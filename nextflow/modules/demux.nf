@@ -236,7 +236,8 @@ process BCL_TO_FASTQ {
         --output-directory      fastqs \\
         --sample-sheet          ${samplesheet} \\
         --bcl-num-parallel-tiles ${task.cpus} \\
-        --no-lane-splitting     false
+        --no-lane-splitting     false \\
+        --force
 
     rm -f fastqs/Undetermined_*.fastq.gz
 
@@ -248,25 +249,24 @@ process BCL_TO_FASTQ {
 }
 
 // ─── FALCO ────────────────────────────────────────────────────────────────────
-// Batch QC on all FASTQs from one demux job.
+// Per-file QC. One job per R-read FASTQ (R1/R2/R3); index reads (I1/I2) skipped.
 
 process FALCO {
-    tag "$demux_key"
-    label 'process_medium'
+    tag "$fastq_name"
+    label 'process_low'
     container "${params.container_falco}"
 
     input:
-    tuple val(demux_key), path(fastqs)
+    tuple val(fastq_name), path(fastq)
 
     output:
-    path "falco_${demux_key}/", emit: report
-    path "versions.yml",        emit: versions
+    path "${fastq_name}/", emit: report
+    path "versions.yml",   emit: versions
 
     script:
     """
-    mkdir -p falco_${demux_key}
-    find . -maxdepth 1 -name '*.fastq.gz' \\
-        | xargs -P ${task.cpus} -I{} falco -t 1 {} -o falco_${demux_key}
+    mkdir -p ${fastq_name}
+    falco -t 1 ${fastq} -o ${fastq_name}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
