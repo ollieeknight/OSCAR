@@ -116,7 +116,7 @@ def parse_row(row, Map si_indexes) {
     def index    = row.index.trim()
     def adt_file = row.adt_file?.trim() ?: null
     def adt_csv_path = (adt_file && params.adt_files_dir) \
-        ? "${params.adt_files_dir}/${adt_file}.csv" : null
+        ? file("${params.adt_files_dir}/${adt_file}.csv").toAbsolutePath().toString() : null
     [
         id:               "${row.assay}_${row.experiment_id}_exp${row.historical_number}_lib${row.replicate}_${row.modality}",
         library_id:       "${row.assay}_${row.experiment_id}_exp${row.historical_number}_lib${row.replicate}",
