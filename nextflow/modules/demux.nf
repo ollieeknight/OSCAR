@@ -221,7 +221,10 @@ process BCL_TO_FASTQ {
     tag "$demux_key"
     label 'process_medium'   // overridden to 16c/32GB/12h via withName: 'BCL_TO_FASTQ'
     container "${params.container_bclconvert}"
-    publishDir { "${params.outdir}" }, mode: 'copy', pattern: 'fastqs/*.fastq.gz',
+    publishDir {
+        def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
+        "${params.outdir}/${run}_fastq"
+    }, mode: 'copy', pattern: 'fastqs/*.fastq.gz',
         saveAs: { fn -> fn.tokenize('/')[-1] }
 
     input:
@@ -260,7 +263,7 @@ process FALCO {
     tag "$fastq_name"
     label 'process_low'
     container "${params.container_falco}"
-    publishDir { "${params.outdir}/falco" }, mode: 'copy'
+    publishDir { "${params.outdir}/${params.run_name}_fastq/falco" }, mode: 'copy'
 
     input:
     tuple val(fastq_name), path(fastq)
@@ -286,7 +289,7 @@ process FALCO {
 process MULTIQC {
     label 'process_low'
     container "${params.container_multiqc}"
-    publishDir "${params.outdir}/multiqc", mode: 'copy'
+    publishDir { "${params.outdir}/${params.run_name}_outs/multiqc" }, mode: 'copy'
 
     input:
     path(reports)

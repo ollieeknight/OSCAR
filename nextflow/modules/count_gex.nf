@@ -9,7 +9,7 @@ process CELLRANGER_MULTI {
     tag "$library_id"
     label 'process_high'   // overridden to 64c/128GB/48h via withName
     container "${params.container_cellranger}"
-    publishDir { "${params.outdir}/${library_id}" }, mode: 'copy'
+    publishDir { "${params.outdir}/${params.run_name}_outs/${library_id}" }, mode: 'copy'
 
     input:
     tuple val(library_id), val(metas), path(fastq_files), path(adt_csv)

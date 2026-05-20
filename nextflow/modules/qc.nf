@@ -6,7 +6,7 @@ process CELLBENDER {
     tag "$meta.library_id"
     label 'process_gpu'
     container "${params.container_cellbender}"
-    publishDir { "${params.outdir}/${meta.library_id}/cellbender" }, mode: 'copy'
+    publishDir { "${params.outdir}/${params.run_name}_outs/${meta.library_id}/cellbender" }, mode: 'copy'
 
     input:
     tuple val(meta), path(outs_dir)
@@ -47,7 +47,7 @@ process CELLSNP_LITE {
     tag { "${meta.library_id} (${mode})" }
     label 'process_medium'   // overridden to 32c/64GB/96h via withName
     container "${params.container_cellsnp}"
-    publishDir { "${params.outdir}/${mode == 'atac' ? "${meta.library_id}_ATAC" : meta.library_id}/cellsnp" }, mode: 'copy'
+    publishDir { "${params.outdir}/${params.run_name}_outs/${mode == 'atac' ? "${meta.library_id}_ATAC" : meta.library_id}/cellsnp" }, mode: 'copy'
 
     input:
     tuple val(meta), path(bam), path(bai), path(barcodes)
@@ -89,7 +89,7 @@ process VIREO {
     tag "$meta.library_id"
     label 'process_medium'   // overridden to 32c/64GB/96h via withName: 'CELLSNP_LITE|VIREO'
     container "${params.container_vireo}"
-    publishDir { "${params.outdir}/${mode == 'atac' ? "${meta.library_id}_ATAC" : meta.library_id}/vireo" }, mode: 'copy'
+    publishDir { "${params.outdir}/${params.run_name}_outs/${mode == 'atac' ? "${meta.library_id}_ATAC" : meta.library_id}/vireo" }, mode: 'copy'
 
     input:
     tuple val(meta), path(cellsnp_dir)
@@ -124,7 +124,7 @@ process AMULET {
     tag "$meta.library_id"
     label 'process_medium'
     container "${params.container_amulet}"
-    publishDir { "${params.outdir}/${meta.library_id}_ATAC/AMULET" }, mode: 'copy'
+    publishDir { "${params.outdir}/${params.run_name}_outs/${meta.library_id}_ATAC/AMULET" }, mode: 'copy'
 
     input:
     tuple val(meta), path(outs_dir)
@@ -162,7 +162,7 @@ process MGATK2 {
     tag "$meta.library_id"
     label 'process_medium'   // overridden to 32c/128GB/96h via withName: 'MGATK2'
     container "${params.container_mgatk}"
-    publishDir { "${params.outdir}/${meta.library_id}_ATAC/mgatk2" }, mode: 'copy'
+    publishDir { "${params.outdir}/${params.run_name}_outs/${meta.library_id}_ATAC/mgatk2" }, mode: 'copy'
 
     input:
     tuple val(meta), path(outs_dir)
@@ -202,7 +202,7 @@ process MACS3 {
     tag "$meta.library_id"
     label 'process_low'
     container "${params.container_macs3}"
-    publishDir { "${params.outdir}/${meta.library_id}_ATAC/peaks" }, mode: 'copy'
+    publishDir { "${params.outdir}/${params.run_name}_outs/${meta.library_id}_ATAC/peaks" }, mode: 'copy'
 
     input:
     tuple val(meta), path(outs_dir)
@@ -257,7 +257,7 @@ process SCRUBLET {
     tag "$meta.library_id"
     label 'process_low'
     container "${params.container_scrublet}"
-    publishDir { "${params.outdir}/${meta.library_id}/scrublet" }, mode: 'copy'
+    publishDir { "${params.outdir}/${params.run_name}_outs/${meta.library_id}/scrublet" }, mode: 'copy'
 
     input:
     tuple val(meta), path(outs_dir)

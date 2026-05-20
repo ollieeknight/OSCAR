@@ -140,16 +140,39 @@ def parse_row(row, Map si_indexes) {
 
 workflow {
     preflight_check()
-    preflight_samplesheet(params.samplesheet)
 
-    // ── Parse samplesheet → channel of meta maps ──────────────────────────────
+    def all_ss_paths = [params.samplesheet]
+    if (params.extra_samplesheets)
+        all_ss_paths += params.extra_samplesheets.split(',').collect { it.trim() }
+    all_ss_paths.each { preflight_samplesheet(it) }
+
     def si_indexes = load_si_indexes(projectDir.toString(), params.sequencer)
 
-    Channel
-        .fromPath(params.samplesheet)
-        .splitCsv(header: true)
-        .map { row -> parse_row(row, si_indexes) }
-        .set { ch_meta }
+    // Derive run_name from primary BCL dir (strip _bcl suffix) if not explicitly set
+    if (!params.run_name) {
+        if (params.bcl_dir)
+            params.run_name = file(params.bcl_dir).name.replaceAll(/_bcl.*$/, '')
+        else if (params.fastq_dir)
+            params.run_name = file(params.fastq_dir).name
+        else
+            params.run_name = 'run'
+    }
+
+    // ── Parse all samplesheets → merged ch_meta ───────────────────────────────
+    def _all_rows = []
+    all_ss_paths.each { ss_path ->
+        def lines = new File(ss_path).readLines()
+        if (!lines.isEmpty()) {
+            def hdrs = lines[0].split(',').collect { it.trim() }
+            lines.tail().each { line ->
+                if (!line.trim().isEmpty()) {
+                    def vals = line.split(',', -1).collect { it.trim() }
+                    _all_rows << parse_row([hdrs, vals].transpose().collectEntries(), si_indexes)
+                }
+            }
+        }
+    }
+    Channel.fromList(_all_rows).set { ch_meta }
 
     // ── Entry point: --from-cellranger (QC only, run_until ignored) ───────────
     if (params.from_cellranger) {
@@ -189,11 +212,37 @@ workflow {
                 .set { ch_fastqs }
         } else {
             def bcl_paths = [params.bcl_dir]
-            if (params.extra_bcl_dirs)
-                bcl_paths += params.extra_bcl_dirs.split(',').collect { it.trim() }
-            ch_bcl_dirs = Channel.fromList(bcl_paths).map { file(it) }
+            def bcl_ss    = [params.samplesheet]
+            if (params.extra_bcl_dirs) {
+                def extra_bcls = params.extra_bcl_dirs.split(',').collect { it.trim() }
+                bcl_paths += extra_bcls
+                if (params.extra_samplesheets) {
+                    def extra_sss = params.extra_samplesheets.split(',').collect { it.trim() }
+                    if (extra_sss.size() != extra_bcls.size())
+                        error "ERROR: --extra_samplesheets count (${extra_sss.size()}) must match --extra_bcl_dirs (${extra_bcls.size()})"
+                    bcl_ss += extra_sss
+                } else {
+                    bcl_ss += extra_bcls.collect { params.samplesheet }
+                }
+            }
 
-            DEMUX(ch_meta, ch_bcl_dirs)
+            def _meta_bcl_pairs = []
+            [bcl_paths, bcl_ss].transpose().each { bcl_path, ss_path ->
+                def bcl_dir = file(bcl_path)
+                def lines   = new File(ss_path).readLines()
+                if (!lines.isEmpty()) {
+                    def hdrs = lines[0].split(',').collect { it.trim() }
+                    lines.tail().each { line ->
+                        if (!line.trim().isEmpty()) {
+                            def vals = line.split(',', -1).collect { it.trim() }
+                            _meta_bcl_pairs << [parse_row([hdrs, vals].transpose().collectEntries(), si_indexes), bcl_dir]
+                        }
+                    }
+                }
+            }
+            Channel.fromList(_meta_bcl_pairs).set { ch_meta_bcl }
+
+            DEMUX(ch_meta_bcl)
             ch_fastqs = DEMUX.out.fastqs
         }
 

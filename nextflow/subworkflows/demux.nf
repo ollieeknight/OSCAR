@@ -4,27 +4,17 @@ include { FALCO }               from '../modules/demux'
 
 workflow DEMUX {
     take:
-        ch_meta     // channel of meta maps (one per samplesheet row)
-        ch_bcl_dirs // channel of BCL dir paths (1 per flowcell; multiple for multi-run)
+        ch_meta_bcl  // [meta, bcl_dir] pairs — each meta pre-bound to its BCL dir
 
     main:
-        // Group samplesheet rows by demux key: {assay}_{index_type}_{chemistry}_{modality}
-        // Each unique combination → one BCL Convert job per BCL dir
-        ch_meta
-            .map { meta ->
-                def key = "${meta.assay}_${meta.index_type}_${meta.chemistry}_${meta.modality}"
-                [key, meta]
+        // Group by (assay_indextype_chemistry_modality, bcl_dir) → one BCL Convert job per group
+        ch_meta_bcl
+            .map { meta, bcl_dir ->
+                def key = "${meta.assay}_${meta.index_type}_${meta.chemistry}_${meta.modality}_${bcl_dir.name}"
+                [key, meta, bcl_dir]
             }
             .groupTuple(by: 0)
-            .set { ch_demux_groups }
-
-        // Cross-product: each demux group × each BCL dir.
-        // Append BCL dir name to key to prevent work-dir collision in multi-run.
-        ch_demux_groups
-            .combine(ch_bcl_dirs)
-            .map { key, metas, bcl_dir ->
-                ["${key}_${bcl_dir.name}", metas, bcl_dir]
-            }
+            .map { key, metas, bcl_dirs -> [key, metas, bcl_dirs[0]] }
             .set { ch_demux_input }
 
         GENERATE_SAMPLESHEET(ch_demux_input)
