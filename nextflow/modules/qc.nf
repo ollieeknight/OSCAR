@@ -47,7 +47,7 @@ process CELLSNP_LITE {
     tag { "${meta.library_id} (${mode})" }
     label 'process_medium'   // overridden to 32c/64GB/96h via withName
     container "${params.container_cellsnp}"
-    publishDir "${params.outdir}/${out_dir}/cellsnp", mode: 'copy'
+    publishDir { "${params.outdir}/${mode == 'atac' ? "${meta.library_id}_ATAC" : meta.library_id}/cellsnp" }, mode: 'copy'
 
     input:
     tuple val(meta), path(bam), path(bai), path(barcodes)
@@ -89,7 +89,7 @@ process VIREO {
     tag "$meta.library_id"
     label 'process_medium'   // overridden to 32c/64GB/96h via withName: 'CELLSNP_LITE|VIREO'
     container "${params.container_vireo}"
-    publishDir "${params.outdir}/${out_dir}/vireo", mode: 'copy'
+    publishDir { "${params.outdir}/${mode == 'atac' ? "${meta.library_id}_ATAC" : meta.library_id}/vireo" }, mode: 'copy'
 
     input:
     tuple val(meta), path(cellsnp_dir)
