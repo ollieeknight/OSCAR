@@ -110,13 +110,28 @@ def preflight_samplesheet(String path) {
     }
 }
 
-def parse_row(row, Map si_indexes) {
+def parse_row(row, Map si_indexes, String ss_path) {
     def n_donors = (row.n_donors == null || row.n_donors.trim() in ['NA', '', 'na']) \
         ? 1 : row.n_donors.trim().toInteger()
     def index    = row.index.trim()
     def adt_file = row.adt_file?.trim() ?: null
-    def adt_csv_path = (adt_file && params.adt_files_dir) \
-        ? file("${params.adt_files_dir}/${adt_file}.csv").toAbsolutePath().toString() : null
+
+    // ADT CSV resolution (local-first, centralized fallback):
+    //   1. {samplesheet_dir}/adt_files/{adt_file}.csv  (co-located with the run, preferred)
+    //   2. {params.adt_files_dir}/{adt_file}.csv        (shared centralized ref, optional)
+    def adt_csv_path = null
+    if (adt_file) {
+        def ss_dir    = new File(ss_path).parentFile
+        def local_csv = new File("${ss_dir}/adt_files/${adt_file}.csv")
+        if (local_csv.exists()) {
+            adt_csv_path = local_csv.canonicalPath
+        } else if (params.adt_files_dir) {
+            adt_csv_path = file("${params.adt_files_dir}/${adt_file}.csv").toAbsolutePath().toString()
+        } else {
+            log.warn "WARNING: ADT file '${adt_file}.csv' not found at '${ss_dir}/adt_files/' and --adt_files_dir is not set. ADT/HTO features will be omitted for this library."
+        }
+    }
+
     [
         id:               "${row.assay}_${row.experiment_id}_exp${row.historical_number}_lib${row.replicate}_${row.modality}",
         library_id:       "${row.assay}_${row.experiment_id}_exp${row.historical_number}_lib${row.replicate}",
@@ -209,7 +224,7 @@ workflow {
             lines.tail().each { line ->
                 if (!line.trim().isEmpty()) {
                     def vals = line.split(',', -1).collect { it.trim() }
-                    _all_rows << parse_row([hdrs, vals].transpose().collectEntries(), si_indexes_fallback)
+                    _all_rows << parse_row([hdrs, vals].transpose().collectEntries(), si_indexes_fallback, ss_path)
                 }
             }
         }
@@ -287,7 +302,7 @@ workflow {
                     lines.tail().each { line ->
                         if (!line.trim().isEmpty()) {
                             def vals = line.split(',', -1).collect { it.trim() }
-                            def meta = parse_row([hdrs, vals].transpose().collectEntries(), bcl_si)
+                            def meta = parse_row([hdrs, vals].transpose().collectEntries(), bcl_si, ss_path)
                             _meta_bcl_pairs << [meta, bcl_dir]
                             _bcl_rows       << meta
                         }
