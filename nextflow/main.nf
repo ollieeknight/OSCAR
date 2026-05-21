@@ -148,16 +148,6 @@ workflow {
 
     def si_indexes = load_si_indexes(projectDir.toString(), params.sequencer)
 
-    // Derive run_name from primary BCL dir (strip _bcl suffix) if not explicitly set
-    if (!params.run_name) {
-        if (params.bcl_dir)
-            params.run_name = file(params.bcl_dir).name.replaceAll(/_bcl.*$/, '')
-        else if (params.fastq_dir)
-            params.run_name = file(params.fastq_dir).name
-        else
-            params.run_name = 'run'
-    }
-
     // ── Parse all samplesheets → merged ch_meta ───────────────────────────────
     def _all_rows = []
     all_ss_paths.each { ss_path ->

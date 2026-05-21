@@ -263,10 +263,10 @@ process FALCO {
     tag "$fastq_name"
     label 'process_low'
     container "${params.container_falco}"
-    publishDir { "${params.outdir}/${params.run_name}_fastq/falco" }, mode: 'copy'
+    publishDir { "${params.outdir}/${run_name}_fastq/falco" }, mode: 'copy'
 
     input:
-    tuple val(fastq_name), path(fastq)
+    tuple val(run_name), val(fastq_name), path(fastq)
 
     output:
     path "${fastq_name}/", emit: report
