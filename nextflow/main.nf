@@ -206,9 +206,9 @@ workflow {
                 .map { meta ->
                     def fqs = file("${params.fastq_dir}/**/${meta.id}*.fastq.gz")
                     fqs = fqs instanceof List ? fqs : (fqs.exists() ? [fqs] : [])
-                    [meta, fqs]
+                    [meta, params.fastq_dir as String, fqs]
                 }
-                .filter { meta, fqs -> !fqs.isEmpty() }
+                .filter { meta, fastq_dir, fqs -> !fqs.isEmpty() }
                 .set { ch_fastqs }
         } else {
             def bcl_paths = [params.bcl_dir]
@@ -255,7 +255,7 @@ workflow {
         } else {
             // ── Count ─────────────────────────────────────────────────────────
             ch_fastqs
-                .branch { meta, fqs ->
+                .branch { meta, fastq_dir, fqs ->
                     gex:      meta.modality in ['GEX', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR'] \
                               && meta.assay != 'ASAP'
                     atac:     meta.modality == 'ATAC'
@@ -264,25 +264,38 @@ workflow {
                 }
                 .set { ch_routed }
 
+            // GEX: group by library_id, deduplicate metas by modality, collect unique fastq dirs.
+            // Each fastq dir is a published path string — no staging, so no filename collision
+            // when the same library was sequenced on multiple flowcells.
             ch_routed.gex
-                .map { meta, fqs -> [meta.library_id, meta, fqs instanceof List ? fqs : [fqs]] }
+                .map { meta, fastq_dir, fqs -> [meta.library_id, meta, fastq_dir] }
                 .groupTuple(by: 0)
-                .map { lid, metas, fqs_lists ->
+                .map { lid, metas, fastq_dirs ->
+                    def seen         = [] as Set
+                    def unique_metas = metas.findAll { m -> seen.add(m.modality) }
+                    def unique_dirs  = fastq_dirs.unique()
                     def adt_csv_path = metas.collect { it.adt_csv_path }.find { it }
                     def adt_csv      = adt_csv_path ? file(adt_csv_path) : file('NO_FILE')
-                    [lid, metas, fqs_lists.flatten(), adt_csv]
+                    [lid, unique_metas, unique_dirs, adt_csv]
                 }
                 .set { ch_gex_libraries }
 
+            // ATAC: group by library_id to collect dirs from multiple flowcells
+            ch_routed.atac
+                .map { meta, fastq_dir, fqs -> [meta.library_id, meta, fastq_dir] }
+                .groupTuple(by: 0)
+                .map { lid, metas, fastq_dirs -> [metas[0], fastq_dirs.unique()] }
+                .set { ch_atac_libraries }
+
             COUNT_GEX(ch_gex_libraries)
-            COUNT_ATAC(ch_routed.atac)
+            COUNT_ATAC(ch_atac_libraries)
 
             ch_asap_atac_outs = COUNT_ATAC.out.outs
                 .filter { meta, outs -> meta.assay == 'ASAP' }
                 .map    { meta, outs -> [meta.library_id, meta, outs] }
 
             ch_asap_adt_fastqs = ch_routed.asap_adt
-                .map { meta, fqs -> [meta.library_id, meta, fqs] }
+                .map { meta, fastq_dir, fqs -> [meta.library_id, meta, fqs] }
 
             COUNT_ADT(
                 ch_asap_atac_outs

@@ -10,21 +10,22 @@ process CELLRANGER_ATAC {
     publishDir { "${params.outdir}/${params.run_name}_outs/${meta.library_id}_ATAC" }, mode: 'copy'
 
     input:
-    tuple val(meta), path(fastq_dir)
+    tuple val(meta), val(fastq_dirs)
 
     output:
     tuple val(meta), path("${meta.library_id}_ATAC/outs"), emit: outs
     path "versions.yml",                                    emit: versions
 
     script:
-    def reference = meta.species == 'human' ? params.ref_human : params.ref_mouse
-    // DOGMA ATAC requires --chemistry ARC-v1; standalone ATAC does not
-    def extra_args = (meta.assay == 'DOGMA') ? '--chemistry ARC-v1' : ''
+    def reference   = meta.species == 'human' ? params.ref_human : params.ref_mouse
+    def extra_args  = (meta.assay == 'DOGMA') ? '--chemistry ARC-v1' : ''
+    def dirs_list   = fastq_dirs instanceof List ? fastq_dirs : [fastq_dirs]
+    def fastqs_args = dirs_list.collect { "--fastqs \"${it}\"" }.join(' \\\n        ')
     """
     cellranger-atac count \\
         --id        "${meta.library_id}_ATAC" \\
         --reference "${reference}" \\
-        --fastqs    "${fastq_dir}" \\
+        ${fastqs_args} \\
         --sample    "${meta.id}" \\
         --localcores \$(nproc) \\
         --localmem  ${task.memory.toGiga()} \\

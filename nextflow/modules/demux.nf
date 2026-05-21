@@ -231,8 +231,8 @@ process BCL_TO_FASTQ {
     tuple val(demux_key), val(metas), path(bcl_dir), path(samplesheet)
 
     output:
-    tuple val(metas), path("fastqs/*.fastq.gz"), emit: fastqs
-    path "versions.yml",                          emit: versions
+    tuple val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"), emit: fastqs
+    path "versions.yml",                                              emit: versions
 
     script:
     """

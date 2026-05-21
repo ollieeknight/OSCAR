@@ -12,7 +12,7 @@ process CELLRANGER_MULTI {
     publishDir { "${params.outdir}/${params.run_name}_outs/${library_id}" }, mode: 'copy'
 
     input:
-    tuple val(library_id), val(metas), path(fastq_files), path(adt_csv)
+    tuple val(library_id), val(metas), val(fastq_dirs), path(adt_csv)
 
     output:
     tuple val(library_id), val(metas), path("${library_id}/outs"), emit: outs
@@ -47,14 +47,19 @@ reference,${adt_csv.toAbsolutePath()}
 """ : ""
 
     // fastq_id = meta.id (= BCL Convert Sample_ID = filename prefix)
-    // fastqs   = '.' (work dir, where all FASTQ files are staged)
-    def lib_lines = metas.collect { m ->
-        def ft = (m.modality == 'GEX')           ? 'Gene Expression' :
-                 (m.modality in ['ADT', 'HTO'])   ? 'Antibody Capture' :
-                 (m.modality == 'VDJ-T')          ? 'VDJ-T' :
-                 (m.modality == 'VDJ-B')          ? 'VDJ-B' :
-                 (m.modality == 'CRISPR')         ? 'CRISPR Guide Capture' : 'Gene Expression'
-        "${m.id},.,${ft}"
+    // fastqs   = published fastq dir — one row per (modality, flowcell) combination.
+    // Listing the same fastq_id twice with different dirs is how cellranger multi
+    // handles libraries sequenced across multiple flowcells.
+    def dirs_list = fastq_dirs instanceof List ? fastq_dirs : [fastq_dirs]
+    def lib_lines = dirs_list.collectMany { dir ->
+        metas.collect { m ->
+            def ft = (m.modality == 'GEX')           ? 'Gene Expression' :
+                     (m.modality in ['ADT', 'HTO'])   ? 'Antibody Capture' :
+                     (m.modality == 'VDJ-T')          ? 'VDJ-T' :
+                     (m.modality == 'VDJ-B')          ? 'VDJ-B' :
+                     (m.modality == 'CRISPR')         ? 'CRISPR Guide Capture' : 'Gene Expression'
+            "${m.id},${dir},${ft}"
+        }
     }.join('\n')
 
     """

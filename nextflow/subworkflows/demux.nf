@@ -25,19 +25,24 @@ workflow DEMUX {
         // When the same library appears across multiple BCL dirs (multi-run), both
         // sets of FASTQs end up as separate [meta, fastqs] items; groupTuple in main.nf
         // merges them before counting.
+        // Derive the published fastq dir path from bcl_dir.name (e.g. R463_bcl → R463_fastq).
+        // Pass the directory string rather than staged files — prevents filename collisions
+        // when the same library is sequenced on multiple flowcells (identical _S1_ naming).
         BCL_TO_FASTQ.out.fastqs
-            .flatMap { metas, fq_files ->
-                def fqs = fq_files instanceof List ? fq_files : [fq_files]
+            .flatMap { metas, bcl_name, fq_files ->
+                def fqs     = fq_files instanceof List ? fq_files : [fq_files]
+                def run     = bcl_name.replaceAll(/_bcl.*$/, '')
+                def fq_dir  = "${params.outdir}/${run}_fastq"
                 metas.collectMany { meta ->
                     def matched = fqs.findAll { f -> f.name.contains(meta.id) }
-                    matched ? [[meta, matched]] : []
+                    matched ? [[meta, fq_dir, matched]] : []
                 }
             }
             .set { ch_fastqs }
 
         // Run Falco per R-read FASTQ (R1/R2/R3 only; I1/I2 index reads skipped)
         BCL_TO_FASTQ.out.fastqs
-            .flatMap { metas, fq_files ->
+            .flatMap { metas, bcl_name, fq_files ->
                 (fq_files instanceof List ? fq_files : [fq_files])
                     .findAll { f -> f.name =~ /_R[0-9]+_/ }
                     .collect { f -> [f.name.replaceAll(/\.fastq\.gz$/, ''), f] }
@@ -51,7 +56,7 @@ workflow DEMUX {
             .set { ch_falco_reports }
 
     emit:
-        fastqs        = ch_fastqs        // [meta, [fastq_files]]
+        fastqs        = ch_fastqs        // [meta, fastq_dir_string, [fastq_files]]
         falco_reports = ch_falco_reports // collected falco dirs (passed to MULTIQC in main.nf)
         versions      = BCL_TO_FASTQ.out.versions
 }
