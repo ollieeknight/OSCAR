@@ -136,6 +136,49 @@ def parse_row(row, Map si_indexes) {
     ]
 }
 
+// ─── Sequencer auto-detection ────────────────────────────────────────────────
+// Reads <Instrument> from RunInfo.xml and maps the prefix to the i5 orientation
+// used by load_si_indexes().
+//
+// Instrument ID prefixes:
+//   VH  → NovaSeq X / X Plus   → i5 forward  → 'novaseq_x'
+//   A   → NovaSeq 6000          → i5 RC        → 'novaseq6000'
+//   LH  → NovaSeq 6000          → i5 RC        → 'novaseq6000'
+//   MN  → MiniSeq               → i5 RC        → 'novaseq6000' (fallback)
+//   NB  → NextSeq 550           → i5 RC        → 'novaseq6000'
+//   NS  → NextSeq 500           → i5 RC        → 'novaseq6000'
+//   NDX → NextSeq 2000/1000     → i5 forward   → 'novaseq_x'
+// If RunInfo.xml is absent or unparseable, warns and uses params.sequencer.
+
+def detect_sequencer(String bcl_path) {
+    def runinfo = new File("${bcl_path}/RunInfo.xml")
+    if (!runinfo.exists()) {
+        log.warn "WARNING: RunInfo.xml not found in ${bcl_path}; falling back to params.sequencer='${params.sequencer}'"
+        return params.sequencer
+    }
+    def text = runinfo.text
+    def m    = text =~ /<Instrument>([^<]+)<\/Instrument>/
+    if (!m) {
+        log.warn "WARNING: <Instrument> tag not found in ${bcl_path}/RunInfo.xml; falling back to params.sequencer='${params.sequencer}'"
+        return params.sequencer
+    }
+    def instrument_id = m[0][1].trim()
+    def sequencer
+    if      (instrument_id.startsWith('VH'))  sequencer = 'novaseq_x'   // NovaSeq X / X Plus
+    else if (instrument_id.startsWith('NDX')) sequencer = 'novaseq_x'   // NextSeq 2000/1000
+    else if (instrument_id.startsWith('A'))   sequencer = 'novaseq6000' // NovaSeq 6000
+    else if (instrument_id.startsWith('LH'))  sequencer = 'novaseq6000' // NovaSeq 6000 (XLEAP)
+    else if (instrument_id.startsWith('NB'))  sequencer = 'novaseq6000' // NextSeq 550
+    else if (instrument_id.startsWith('NS'))  sequencer = 'novaseq6000' // NextSeq 500
+    else if (instrument_id.startsWith('MN'))  sequencer = 'novaseq6000' // MiniSeq
+    else {
+        log.warn "WARNING: Unrecognised instrument ID '${instrument_id}' in ${bcl_path}/RunInfo.xml; falling back to params.sequencer='${params.sequencer}'"
+        sequencer = params.sequencer
+    }
+    log.info "INFO: Detected instrument '${instrument_id}' → sequencer mode '${sequencer}' (i5 ${sequencer == 'novaseq_x' ? 'forward' : 'reverse-complement'})"
+    return sequencer
+}
+
 // ─── Workflow ─────────────────────────────────────────────────────────────────
 
 workflow {
@@ -146,9 +189,18 @@ workflow {
         all_ss_paths += params.extra_samplesheets.split(',').collect { it.trim() }
     all_ss_paths.each { preflight_samplesheet(it) }
 
-    def si_indexes = load_si_indexes(projectDir.toString(), params.sequencer)
+    // ── Resolve sequencer / i5 orientation (non-BCL fallback) ────────────────
+    // In BCL mode, sequencer is auto-detected per BCL dir inside the BCL branch
+    // below (each flowcell may come from a different instrument). For --from-fastq
+    // and --from-cellranger there is no BCL dir, so we fall back to params.sequencer.
+    def si_indexes_fallback = load_si_indexes(projectDir.toString(), params.sequencer)
+    if (params.from_fastq || params.from_cellranger)
+        log.info "INFO: No BCL dir available — using params.sequencer='${params.sequencer}' for i5 orientation"
 
-    // ── Parse all samplesheets → merged ch_meta ───────────────────────────────
+    // ── Parse samplesheets → ch_meta ─────────────────────────────────────────
+    // For from_fastq / from_cellranger, ch_meta is set here and used downstream.
+    // For BCL mode, the BCL branch below rebuilds ch_meta with per-instrument
+    // index sequences — this initial set is overridden there.
     def _all_rows = []
     all_ss_paths.each { ss_path ->
         def lines = new File(ss_path).readLines()
@@ -157,7 +209,7 @@ workflow {
             lines.tail().each { line ->
                 if (!line.trim().isEmpty()) {
                     def vals = line.split(',', -1).collect { it.trim() }
-                    _all_rows << parse_row([hdrs, vals].transpose().collectEntries(), si_indexes)
+                    _all_rows << parse_row([hdrs, vals].transpose().collectEntries(), si_indexes_fallback)
                 }
             }
         }
@@ -165,6 +217,7 @@ workflow {
     Channel.fromList(_all_rows).set { ch_meta }
 
     // ── Entry point: --from-cellranger (QC only, run_until ignored) ───────────
+
     if (params.from_cellranger) {
         ch_meta
             .filter { meta ->
@@ -222,19 +275,31 @@ workflow {
             }
 
             def _meta_bcl_pairs = []
+            def _bcl_rows       = []   // used to rebuild ch_meta with correctly-resolved index_seqs
             [bcl_paths, bcl_ss].transpose().each { bcl_path, ss_path ->
-                def bcl_dir = file(bcl_path)
-                def lines   = new File(ss_path).readLines()
+                def bcl_dir       = file(bcl_path)
+                // Detect sequencer per BCL dir — each flowcell may originate from a
+                // different instrument (e.g. mixing NovaSeq X and NovaSeq 6000 runs).
+                def bcl_si        = load_si_indexes(projectDir.toString(), detect_sequencer(bcl_path))
+                def lines         = new File(ss_path).readLines()
                 if (!lines.isEmpty()) {
                     def hdrs = lines[0].split(',').collect { it.trim() }
                     lines.tail().each { line ->
                         if (!line.trim().isEmpty()) {
                             def vals = line.split(',', -1).collect { it.trim() }
-                            _meta_bcl_pairs << [parse_row([hdrs, vals].transpose().collectEntries(), si_indexes), bcl_dir]
+                            def meta = parse_row([hdrs, vals].transpose().collectEntries(), bcl_si)
+                            _meta_bcl_pairs << [meta, bcl_dir]
+                            _bcl_rows       << meta
                         }
                     }
                 }
             }
+            // Override ch_meta with the correctly-detected index sequences from each
+            // BCL dir. Deduplicate by meta.id (same sample listed in multiple flowcell
+            // samplesheets) while preserving insertion order.
+            def seen_ids    = [] as Set
+            def unique_rows = _bcl_rows.findAll { seen_ids.add(it.id) }
+            Channel.fromList(unique_rows).set { ch_meta }
             Channel.fromList(_meta_bcl_pairs).set { ch_meta_bcl }
 
             DEMUX(ch_meta_bcl)
