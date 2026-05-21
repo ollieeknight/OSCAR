@@ -27,7 +27,7 @@ process CELLRANGER_ATAC {
         --reference "${reference}" \\
         ${fastqs_args} \\
         --sample    "${meta.id}" \\
-        --localcores \$(nproc) \\
+        --localcores ${task.cpus} \\
         --localmem  ${task.memory.toGiga()} \\
         ${extra_args}
 

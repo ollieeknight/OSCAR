@@ -87,7 +87,7 @@ process ASAP_TO_KITE {
         -sp "${sample_names}" \\
         -of kite_converted/"${meta.library_id}_ADT" \\
         -on "${meta.library_id}_ADT" \\
-        -c  \$(nproc)
+        -c  ${task.cpus}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -118,7 +118,7 @@ process KALLISTO_BUS {
         -i ${idx} \\
         -o bus_output \\
         -x 0,0,16:0,16,26:1,0,0 \\
-        -t \$(nproc) \\
+        -t ${task.cpus} \\
         ${converted_dir}/${meta.library_id}_ADT/*
 
     cat <<-END_VERSIONS > versions.yml
@@ -174,7 +174,7 @@ process BUSTOOLS_SORT {
     script:
     """
     bustools sort \\
-        -t \$(nproc) \\
+        -t ${task.cpus} \\
         -o output_sorted.bus \\
         ${corrected_bus}
 

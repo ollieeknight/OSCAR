@@ -29,9 +29,14 @@ process CELLRANGER_MULTI {
     def has_adt    = metas.any { it.modality in ['ADT', 'HTO'] }
     def has_crispr = metas.any { it.modality == 'CRISPR' }
 
+    // BAM file only needed for donor demultiplexing (cellsnp-lite/vireo).
+    // Skip for mouse (no human SNP VCF) and single-donor runs — saves 20-50GB
+    // of storage per library and 20-30% of Cell Ranger runtime.
+    def create_bam = (is_human && meta.n_donors > 1) ? 'true' : 'false'
+
     def ge_section = """[gene-expression]
 reference,${ref_gex}
-create-bam,true${is_dogma_or_multiome ? '\nchemistry,ARC-v1' : ''}
+create-bam,${create_bam}${is_dogma_or_multiome ? '\nchemistry,ARC-v1' : ''}
 """
 
     def vdj_section = has_vdj ? """
@@ -75,7 +80,7 @@ MULTIEOF
     cellranger multi \\
         --id        "${library_id}" \\
         --csv       multi_config.csv \\
-        --localcores \$(nproc) \\
+        --localcores ${task.cpus} \\
         --localmem  ${task.memory.toGiga()}
 
     rm -rf "${library_id}/SC_MULTI_CS" "${library_id}/_"*

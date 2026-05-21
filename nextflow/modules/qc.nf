@@ -28,7 +28,7 @@ process CELLBENDER {
         --cuda \\
         --input  "\$feature_matrix" \\
         --output output.h5 \\
-        --cpu-threads \$(nproc) \\
+        --cpu-threads ${task.cpus} \\
         --checkpoint-mins 10000
 
     cat <<-END_VERSIONS > versions.yml
@@ -71,7 +71,7 @@ process CELLSNP_LITE {
         --minMAF   0.1 \\
         --minCOUNT 20 \\
         --gzip \\
-        -p  \$(nproc) \\
+        -p  ${task.cpus} \\
         ${umi_flag}
 
     cat <<-END_VERSIONS > versions.yml
@@ -107,7 +107,8 @@ process VIREO {
         -c ${cellsnp_dir} \\
         -o . \\
         -N ${meta.n_donors} \\
-        -p \$(nproc)
+        -p ${task.cpus} \\
+        --randSeed 42
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -185,7 +186,7 @@ process MGATK2 {
         -i  ${bam} \\
         -o  mgatk2_out \\
         -b  ${barcodes} \\
-        -c  \$(nproc)
+        -c  ${task.cpus}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -224,12 +225,10 @@ process MACS3 {
         exit 1
     fi
 
-    # Convert fragment file to BED (strip header, keep chr/start/end only)
-    zcat "\$fragments" | grep -v '^#' | cut -f1-3 > fragments_tmp.bed
-
+    # Stream fragments to BED format directly using process substitution (prevents writing large temp files to disk)
     mkdir -p peaks
     macs3 callpeak \\
-        -t fragments_tmp.bed \\
+        -t <(zcat "\$fragments" | grep -v '^#' | cut -f1-3) \\
         -f BED \\
         -n ${meta.library_id} \\
         -g ${gsize} \\
@@ -240,8 +239,6 @@ process MACS3 {
         --nolambda \\
         -q ${params.macs3_qvalue} \\
         --outdir peaks/
-
-    rm fragments_tmp.bed
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

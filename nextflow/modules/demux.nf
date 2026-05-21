@@ -244,7 +244,7 @@ process BCL_TO_FASTQ {
         --force \\
         --bcl-only-matched-reads           true \\
         --bcl-num-parallel-tiles           4 \\
-        --bcl-num-conversion-threads       4 \\
+        --bcl-num-conversion-threads       ${task.cpus} \\
         --bcl-enable-tile-metrics          false \\
         --bcl-enable-adapter-cycle-metrics false \\
         --num-unknown-barcodes-reported    0
@@ -275,7 +275,7 @@ process FALCO {
     script:
     """
     mkdir -p ${fastq_name}
-    falco -t 1 ${fastq} -o ${fastq_name}
+    falco -t ${task.cpus} ${fastq} -o ${fastq_name}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
