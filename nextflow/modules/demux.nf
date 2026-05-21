@@ -228,7 +228,8 @@ process BCL_TO_FASTQ {
         saveAs: { fn -> fn.tokenize('/')[-1] }
     publishDir {
         def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
-        "${params.outdir}/${run}_fastq"
+        def has_gex = metas.any { it.modality == 'GEX' }
+        has_gex ? "${params.outdir}/${run}_fastq" : '/dev/null'
     }, mode: 'copy', pattern: 'fastqs/Reports/Top_Unknown_Barcodes*.csv',
         saveAs: { fn -> fn.tokenize('/')[-1] }
 
@@ -253,7 +254,7 @@ process BCL_TO_FASTQ {
         --bcl-num-conversion-threads       ${task.cpus} \\
         --bcl-enable-tile-metrics          false \\
         --bcl-enable-adapter-cycle-metrics false \\
-        --num-unknown-barcodes-reported    30
+        --num-unknown-barcodes-reported    50
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
