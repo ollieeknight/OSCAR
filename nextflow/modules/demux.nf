@@ -1,69 +1,59 @@
-// ─── Base mask / OverrideCycles helpers ───────────────────────────────────────
-// Ported from functions.sh:100-321 (check_base_masks_step1/2/3)
-// get_base_mask returns [cellranger_cmd, filter_option, mask_string]
-// get_override_cycles converts mask_string → BCL Convert OverrideCycles format
+// ─── Override Cycles Helpers ──────────────────────────────────────────────────
+// BCL Convert OverrideCycles for each assay/chemistry/index/modality combination.
+// Format: Y=data read, I=index, N=masked cycle. Semicolons separate read segments.
+// Example: 'Y28N*;I10N*;I10N*;Y90N*' = 28bp read1, 10bp index1, 10bp index2, 90bp read2.
+// SI-on-DI (single-index on 4-read dual-index flow cell): detected at runtime and corrected.
 
-def get_base_mask(assay, chemistry, index_type, modality, num_reads) {
-    def masks3 = [
-        'SI_SC3Pv2_GEX':        'Y26n*,I8n*,Y98n*',
-        'SI_SC3Pv2_ADT':        'Y26n*,I8n*,Y98n*',
-        'SI_SC3Pv2_HTO':        'Y26n*,I8n*,Y98n*',
-        'SI_SC3Pv3_GEX':        'Y28n*,I8n*,Y90n*',
-        'SI_SC3Pv3_ADT':        'Y28n*,I8n*,Y90n*',
-        'SI_SC3Pv3_HTO':        'Y28n*,I8n*,Y90n*',
-        'SI_SC5P_GEX':          'Y26n*,I8n*,Y90n*',
-        'SI_SC5P_ADT':          'Y26n*,I8n*,Y90n*',
-        'SI_SC5P_HTO':          'Y26n*,I8n*,Y90n*',
-        'SI_SC5P_VDJ':          'Y26n*,I8n*,Y90n*',
-        'SI_DOGMA_ARCv1_ADT':   'Y24n*,I8n*,Y90n*',
-        'SI_DOGMA_ARCv1_HTO':   'Y28n*,I8n*,Y90n*',
-    ]
-    def masks4 = [
-        'SI_SC3Pv2_GEX':        'Y26n*,I8n*,N*,Y98n*',
-        'SI_SC3Pv2_ADT':        'Y26n*,I8n*,N*,Y98n*',
-        'SI_SC3Pv2_HTO':        'Y26n*,I8n*,N*,Y98n*',
-        'SI_SC3Pv3_GEX':        'Y28n*,I8n*,N*,Y90n*',
-        'SI_SC3Pv3_ADT':        'Y28n*,I8n*,N*,Y90n*',
-        'SI_SC3Pv3_HTO':        'Y28n*,I8n*,N*,Y90n*',
-        'SI_SC5P_GEX':          'Y26n*,I8n*,N*,Y90n*',
-        'SI_SC5P_ADT':          'Y26n*,I8n*,N*,Y90n*',
-        'SI_SC5P_HTO':          'Y26n*,I8n*,N*,Y90n*',
-        'SI_SC5P_VDJ':          'Y26n*,I8n*,N*,Y90n*',
-        'SI_DOGMA_ARCv1_ADT':   'Y24n*,I8n*,N*,Y90n*',
-        'SI_DOGMA_ARCv1_HTO':   'Y28n*,I8n*,N*,Y90n*',
-        'DI_SC3Pv2_GEX':        'Y26n*,I8n*,N*,Y98n*',
-        'DI_SC3Pv2_ADT':        'Y26n*,I8n*,N*,Y98n*',
-        'DI_SC3Pv2_HTO':        'Y26n*,I8n*,N*,Y98n*',
-        'DI_SC3Pv3_GEX':        'Y28n*,I10n*,I10n*,Y90n*',
-        'DI_SC3Pv3_ADT':        'Y28n*,I10n*,I10n*,Y90n*',
-        'DI_SC3Pv3_HTO':        'Y28n*,I10n*,I10n*,Y90n*',
-        'DI_SC3Pv4_GEX':        'Y28n*,I10n*,I10n*,Y90n*',
-        'DI_SC3Pv4_ADT':        'Y28n*,I10n*,I10n*,Y90n*',
-        'DI_SC3Pv4_HTO':        'Y28n*,I10n*,I10n*,Y90n*',
-        'DI_SC5P_GEX':          'Y26n*,I10n*,I10n*,Y90n*',
-        'DI_SC5P_ADT':          'Y26n*,I10n*,I10n*,Y90n*',
-        'DI_SC5P_HTO':          'Y26n*,I10n*,I10n*,Y90n*',
-        'DI_SC5P_VDJ':          'Y26n*,I10n*,I10n*,Y90n*',
-        'DI_SC5Pv3_GEX':        'Y28n*,I10n*,I10n*,Y90n*',
-        'DI_SC5Pv3_ADT':        'Y28n*,I10n*,I10n*,Y90n*',
-        'DI_SC5Pv3_HTO':        'Y28n*,I10n*,I10n*,Y90n*',
-        'DI_SC5Pv3_VDJ':        'Y28n*,I10n*,I10n*,Y90n*',
-        'DI_Multiome_ARCv1_GEX':  'Y28n*,I10n*,I10n*,Y90n*',
-        'DI_Multiome_ARCv1_ATAC': '50n*,I8n*,Y24n*,Y49n*',
-        'DI_DOGMA_ARCv1_GEX':   'Y28n*,I10n*,I10n*,Y90n*',
-        'DI_DOGMA_ARCv1_ATAC':  'Y100n*,I8n*,Y24n*,Y100n*',
-        'DI_DOGMA_ARCv1_ADT':   'Y28n*,I8n*,N*,Y90n*',
-        'DI_DOGMA_ARCv1_HTO':   'Y28n*,I8n*,N*,Y90n*',
-        'DI_ATAC_ATAC':         'Y50n*,I8n*,Y16n*,Y50n*',
-        'DI_ASAP_ATAC':         'Y100n*,I8n*,Y16n*,Y100n*',
-        'DI_ASAP_ADT':          'Y100n*,I8n*,Y16n*,Y100n*',
-        'DI_ASAP_HTO':          'Y100n*,I8n*,Y16n*,Y100n*',
-        'DI_ASAP_GENO':         'Y100n*,I8n*,Y16n*,Y100n*',
+def get_override_cycles(assay, chemistry, index_type, modality, num_reads, index_seqs = null, index_len = 10) {
+    // Masks in BCL Convert format (native). 3-read flow cells use position 2; 4-read add index2.
+    // Stored for 10bp indices (10x kits). For 8bp indices (TruSeq), I10 → I8N2 substitution applied below.
+    def masks = [
+        // 3-read (SI only, position 2 is R2)
+        'SI_SC3Pv2_GEX':        [3: 'Y26N*;I8N*;Y98N*',           4: 'Y26N*;I8N*;N*;Y98N*'],
+        'SI_SC3Pv2_ADT':        [3: 'Y26N*;I8N*;Y98N*',           4: 'Y26N*;I8N*;N*;Y98N*'],
+        'SI_SC3Pv2_HTO':        [3: 'Y26N*;I8N*;Y98N*',           4: 'Y26N*;I8N*;N*;Y98N*'],
+        'SI_SC3Pv3_GEX':        [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
+        'SI_SC3Pv3_ADT':        [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
+        'SI_SC3Pv3_HTO':        [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
+        'SI_SC5P_GEX':          [3: 'Y26N*;I8N*;Y90N*',           4: 'Y26N*;I8N*;N*;Y90N*'],
+        'SI_SC5P_ADT':          [3: 'Y26N*;I8N*;Y90N*',           4: 'Y26N*;I8N*;N*;Y90N*'],
+        'SI_SC5P_HTO':          [3: 'Y26N*;I8N*;Y90N*',           4: 'Y26N*;I8N*;N*;Y90N*'],
+        'SI_SC5P_VDJ':          [3: 'Y26N*;I8N*;Y90N*',           4: 'Y26N*;I8N*;N*;Y90N*'],
+        'SI_DOGMA_ARCv1_ADT':   [3: 'Y24N*;I8N*;Y90N*',           4: 'Y24N*;I8N*;N*;Y90N*'],
+        'SI_DOGMA_ARCv1_HTO':   [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
+        // 4-read dual-index (DI only, position 2/3 are I2/R2)
+        'DI_SC3Pv2_GEX':        [4: 'Y26N*;I8N*;N*;Y98N*'],
+        'DI_SC3Pv2_ADT':        [4: 'Y26N*;I8N*;N*;Y98N*'],
+        'DI_SC3Pv2_HTO':        [4: 'Y26N*;I8N*;N*;Y98N*'],
+        'DI_SC3Pv3_GEX':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'DI_SC3Pv3_ADT':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'DI_SC3Pv3_HTO':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'DI_SC3Pv4_GEX':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'DI_SC3Pv4_ADT':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'DI_SC3Pv4_HTO':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'DI_SC5P_GEX':          [4: 'Y26N*;I10N*;I10N*;Y90N*'],
+        'DI_SC5P_ADT':          [4: 'Y26N*;I10N*;I10N*;Y90N*'],
+        'DI_SC5P_HTO':          [4: 'Y26N*;I10N*;I10N*;Y90N*'],
+        'DI_SC5P_VDJ':          [4: 'Y26N*;I10N*;I10N*;Y90N*'],
+        'DI_SC5Pv3_GEX':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'DI_SC5Pv3_ADT':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'DI_SC5Pv3_HTO':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'DI_SC5Pv3_VDJ':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'DI_Multiome_ARCv1_GEX':  [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'DI_Multiome_ARCv1_ATAC': [4: '50N*;I8N*;Y24N*;Y49N*'],
+        'DI_DOGMA_ARCv1_GEX':   [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'DI_DOGMA_ARCv1_ATAC':  [4: 'Y100N*;I8N*;Y24N*;Y100N*'],
+        'DI_DOGMA_ARCv1_ADT':   [4: 'Y28N*;I8N*;N*;Y90N*'],
+        'DI_DOGMA_ARCv1_HTO':   [4: 'Y28N*;I8N*;N*;Y90N*'],
+        'DI_ATAC_ATAC':         [4: 'Y50N*;I8N*;Y16N*;Y50N*'],
+        'DI_ASAP_ATAC':         [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
+        'DI_ASAP_ADT':          [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
+        'DI_ASAP_HTO':          [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
+        'DI_ASAP_GENO':         [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
     ]
 
-    def masks = (num_reads == 3) ? masks3 : masks4
+    // Resolve key from assay/chemistry/index_type/modality
     def chem  = chemistry.replaceAll(/[-_ ]/, '')
-
     def key
     if (assay in ['CITE', 'GEX']) {
         if      (chem.startsWith('SC3Pv2'))                     key = "${index_type}_SC3Pv2_${modality}"
@@ -84,42 +74,53 @@ def get_base_mask(assay, chemistry, index_type, modality, num_reads) {
         key = null
     }
 
-    def base_mask = key ? masks.get(key) : null
-    if (!base_mask)
-        error "Cannot determine base mask: assay=${assay} chem=${chemistry} index_type=${index_type} modality=${modality} num_reads=${num_reads} (key=${key})"
-    return base_mask
-}
+    if (!key || !masks.containsKey(key))
+        error "Cannot determine OverrideCycles: assay=${assay} chem=${chemistry} index_type=${index_type} modality=${modality} num_reads=${num_reads} (key=${key})"
 
-// Convert bcl2fastq mask format → BCL Convert OverrideCycles format.
-// Example: 'Y28n*,I10n*,I10n*,Y90n*' → 'Y28N*;I10N*;I10N*;Y90N*'
-// index_seqs: resolved [is_dual, rows] from main.nf — used to fix SI-on-DI runs
-// where the base mask has I10N* for both index positions but the library is
-// single-index (8bp). On 4-read flow cells the I1 position is clamped to the
-// actual sequence length and the I2 position is fully masked (N*).
-// ATAC cell-barcode reads in position 3 are Y reads, not I, so they are untouched.
-def get_override_cycles(assay, chemistry, index_type, modality, num_reads, index_seqs = null) {
-    def mask
-    try {
-        mask = get_base_mask(assay, chemistry, index_type, modality, num_reads)
-    } catch (e) {
+    def mask_entry = masks[key]
+    if (!mask_entry.containsKey(num_reads))
         return null  // no entry for this num_reads; caller falls back to the other read count
+
+    def oc = mask_entry[num_reads]
+
+    // Adjust OverrideCycles for 8bp indices (TruSeq): replace I10 with I8N2, keep I8N* as-is
+    if (index_len == 8) {
+        oc = oc.replaceAll(/I10([N*])/, 'I8N2')
     }
 
-    def oc = mask.replace(',', ';').replace('n', 'N')
-
+    // SI-on-DI correction: single-index library on 4-read dual-index flow cell.
+    // Clamp index1 to actual sequence length, fully mask index2.
     if (num_reads == 4 && index_seqs != null && !index_seqs.is_dual) {
-        def parts     = oc.split(';') as List
-        def seq_len   = index_seqs.rows[0].i7.length()
-        def i_indices = (0..<parts.size()).findAll { parts[it].startsWith('I') }
-        def fixed     = (0..<parts.size()).collect { idx ->
-            if      (idx == i_indices[0])                               "I${seq_len}N*"
-            else if (i_indices.size() > 1 && idx == i_indices[1])      'N*'
-            else                                                         parts[idx]
-        }
-        return fixed.join(';')
+        oc = apply_si_on_di_correction(oc, index_seqs.rows[0].i7.length())
     }
 
     return oc
+}
+
+// Correct OverrideCycles for single-index (8bp) library on 4-read dual-index flow cell.
+// Input: 'Y28N*;I10N*;I10N*;Y90N*', seq_len=8
+// Output: 'Y28N*;I8N2;N*;Y90N*' (I1 uses 8bp+2masked, I2 fully masked)
+def apply_si_on_di_correction(String oc, Integer seq_len) {
+    def parts     = oc.split(';') as List
+    def i_indices = (0..<parts.size()).findAll { parts[it].startsWith('I') }
+
+    if (i_indices.isEmpty()) return oc  // no index positions, no correction needed
+
+    def fixed = (0..<parts.size()).collect { idx ->
+        if (idx == i_indices[0]) {
+            // First index: use actual seq_len (typically 8bp), mask remainder
+            def remaining = 10 - seq_len  // e.g., 10 - 8 = 2
+            "I${seq_len}N${remaining > 0 ? remaining : ''}"
+        } else if (i_indices.size() > 1 && idx == i_indices[1]) {
+            // Second index: fully masked (no i5 present)
+            'N*'
+        } else {
+            // Data reads (Y) and cell barcodes (ATAC): untouched
+            parts[idx]
+        }
+    }
+
+    return fixed.join(';')
 }
 
 // ─── GENERATE_SAMPLESHEET ────────────────────────────────────────────────────
@@ -141,8 +142,13 @@ process GENERATE_SAMPLESHEET {
 
     script:
     def meta        = metas[0]
-    def oc_4        = get_override_cycles(meta.assay, meta.chemistry, meta.index_type, meta.modality, 4, meta.index_seqs)
-    def oc_3        = get_override_cycles(meta.assay, meta.chemistry, meta.index_type, meta.modality, 3, meta.index_seqs) ?: oc_4
+    def index_len   = meta.index_seqs?.rows[0]?.i7?.length() ?: 10
+    // Verify all metas in group have same index length (should be guaranteed by grouping key, but be defensive)
+    if (metas.any { m -> (m.index_seqs?.rows[0]?.i7?.length() ?: 10) != index_len }) {
+        error "Demux group has mixed index lengths: ${metas.collect { m -> m.id + '=' + (m.index_seqs?.rows[0]?.i7?.length() ?: 10) }.join(', ')}"
+    }
+    def oc_4        = get_override_cycles(meta.assay, meta.chemistry, meta.index_type, meta.modality, 4, meta.index_seqs, index_len)
+    def oc_3        = get_override_cycles(meta.assay, meta.chemistry, meta.index_type, meta.modality, 3, meta.index_seqs, index_len) ?: oc_4
     def is_dual     = metas.any { m -> m.index_seqs.is_dual }
     def data_header = is_dual ? 'Sample_ID,Index,Index2' : 'Sample_ID,Index'
     def data_rows   = metas.collectMany { m ->
@@ -231,6 +237,11 @@ process BCL_TO_FASTQ {
         "${params.outdir}/${run}_fastq"
     }, mode: 'copy', pattern: 'fastqs/Reports/Top_Unknown_Barcodes*.csv',
         saveAs: { fn -> fn.tokenize('/')[-1] }
+    publishDir {
+        def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
+        "${params.outdir}/${run}_fastq/Undetermined"
+    }, mode: 'copy', pattern: 'fastqs/Undetermined/*.fastq.gz',
+        saveAs: { fn -> fn.tokenize('/')[-1] }
 
     input:
     tuple val(demux_key), val(metas), path(bcl_dir), path(samplesheet)
@@ -238,6 +249,7 @@ process BCL_TO_FASTQ {
     output:
     tuple val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"), emit: fastqs
     path "fastqs/Reports/Top_Unknown_Barcodes*.csv",                 optional: true, emit: unknown_barcodes
+    path "fastqs/Undetermined/*.fastq.gz",                           optional: true, emit: undetermined
     path "versions.yml",                                              emit: versions
 
     script:
@@ -250,7 +262,6 @@ process BCL_TO_FASTQ {
         --sample-sheet                     ${samplesheet} \\
         --no-lane-splitting                true \\
         --force \\
-        --bcl-only-matched-reads           true \\
         --bcl-num-parallel-tiles           4 \\
         --bcl-num-conversion-threads       ${task.cpus} \\
         --bcl-enable-tile-metrics          false \\

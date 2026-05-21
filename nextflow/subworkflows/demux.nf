@@ -7,10 +7,12 @@ workflow DEMUX {
         ch_meta_bcl  // [meta, bcl_dir] pairs — each meta pre-bound to its BCL dir
 
     main:
-        // Group by (assay_indextype_chemistry_modality, bcl_dir) → one BCL Convert job per group
+        // Group by (assay_indextype_chemistry_modality_indexlength, bcl_dir) → one BCL Convert job per group
+        // Index length determines OverrideCycles: 8bp (TruSeq) vs 10bp (10x)
         ch_meta_bcl
             .map { meta, bcl_dir ->
-                def key = "${meta.assay}_${meta.index_type}_${meta.chemistry}_${meta.modality}_${bcl_dir.name}"
+                def index_len = meta.index_seqs?.rows[0]?.i7?.length() ?: 0
+                def key = "${meta.assay}_${meta.index_type}_${meta.chemistry}_${meta.modality}_${index_len}_${bcl_dir.name}"
                 [key, meta, bcl_dir]
             }
             .groupTuple(by: 0)

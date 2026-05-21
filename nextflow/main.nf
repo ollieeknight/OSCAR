@@ -21,7 +21,7 @@ def load_si_indexes(String projectDir, String sequencer) {
     def si     = [single: [:], dual: [:]]
     def i5_col = (sequencer == 'novaseq_x') ? 2 : 3   // 1-indexed after name col
 
-    ['Single_Index_Kit_T_Set_A.csv', 'Single_Index_Kit_N_Set_A.csv'].each { fname ->
+    ['Single_Index_Kit_GA_Set_A.csv', 'Single_Index_Kit_NA_Set_A.csv'].each { fname ->
         def f = new File("${assets}/${fname}")
         if (f.exists()) f.eachLine { line ->
             if (line.trim()) {
@@ -31,7 +31,7 @@ def load_si_indexes(String projectDir, String sequencer) {
         }
     }
 
-    ['Dual_Index_Kit_TT_Set_A.csv', 'Dual_Index_Kit_Set_A.csv'].each { fname ->
+    ['Dual_Index_Kit_TT_Set_A.csv', 'Dual_Index_Kit_TN_Set_A.csv'].each { fname ->
         def f = new File("${assets}/${fname}")
         if (f.exists()) f.eachLine { line ->
             if (line.trim()) {

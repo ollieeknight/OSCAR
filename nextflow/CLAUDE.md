@@ -16,10 +16,11 @@ nextflow/
 │   ├── example_samplesheet.csv
 │   ├── multiqc_config.yaml
 │   └── indexes/               ← 10x SI/DI kit CSV files (loaded at runtime for BCL Convert)
-│       ├── Single_Index_Kit_T_Set_A.csv    (SI-GA-*)
-│       ├── Single_Index_Kit_N_Set_A.csv    (SI-NA-*)
-│       ├── Dual_Index_Kit_TT_Set_A.csv     (SI-TT-*)
-│       └── Dual_Index_Kit_Set_A.csv        (SI-TN-*)
+│       ├── Single_Index_Kit_GA_Set_A.csv    (SI-GA-*)
+│       ├── Single_Index_Kit_NA_Set_A.csv    (SI-NA-*)
+│       ├── Dual_Index_Kit_TT_Set_A.csv      (SI-TT-*)
+│       ├── Dual_Index_Kit_TN_Set_A.csv      (SI-TN-*)
+│       └── truseq_adt_hto.csv               (TruSeq D7xx indices for ADT/HTO)
 ├── modules/
 │   ├── demux.nf      ← BCL_TO_FASTQ, FALCO, MULTIQC
 │   ├── count_gex.nf  ← CELLRANGER_MULTI
