@@ -18,9 +18,9 @@ workflow QC_ATAC {
         // MACS3 custom peak calling — always
         MACS3(ch_atac_outs)
 
-        // Donor demultiplexing — only when n_donors > 1
+        // Donor demultiplexing — only when n_donors > 1 and species == human
         ch_atac_outs
-            .filter { meta, outs -> meta.n_donors > 1 }
+            .filter { meta, outs -> meta.n_donors > 1 && meta.species == 'human' }
             .set { ch_multi_donor }
 
         // Build [meta, bam, bai, barcodes] for cellsnp-lite

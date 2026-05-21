@@ -135,6 +135,10 @@ process AMULET {
     path "versions.yml",                                   emit: versions
 
     script:
+    def autosomes = (meta.species == 'human') ? '/opt/AMULET/human_autosomes.txt' : '/opt/AMULET/mouse_autosomes.txt'
+    def restriction = (meta.species == 'human') \
+        ? '/opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed' \
+        : '/opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_mm10.bed'
     """
     fragments=\$(find ${outs_dir} -name 'fragments.tsv.gz'   | head -1)
     singlecell=\$(find ${outs_dir} -name 'singlecell.csv'    | head -1)
@@ -142,8 +146,8 @@ process AMULET {
     AMULET.sh \\
         "\$fragments" \\
         "\$singlecell" \\
-        /opt/AMULET/human_autosomes.txt \\
-        /opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed \\
+        ${autosomes} \\
+        ${restriction} \\
         . \\
         /opt/AMULET/
 

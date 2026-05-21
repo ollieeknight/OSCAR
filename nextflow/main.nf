@@ -19,7 +19,7 @@ include { QC_ATAC }        from './subworkflows/qc_atac'
 def load_si_indexes(String projectDir, String sequencer) {
     def assets = "${projectDir}/assets/indexes"
     def si     = [single: [:], dual: [:]]
-    def i5_col = (sequencer == 'novaseq_x') ? 3 : 2   // 1-indexed after name col
+    def i5_col = (sequencer == 'novaseq_x') ? 2 : 3   // 1-indexed after name col
 
     ['Single_Index_Kit_T_Set_A.csv', 'Single_Index_Kit_N_Set_A.csv'].each { fname ->
         def f = new File("${assets}/${fname}")
@@ -196,8 +196,13 @@ workflow {
                 .map { meta ->
                     def fqs = file("${params.fastq_dir}/**/${meta.id}*.fastq.gz")
                     fqs = fqs instanceof List ? fqs : (fqs.exists() ? [fqs] : [])
-                    [meta, params.fastq_dir as String, fqs]
+                    def parents = fqs.collect { it.parent.toString() }.unique()
+                    parents.collect { pdir ->
+                        def matched_fqs = fqs.findAll { it.parent.toString() == pdir }
+                        [meta, pdir, matched_fqs]
+                    }
                 }
+                .flatMap()
                 .filter { meta, fastq_dir, fqs -> !fqs.isEmpty() }
                 .set { ch_fastqs }
         } else {
@@ -286,6 +291,8 @@ workflow {
 
             ch_asap_adt_fastqs = ch_routed.asap_adt
                 .map { meta, fastq_dir, fqs -> [meta.library_id, meta, fqs] }
+                .groupTuple(by: 0)
+                .map { lid, metas, fq_lists -> [lid, metas[0], fq_lists.flatten()] }
 
             COUNT_ADT(
                 ch_asap_atac_outs

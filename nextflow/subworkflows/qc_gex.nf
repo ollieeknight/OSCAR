@@ -17,9 +17,9 @@ workflow QC_GEX {
         CELLBENDER(ch_input)
         SCRUBLET(ch_input)
 
-        // Donor demultiplexing — only when n_donors > 1
+        // Donor demultiplexing — only when n_donors > 1 and species == human
         ch_input
-            .filter { meta, outs -> meta.n_donors > 1 }
+            .filter { meta, outs -> meta.n_donors > 1 && meta.species == 'human' }
             .set { ch_multi_donor }
 
         // Build [meta, bam, bai, barcodes] for cellsnp-lite

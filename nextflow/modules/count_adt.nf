@@ -80,12 +80,12 @@ process ASAP_TO_KITE {
         ? adt_fastqs.collect { it.simpleName.replaceAll(/_S[0-9]+.*/, '') }.unique().join(',') \
         : adt_fastqs.simpleName.replaceAll(/_S[0-9]+.*/, '')
     """
-    mkdir -p kite_converted
+    mkdir -p kite_converted/"${meta.library_id}_ADT"
 
     asap_to_kite \\
         -ff "${fastq_dirs}" \\
         -sp "${sample_names}" \\
-        -of kite_converted \\
+        -of kite_converted/"${meta.library_id}_ADT" \\
         -on "${meta.library_id}_ADT" \\
         -c  \$(nproc)
 
