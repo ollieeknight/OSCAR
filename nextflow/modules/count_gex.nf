@@ -50,17 +50,19 @@ reference,${adt_csv.toAbsolutePath()}
     // fastqs   = published fastq dir — one row per (modality, flowcell) combination.
     // Listing the same fastq_id twice with different dirs is how cellranger multi
     // handles libraries sequenced across multiple flowcells.
-    def dirs_list = fastq_dirs instanceof List ? fastq_dirs : [fastq_dirs]
-    def lib_lines = dirs_list.collectMany { dir ->
-        metas.collect { m ->
+    def dirs_list = (fastq_dirs instanceof List ? fastq_dirs : [fastq_dirs]) as ArrayList
+    def lib_parts = []
+    dirs_list.each { dir ->
+        metas.each { m ->
             def ft = (m.modality == 'GEX')           ? 'Gene Expression' :
                      (m.modality in ['ADT', 'HTO'])   ? 'Antibody Capture' :
                      (m.modality == 'VDJ-T')          ? 'VDJ-T' :
                      (m.modality == 'VDJ-B')          ? 'VDJ-B' :
                      (m.modality == 'CRISPR')         ? 'CRISPR Guide Capture' : 'Gene Expression'
-            "${m.id},${dir},${ft}"
+            lib_parts << "${m.id},${dir},${ft}"
         }
-    }.join('\n')
+    }
+    def lib_lines = lib_parts.join('\n')
 
     """
     cat > multi_config.csv << 'MULTIEOF'

@@ -19,7 +19,7 @@ process CELLRANGER_ATAC {
     script:
     def reference   = meta.species == 'human' ? params.ref_human : params.ref_mouse
     def extra_args  = (meta.assay == 'DOGMA') ? '--chemistry ARC-v1' : ''
-    def dirs_list   = fastq_dirs instanceof List ? fastq_dirs : [fastq_dirs]
+    def dirs_list   = (fastq_dirs instanceof List ? fastq_dirs : [fastq_dirs]) as ArrayList
     def fastqs_args = dirs_list.collect { "--fastqs \"${it}\"" }.join(' \\\n        ')
     """
     cellranger-atac count \\

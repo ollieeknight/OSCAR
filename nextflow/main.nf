@@ -273,7 +273,7 @@ workflow {
                 .map { lid, metas, fastq_dirs ->
                     def seen         = [] as Set
                     def unique_metas = metas.findAll { m -> seen.add(m.modality) }
-                    def unique_dirs  = fastq_dirs.unique()
+                    def unique_dirs  = fastq_dirs.toSet().toList()
                     def adt_csv_path = metas.collect { it.adt_csv_path }.find { it }
                     def adt_csv      = adt_csv_path ? file(adt_csv_path) : file('NO_FILE')
                     [lid, unique_metas, unique_dirs, adt_csv]
@@ -284,7 +284,7 @@ workflow {
             ch_routed.atac
                 .map { meta, fastq_dir, fqs -> [meta.library_id, meta, fastq_dir] }
                 .groupTuple(by: 0)
-                .map { lid, metas, fastq_dirs -> [metas[0], fastq_dirs.unique()] }
+                .map { lid, metas, fastq_dirs -> [metas[0], fastq_dirs.toSet().toList()] }
                 .set { ch_atac_libraries }
 
             COUNT_GEX(ch_gex_libraries)
