@@ -121,14 +121,19 @@ def parse_row(row, Map si_indexes, String ss_path) {
     //   2. {params.adt_files_dir}/{adt_file}.csv        (shared centralized ref, optional)
     def adt_csv_path = null
     if (adt_file) {
-        def ss_dir    = new File(ss_path).parentFile
-        def local_csv = new File("${ss_dir}/adt_files/${adt_file}.csv")
+        def ss_dir      = new File(ss_path).parentFile
+        def local_csv   = new File("${ss_dir}/adt_files/${adt_file}.csv")
+        def parent_csv  = new File("${ss_dir.parentFile}/adt_files/${adt_file}.csv")
         if (local_csv.exists()) {
             adt_csv_path = local_csv.canonicalPath
+        } else if (parent_csv.exists()) {
+            adt_csv_path = parent_csv.canonicalPath
         } else if (params.adt_files_dir) {
             adt_csv_path = file("${params.adt_files_dir}/${adt_file}.csv").toAbsolutePath().toString()
         } else {
-            log.warn "WARNING: ADT file '${adt_file}.csv' not found at '${ss_dir}/adt_files/' and --adt_files_dir is not set. ADT/HTO features will be omitted for this library."
+            log.warn "WARNING: ADT file '${adt_file}.csv' not found at '${ss_dir}/adt_files/' and --adt_files_dir is not set. " +
+                     "This library will FAIL at cellranger multi (missing [feature] reference). " +
+                     "Pass --adt_files_dir or place the CSV at '${ss_dir}/adt_files/${adt_file}.csv'."
         }
     }
 
@@ -351,6 +356,11 @@ workflow {
                     def unique_dirs  = fastq_dirs.toSet().toList()
                     def adt_csv_path = metas.collect { it.adt_csv_path }.find { it }
                     def adt_csv      = adt_csv_path ? file(adt_csv_path) : file('NO_FILE')
+                    def has_adt      = unique_metas.any { it.modality in ['ADT', 'HTO'] }
+                    if (has_adt && adt_csv.name == 'NO_FILE')
+                        error "Library '${lid}' has ADT/HTO modalities but no feature barcode CSV was resolved. " +
+                              "Check that 'adt_file' is set in the samplesheet and either place " +
+                              "{samplesheet_dir}/adt_files/{adt_file}.csv or pass --adt_files_dir."
                     [lid, unique_metas, unique_dirs, adt_csv]
                 }
                 .set { ch_gex_libraries }

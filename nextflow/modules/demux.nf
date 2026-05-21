@@ -226,12 +226,18 @@ process BCL_TO_FASTQ {
         "${params.outdir}/${run}_fastq"
     }, mode: 'copy', pattern: 'fastqs/*.fastq.gz',
         saveAs: { fn -> fn.tokenize('/')[-1] }
+    publishDir {
+        def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
+        "${params.outdir}/${run}_fastq"
+    }, mode: 'copy', pattern: 'fastqs/Reports/Top_Unknown_Barcodes*.csv',
+        saveAs: { fn -> fn.tokenize('/')[-1] }
 
     input:
     tuple val(demux_key), val(metas), path(bcl_dir), path(samplesheet)
 
     output:
     tuple val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"), emit: fastqs
+    path "fastqs/Reports/Top_Unknown_Barcodes*.csv",                 optional: true, emit: unknown_barcodes
     path "versions.yml",                                              emit: versions
 
     script:
@@ -247,7 +253,7 @@ process BCL_TO_FASTQ {
         --bcl-num-conversion-threads       ${task.cpus} \\
         --bcl-enable-tile-metrics          false \\
         --bcl-enable-adapter-cycle-metrics false \\
-        --num-unknown-barcodes-reported    0
+        --num-unknown-barcodes-reported    30
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
