@@ -234,26 +234,19 @@ process BCL_TO_FASTQ {
     publishDir {
         def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
         "${params.outdir}/${run}_fastq"
-    }, mode: 'copy', pattern: 'fastqs/Reports/Top_Unknown_Barcodes*.csv',
+    }, mode: 'copy', pattern: 'fastqs/Reports/Top_Unknown_Barcodes_*.csv',
         saveAs: { fn -> fn.tokenize('/')[-1] }
-    publishDir {
-        def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
-        "${params.outdir}/${run}_fastq/Undetermined"
-    }, mode: 'copy', pattern: 'fastqs/Undetermined/*.fastq.gz',
-        saveAs: { fn -> fn.tokenize('/')[-1] }
-
     input:
     tuple val(demux_key), val(metas), path(bcl_dir), path(samplesheet)
 
     output:
     tuple val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"), emit: fastqs
-    path "fastqs/Reports/Top_Unknown_Barcodes*.csv",                 optional: true, emit: unknown_barcodes
-    path "fastqs/Undetermined/*.fastq.gz",                           optional: true, emit: undetermined
+    path "fastqs/Reports/Top_Unknown_Barcodes_*.csv",                optional: true, emit: unknown_barcodes
     path "versions.yml",                                              emit: versions
 
     script:
-    def has_gex = metas.any { it.modality == 'GEX' }
-    def num_unknown = has_gex ? '50' : '0'
+    def modality    = metas[0].modality
+    def num_unknown = modality == 'GEX' ? '50' : '0'
     """
     bcl-convert \\
         --bcl-input-directory              ${bcl_dir} \\
@@ -265,7 +258,12 @@ process BCL_TO_FASTQ {
         --bcl-num-conversion-threads       ${task.cpus} \\
         --bcl-enable-tile-metrics          false \\
         --bcl-enable-adapter-cycle-metrics false \\
+        --bcl-only-matched-reads           true \\
         --num-unknown-barcodes-reported    ${num_unknown}
+
+    for f in fastqs/Reports/Top_Unknown_Barcodes.csv fastqs/Reports/Top_Unknown_Barcodes_L*.csv; do
+        [ -f "\$f" ] && mv "\$f" "\${f/Top_Unknown_Barcodes/Top_Unknown_Barcodes_${modality}}" || true
+    done
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
