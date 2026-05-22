@@ -153,7 +153,7 @@ process GENERATE_SAMPLESHEET {
     def data_header = is_dual ? 'Sample_ID,Index,Index2' : 'Sample_ID,Index'
     def data_rows   = metas.collectMany { m ->
         m.index_seqs.rows.collect { row ->
-            is_dual ? "${m.id},${row.i7},${row.get('i5_wfb', '')}" : "${m.id},${row.i7}"        }
+            is_dual ? "${m.id},${row.i7},${row.get('i5', '')}" : "${m.id},${row.i7}"        }
     }.join('\n')
 
     """
