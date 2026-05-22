@@ -85,7 +85,7 @@ def get_override_cycles(assay, chemistry, index_type, modality, num_reads, index
 
     // Adjust OverrideCycles for 8bp indices (TruSeq): replace I10 with I8N2, keep I8N* as-is
     if (index_len == 8) {
-        oc = oc.replaceAll(/I10([N*])/, 'I8N2')
+        oc = oc.replaceAll(/I10N\*/, 'I8N2')
     }
 
     // SI-on-DI correction: single-index library on 4-read dual-index flow cell.
@@ -153,8 +153,7 @@ process GENERATE_SAMPLESHEET {
     def data_header = is_dual ? 'Sample_ID,Index,Index2' : 'Sample_ID,Index'
     def data_rows   = metas.collectMany { m ->
         m.index_seqs.rows.collect { row ->
-            is_dual ? "${m.id},${row.i7},${row.get('i5', '')}" : "${m.id},${row.i7}"
-        }
+            is_dual ? "${m.id},${row.i7},${row.get('i5_wfb', '')}" : "${m.id},${row.i7}"        }
     }.join('\n')
 
     """
