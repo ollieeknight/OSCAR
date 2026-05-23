@@ -175,6 +175,7 @@ process BUSTOOLS_SORT {
     """
     bustools sort \\
         -t ${task.cpus} \\
+        -m ${task.memory.toGiga()}G \\
         -o output_sorted.bus \\
         ${corrected_bus}
 
