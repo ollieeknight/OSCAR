@@ -15,37 +15,63 @@
             <img src="files/github.png" alt="GitHub Repository">
         </a>
     </div>
-    <div class="container">
+
+    <main class="container">
         <div class="back-to-tools">
             <a href="index.html">← Back to Tools</a>
         </div>
-        <h1>Metadata file generator</h1>   
+
+        <h1>Metadata file generator</h1>
+        <p class="page-subtitle">Creates the <code>metadata.csv</code> file needed to run OSCAR. Fill in one row per library per sequencing run, then download.</p>
+
         <div class="download-metadata-container">
             <button class="generate-csv-button" aria-label="Download metadata CSV file">Download metadata.csv</button>
-        </div> 
-        <div class="pagescontent">
+        </div>
 
-        <section>
-            <p>Several input variables are required to make the metadata file. These are detailed below:</p>
-            <ul>
-                <li>Assay type: The type of assay used (e.g., CITE, DOGMA, etc.)</li>
-                <li>Experiment ID: A unique identifier for the experiment</li>
-                <li>Historical number: A unique identifier, likely for the pool of cells loaded onto the 10x chip. For example, if you have two pools and load the first onto two GEMs and the second onto one, the first experiment would have a historical number of 1 and replicate names of A and B, and the second pool would have a historical number of 2 and a replicate name of A.</li>
-                <li>Replicate: The replicate number for the experiment: see above.</li>
-                <li>Modality: The modality of the experiment (e.g., Gene expression, ATAC, ADT, etc.)</li>
-                <li>Chemistry: The chemistry used for the experiment (e.g., 3' v2, 3' v3, etc.). For more information see <a href="https://kb.10xgenomics.com/hc/en-us/articles/115003764132-How-does-Cell-Ranger-auto-detect-chemistry" target="_blank">here</a>.</li>
-                <li>Index type: The type of index used (Single index or dual index). Refer to the assay used, and the plate or primers used to index your library.</li>
-                <li>Index: The index used for the experiment. This is the barcode used to identify the sample.</li>
-                <li>Species: The species of the sample (Human or mouse)</li>
-                <li>Number of donors: The number of donors in this GEM well, used for donor deconvolution. Human only, write NA for mouse.</li>
-                <li>ADT file name: The name of the ADT file used for the experiment. Exclude .csv suffix. This is the name of the file that contains ADT barcodes. The format must match the format for your experiment, detailed <a href="https://github.com/ollieeknight/OSCAR/tree/main/templates" target="_blank">here</a>.</li>
-            </ul>
-            <p>Please make one metadata file <strong>per sequencing run</strong>.</p>        </section>        
-    </div>
-    <hr> <!-- Horizontal line to separate sections -->
-    <br>
+        <details class="field-guide" open>
+            <summary>Field guide — what goes in each column</summary>
+            <dl>
+                <dt>Assay type</dt>
+                <dd>The sequencing assay: CITE (RNA + antibody), DOGMA (RNA + ATAC + antibody), ASAP (ATAC + antibody), Multiome (RNA + ATAC), ATAC, or GEX (RNA only)</dd>
 
-        <div id="messageContainer" style="color: red; display: none;"></div> <!-- Container for error messages -->
+                <dt>Experiment ID</dt>
+                <dd>A short label used in file and directory names — no spaces (e.g. <code>JIA_exp1</code>, <code>CD34_stim</code>)</dd>
+
+                <dt>Historical number</dt>
+                <dd>Cell pool number. Cells loaded from the same pool into more than one GEM well all share one historical number (e.g. pool 1 → wells A and B both get historical number 1)</dd>
+
+                <dt>Replicate</dt>
+                <dd>Distinguishes GEM wells from the same pool: A for the first well, B for the second, and so on</dd>
+
+                <dt>Modality</dt>
+                <dd>The data type for this row: gene expression (GEX), surface antibody (ADT), hashtag (HTO), chromatin accessibility (ATAC), T or B cell receptor (VDJ-T / VDJ-B)</dd>
+
+                <dt>Chemistry</dt>
+                <dd>The 10x Genomics kit chemistry. Check the kit box or your sequencing order — if unsure, ask whoever prepared the library</dd>
+
+                <dt>Index type</dt>
+                <dd>Single or dual index. Dual-index kits (SI-TT, SI-TN) use two barcodes; single-index kits (SI-GA) use one. Check your index plate lid</dd>
+
+                <dt>Index</dt>
+                <dd>The index well ID from your plate (e.g. <code>SI-TT-A1</code>). Found on the plate lid or your sequencing request form</dd>
+
+                <dt>Species</dt>
+                <dd>Human or mouse</dd>
+
+                <dt>Number of donors</dt>
+                <dd>How many individuals are pooled in this GEM well. Write 1 if not multiplexed. Used for donor deconvolution (human only)</dd>
+
+                <dt>ADT CSV name</dt>
+                <dd>Filename of the antibody barcode reference, without the <code>.csv</code> extension. Leave blank if this row has no antibody capture</dd>
+            </dl>
+        </details>
+
+        <p class="field-guide-note">Make one metadata file <strong>per sequencing run.</strong></p>
+
+        <hr>
+
+        <div id="messageContainer" class="message-error" role="alert"></div>
+
         <form id="csvForm">
             <table role="table" aria-label="Metadata input table">
                 <thead>
@@ -65,22 +91,18 @@
                     </tr>
                 </thead>
                 <tbody id="rowsContainer">
-                    <!-- Rows will be dynamically added here -->
                 </tbody>
             </table>
             <button type="button" class="add-row-button" aria-label="Add new row to metadata table">Add row</button>
         </form>
-    </div>
+    </main>
 
     <script src="helpers/functions.js"></script>
     <script>
-        // Wait for the DOM to load before executing setup functions
         document.addEventListener('DOMContentLoaded', async () => {
-            // Set up event listeners for add row and generate CSV buttons
-            document.querySelector('.add-row-button').addEventListener('click', metadataAddRow); 
+            document.querySelector('.add-row-button').addEventListener('click', metadataAddRow);
             document.querySelector('.generate-csv-button').addEventListener('click', metadataGenerateCSV);
 
-            // Add the first row to the table on page load
             const container = document.getElementById('rowsContainer');
             const template = await metadataFetchRowTemplate();
             const firstRow = document.createElement('tr');

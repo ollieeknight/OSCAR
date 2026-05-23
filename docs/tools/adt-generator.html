@@ -15,45 +15,27 @@
             <img src="files/github.png" alt="GitHub Repository">
         </a>
     </div>
-    <div class="container">
+
+    <main class="container">
         <div class="back-to-tools">
             <a href="index.html">← Back to Tools</a>
         </div>
-        <h1>Feature barcode reference generator</h1>
-        <div class="pagescontent">
 
-        <section>
-            <p>
-                Supported formats include:
-            </p>
+        <h1>Feature barcode reference generator</h1>
+        <p class="page-subtitle">Builds the antibody barcode CSV required for CITE-seq, DOGMA-seq, ASAP-seq, and Tapestri experiments.</p>
+
+        <section class="pagescontent">
+            <p>Search the BioLegend barcode library by marker name, clone, or TotalSeq ID, then export a reference file in your required format. Antibody lists are sourced directly from the <a href="https://www.biolegend.com/en-gb/totalseq/barcode-lookup" target="_blank">BioLegend barcode lookup</a> and reformatted for pipeline use. Where possible, markers have been standardised to their CD numbers — see the <a href="https://en.wikipedia.org/wiki/List_of_human_clusters_of_differentiation" target="_blank">human</a> and <a href="https://www.thefcn.org/mouse-cd-list" target="_blank">mouse</a> CD lists for reference. You can verify a clone or catalogue number on the <a href="https://www.biolegend.com/en-gb/search-results?Applications=PG" target="_blank">BioLegend website</a>.</p>
+
+            <p>Supported output formats:</p>
             <ul>
-                <li>
-                    <a href="https://www.10xgenomics.com/support/software/cell-ranger/latest" target="_blank">Cell Ranger</a> (for 10x Genomics scRNA-seq experiments such as 3' and 5' assays, and DOGMA-seq).
-                </li>
-                <li>
-                    <a href="https://github.com/pachterlab/kite" target="_blank">Kallisto Indexing and Tag Extractor (KITE)</a> (for ASAP-seq experiments).
-                </li>
-                <li>
-                    Tapestri (for DNA and protein sequencing experiments).
-                </li>
+                <li><a href="https://www.10xgenomics.com/support/software/cell-ranger/latest" target="_blank">Cell Ranger</a> — for CITE-seq, DOGMA-seq, and other 10x RNA + antibody assays</li>
+                <li><a href="https://github.com/pachterlab/kite" target="_blank">Kallisto KITE</a> — for ASAP-seq</li>
+                <li>Tapestri — for DNA and protein sequencing</li>
             </ul>
-            <p>
-                Antibody lists are sourced directly from the 
-                <a href="https://www.biolegend.com/en-gb/totalseq/barcode-lookup" target="_blank">BioLegend barcode lookup</a> website and are slightly reformatted to facilitate accurate searches. In some cases, markers have been renamed to their CD numbers for consistency:
-            </p>
-            <ul>
-                <li><a href="https://www.thefcn.org/mouse-cd-list" target="_blank">Mouse CD List</a></li>
-                <li><a href="https://en.wikipedia.org/wiki/List_of_human_clusters_of_differentiation" target="_blank">Human CD List</a></li>
-            </ul>
-            <p>
-                You can search for the antibody clone and catalogue number on the 
-                <a href="https://www.biolegend.com/en-gb/search-results?Applications=PG" target="_blank">BioLegend website</a>.
-            </p>
         </section>
-    </div>
-    <br>
-        <hr> <!-- Horizontal line to separate sections -->
-        <br>
+
+        <hr>
 
         <form id="csvForm">
             <div class="form-group">
@@ -64,7 +46,7 @@
                     <option value="Mouse">Mouse (mm)</option>
                 </select>
             </div>
-            <br>
+
             <div class="form-group">
                 <label for="format">TotalSeq format</label>
                 <select id="format" class="dynamic-width-dropdown" onchange="adtConfirmReset('format')" aria-label="Select TotalSeq format">
@@ -75,34 +57,35 @@
                     <option value="totalseq_d.csv">TotalSeq-D</option>
                 </select>
             </div>
-            <br>
+
             <div class="form-group">
-                <label for="output-format">CSV output format</label>
+                <label for="output-format">Output format</label>
                 <select id="output-format" class="dynamic-width-dropdown" aria-label="Select CSV output format">
                     <option value="" selected disabled>Unselected</option>
-                    <option value="cellranger">Cell Ranger (for CITE-, DOGMA-seq)</option>
-                    <option value="kallisto">Kallisto (for ASAP-seq)</option>
+                    <option value="cellranger">Cell Ranger (CITE-seq, DOGMA-seq)</option>
+                    <option value="kallisto">Kallisto (ASAP-seq)</option>
                     <option value="tapestri">Tapestri (DNA + protein)</option>
                 </select>
             </div>
-            <br>
-            <label for="search">Search</label>
-            <div class="dropdown">
-                <input 
-                    type="text" 
-                    id="search" 
-                    placeholder="Marker, clone, or TotalSeq ID" 
-                    oninput="adtShowDropdown(document.getElementById('format').value)" 
-                    autocomplete="off" 
-                    autocorrect="off" 
-                    autocapitalize="off" 
-                    spellcheck="false" 
-                    style="width: auto;"
-                    aria-label="Search for markers by name, clone, or TotalSeq ID"
-                    aria-describedby="search-instructions">
-                <div id="dropdown-content" class="dropdown-content" role="listbox" aria-label="Marker search results"></div>
+
+            <div class="form-group">
+                <label for="search">Search</label>
+                <div class="dropdown">
+                    <input
+                        type="text"
+                        id="search"
+                        placeholder="Marker, clone, or TotalSeq ID"
+                        oninput="adtShowDropdown(document.getElementById('format').value)"
+                        autocomplete="off"
+                        autocorrect="off"
+                        autocapitalize="off"
+                        spellcheck="false"
+                        aria-label="Search for markers by name, clone, or TotalSeq ID"
+                        aria-describedby="search-instructions">
+                    <div id="dropdown-content" class="dropdown-content" role="listbox" aria-label="Marker search results"></div>
+                </div>
             </div>
-            <br><br>
+
             <table id="csvTable">
                 <thead>
                     <tr>
@@ -117,18 +100,17 @@
                     </tr>
                 </thead>
                 <tbody id="rowsContainer">
-                    <!-- Rows will be added here dynamically -->
                 </tbody>
             </table>
         </form>
+    </main>
 
-        <div class="separator"></div>
-    </div>
     <div class="adt-file-generate-container">
-        <label for="csv-name-input" style="font-weight: 500; margin-bottom: 5px; display: block;">File name</label>
+        <label for="csv-name-input" class="panel-label">File name</label>
         <input type="text" id="csv-name-input" class="csv-name-input" placeholder="File name" aria-label="Enter CSV file name">
-        <button type="button" class="generate-csv-button" onclick="adtGenerateCSV()" aria-label="Download CSV file">Download CSV</button>
+        <button type="button" class="generate-csv-button" aria-label="Download CSV file">Download CSV</button>
     </div>
+
     <script src="helpers/functions.js"></script>
     <script>
         let markersData = [];
@@ -141,10 +123,8 @@
         });
 
         function adtRemoveRow(button) {
-            const row = button.closest('tr');
-            row.remove();
+            button.closest('tr').remove();
         }
     </script>
-
 </body>
 </html>
