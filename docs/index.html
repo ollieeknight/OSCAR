@@ -830,27 +830,25 @@
 <p>OSCAR is a comprehensive pipeline for single-cell sequencing analysis, developed for the Romagnani lab at Charité. It provides tools and workflows for processing CITE-seq, DOGMA-seq, ASAP-seq, and Tapestri experiments.</p>
 <h2 id="quick-start">Quick Start</h2>
 <h3 id="1-clone-the-repository">1. Clone the Repository</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">cd</span><span class="w"> </span><span class="nv">$HOME</span>/work/bin/
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/ollieeknight/OSCAR
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git clone https://github.com/ollieeknight/OSCAR
 </span></code></pre></div>
-<h3 id="2-download-apptainer-images">2. Download Apptainer Images</h3>
-<p>There are two Apptainer images:</p>
-<ul>
-<li><code>oscar-count.sif</code> - For counting steps</li>
-<li><code>oscar-qc.sif</code> - For post-counting quality control</li>
-</ul>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="si">${</span><span class="nv">TMPDIR</span><span class="si">}</span>/OSCAR
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>apptainer<span class="w"> </span>pull<span class="w"> </span>library://romagnanilab/oscar/oscar-count:latest<span class="w"> </span>--dir<span class="w"> </span><span class="si">${</span><span class="nv">TMPDIR</span><span class="si">}</span>/OSCAR/
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>apptainer<span class="w"> </span>pull<span class="w"> </span>library://romagnanilab/oscar/oscar-qc:latest<span class="w"> </span>--dir<span class="w"> </span><span class="si">${</span><span class="nv">TMPDIR</span><span class="si">}</span>/OSCAR/
+<h3 id="2-prepare-metadata">2. Prepare Metadata</h3>
+<p>Create a <code>metadata.csv</code> describing your libraries, or use the <a href="tools/metadata-generator.html">Metadata Generator</a>. See <a href="getting-started/">Getting Started</a> for the full column reference.</p>
+<h3 id="3-run-the-pipeline">3. Run the Pipeline</h3>
+<p>Point OSCAR at your BCL directory and metadata file. Containers are pulled automatically via Apptainer.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>nextflow run /path/to/OSCAR/main.nf \
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    --samplesheet metadata.csv \
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    --bcl_dir /path/to/BCL \
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    --outdir results \
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    -profile slurm
 </span></code></pre></div>
-<h3 id="3-reference-genomes">3. Reference Genomes</h3>
-<p>Reference genomes are also required. Build steps can be found under the <code>reference/</code> directory.</p>
 <h2 id="features">Features</h2>
 <ul>
-<li><strong>Automated Metadata Generation</strong> - Create standardized metadata files for your experiments</li>
-<li><strong>Feature Barcode References</strong> - Generate barcode references for Cell Ranger, Kallisto, and Tapestri</li>
-<li><strong>Streamlined Processing</strong> - Bash scripts to automate the entire workflow</li>
-<li><strong>Quality Control</strong> - Comprehensive QC steps built into the pipeline</li>
+<li><strong>Single command</strong> - BCL to QC outputs with one <code>nextflow run</code></li>
+<li><strong>Automated demultiplexing</strong> - BCL Convert with per-modality samplesheet generation</li>
+<li><strong>Multi-assay support</strong> - GEX, CITE, DOGMA, ASAP, and ATAC in one run</li>
+<li><strong>Metadata tools</strong> - Browser-based generators for metadata and ADT/HTO barcode files</li>
+<li><strong>Built-in QC</strong> - Scrublet, AMULET, CellSNP/Vireo, MultiQC reports</li>
 </ul>
 <h2 id="supported-assays">Supported Assays</h2>
 <ul>
