@@ -67,7 +67,7 @@ reference,${task.workDir}/${adt_csv.name}
                      (m.modality == 'VDJ-B')          ? 'VDJ-B' :
                      (m.modality == 'CRISPR')         ? 'CRISPR Guide Capture' : 'Gene Expression'
             lib_checks << """\
-if [ \$(find "${dir}" -maxdepth 2 -name "${m.id}*.fastq.gz" -printf '%s\\n' 2>/dev/null | awk '{s+=\$1} END{print s+0}') -ge 10485760 ]; then
+if [ \$(find "${dir}" -maxdepth 2 -name "${m.id}*.fastq.gz" -printf '%s\\n' 2>/dev/null | awk '{s+=\$1} END{printf "%.0f\\n", s}') -ge 10485760 ]; then
     echo "${m.id},${dir},${ft}" >> multi_config.csv
 fi"""
         }
