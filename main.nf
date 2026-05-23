@@ -84,8 +84,11 @@ def preflight_samplesheet(String path) {
     def required = ['assay', 'experiment_id', 'historical_number', 'replicate',
                     'modality', 'chemistry', 'index_type', 'index',
                     'species', 'n_donors', 'adt_file']
-    def valid_assays     = ['GEX', 'CITE', 'DOGMA', 'ATAC', 'Multiome', 'ASAP']
-    def valid_modalities = ['GEX', 'ATAC', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR', 'GENO']
+    def valid_assays      = ['GEX', 'CITE', 'DOGMA', 'ATAC', 'Multiome', 'ASAP', 'Flex']
+    def valid_modalities  = ['GEX', 'ATAC', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR', 'GENO']
+    def valid_index_types = ['SI', 'DI']
+    def valid_chemistry   = ['SC3Pv2', 'SC3Pv3', 'SC3Pv4', 'SC5P', 'SC5Pv3', 'ARCv1', 'ATAC',
+                             'Flex-v2-R1', 'Flex-v2-RNA-R2', 'NA']
 
     def lines = new File(path).readLines()
     if (lines.isEmpty()) error "ERROR: samplesheet is empty: ${path}"
@@ -107,6 +110,11 @@ def preflight_samplesheet(String path) {
             error "ERROR: row ${i + 2}: unknown modality '${row.modality}'. Valid: ${valid_modalities.join(', ')}"
         if (!['human', 'mouse'].any { it.equalsIgnoreCase(row.species) })
             error "ERROR: row ${i + 2}: unknown species '${row.species}'. Valid: human, mouse"
+        if (!valid_index_types.contains(row.index_type?.trim()))
+            error "ERROR: row ${i + 2}: unknown index_type '${row.index_type}'. Valid: SI, DI"
+        def chem = row.chemistry?.trim() ?: ''
+        if (chem != 'NA' && !valid_chemistry.any { chem.startsWith(it) })
+            error "ERROR: row ${i + 2}: unrecognised chemistry '${row.chemistry}'. Valid: ${valid_chemistry.join(', ')}"
     }
 }
 
@@ -191,6 +199,7 @@ def detect_sequencer(String bcl_path) {
     else if (instrument_id.startsWith('NB'))  sequencer = 'novaseq6000' // NextSeq 550
     else if (instrument_id.startsWith('NS'))  sequencer = 'novaseq6000' // NextSeq 500
     else if (instrument_id.startsWith('MN'))  sequencer = 'novaseq6000' // MiniSeq
+    else if (instrument_id.startsWith('FS'))  sequencer = 'novaseq_x'   // iSeq 100
     else {
         log.warn "WARNING: Unrecognised instrument ID '${instrument_id}' in ${bcl_path}/RunInfo.xml; falling back to params.sequencer='${params.sequencer}'"
         sequencer = params.sequencer
@@ -241,8 +250,8 @@ workflow {
     if (params.from_cellranger) {
         ch_meta
             .filter { meta ->
-                meta.modality in ['GEX', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR'] \
-                    && meta.assay != 'ASAP'
+                (meta.modality in ['GEX', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR'] \
+                    && meta.assay != 'ASAP') || meta.assay == 'Flex'
             }
             .map { meta -> [meta.library_id, meta] }
             .groupTuple(by: 0)
@@ -336,8 +345,8 @@ workflow {
             // ── Count ─────────────────────────────────────────────────────────
             ch_fastqs
                 .branch { meta, fastq_dir, fqs ->
-                    gex:      meta.modality in ['GEX', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR'] \
-                              && meta.assay != 'ASAP'
+                    gex:      (meta.modality in ['GEX', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR'] \
+                              && meta.assay != 'ASAP') || meta.assay == 'Flex'
                     atac:     meta.modality == 'ATAC'
                     asap_adt: meta.assay == 'ASAP' && meta.modality in ['ADT', 'HTO']
                     skip:     true

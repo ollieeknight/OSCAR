@@ -24,6 +24,7 @@ process CELLRANGER_MULTI {
     def ref_gex              = is_human ? params.ref_human : params.ref_mouse
     def ref_vdj              = is_human ? params.ref_vdj_human : params.ref_vdj_mouse
     def is_dogma_or_multiome = meta.assay in ['DOGMA', 'Multiome']
+    def is_flex              = meta.assay == 'Flex'
 
     def has_vdj    = metas.any { it.modality in ['VDJ-T', 'VDJ-B'] }
     def has_adt    = metas.any { it.modality in ['ADT', 'HTO'] }
@@ -36,7 +37,7 @@ process CELLRANGER_MULTI {
 
     def ge_section = """[gene-expression]
 reference,${ref_gex}
-create-bam,${create_bam}${is_dogma_or_multiome ? '\nchemistry,ARC-v1' : ''}
+create-bam,${create_bam}${is_dogma_or_multiome ? '\nchemistry,ARC-v1' : is_flex ? '\nchemistry,' + meta.chemistry : ''}
 """
 
     def vdj_section = has_vdj ? """

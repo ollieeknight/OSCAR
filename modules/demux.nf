@@ -15,6 +15,7 @@ def get_override_cycles(assay, chemistry, index_type, modality, num_reads, index
         'SI_SC3Pv3_GEX':        [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
         'SI_SC3Pv3_ADT':        [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
         'SI_SC3Pv3_HTO':        [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
+        'SI_SC3Pv4_GEX':        [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
         'SI_SC3Pv4_ADT':        [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
         'SI_SC3Pv4_HTO':        [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
         'SI_SC5P_GEX':          [3: 'Y26N*;I8N*;Y90N*',           4: 'Y26N*;I8N*;N*;Y90N*'],
@@ -52,24 +53,30 @@ def get_override_cycles(assay, chemistry, index_type, modality, num_reads, index
         'DI_ASAP_ADT':          [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
         'DI_ASAP_HTO':          [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
         'DI_ASAP_GENO':         [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
+        // GEM-X Flex v2 (Fixed RNA Profiling): always DI, same cycle structure as SC3Pv4 GEX
+        'DI_Flex-v2_GEX':       [4: 'Y28N*;I10N*;I10N*;Y90N*'],
     ]
 
     // Resolve key from assay/chemistry/index_type/modality
-    def chem  = chemistry.replaceAll(/[-_ ]/, '')
+    def chem    = chemistry.replaceAll(/[-_ ]/, '')
+    // Normalise modality: VDJ-T/VDJ-B → VDJ (same read structure), CRISPR → GEX (same read structure)
+    def mod_key = modality.replaceAll(/^VDJ-[TB]$/, 'VDJ').replaceAll(/^CRISPR$/, 'GEX')
     def key
     if (assay in ['CITE', 'GEX']) {
-        if      (chem.startsWith('SC3Pv2'))                     key = "${index_type}_SC3Pv2_${modality}"
-        else if (chem.startsWith('SC3Pv3'))                     key = "${index_type}_SC3Pv3_${modality}"
-        else if (chem.startsWith('SC3Pv4'))                     key = "${index_type}_SC3Pv4_${modality}"
-        else if (chem.startsWith('SC5P') && chem.contains('v3')) key = "${index_type}_SC5Pv3_${modality}"
-        else if (chem.startsWith('SC5P'))                       key = "${index_type}_SC5P_${modality}"
+        if      (chem.startsWith('SC3Pv2'))                      key = "${index_type}_SC3Pv2_${mod_key}"
+        else if (chem.startsWith('SC3Pv3'))                      key = "${index_type}_SC3Pv3_${mod_key}"
+        else if (chem.startsWith('SC3Pv4'))                      key = "${index_type}_SC3Pv4_${mod_key}"
+        else if (chem.startsWith('SC5P') && chem.contains('v3')) key = "${index_type}_SC5Pv3_${mod_key}"
+        else if (chem.startsWith('SC5P'))                        key = "${index_type}_SC5P_${mod_key}"
         else key = null
+    } else if (assay == 'Flex') {
+        key = "DI_Flex-v2_GEX"
     } else if (assay == 'Multiome') {
-        key = "DI_Multiome_ARCv1_${modality}"
+        key = "DI_Multiome_ARCv1_${mod_key}"
     } else if (assay == 'DOGMA') {
-        key = (modality == 'ATAC') ? "DI_DOGMA_ARCv1_ATAC" : "${index_type}_DOGMA_ARCv1_${modality}"
+        key = (modality == 'ATAC') ? "DI_DOGMA_ARCv1_ATAC" : "${index_type}_DOGMA_ARCv1_${mod_key}"
     } else if (assay == 'ASAP') {
-        key = "DI_ASAP_${modality}"
+        key = "DI_ASAP_${mod_key}"
     } else if (assay == 'ATAC') {
         key = "DI_ATAC_ATAC"
     } else {
@@ -112,7 +119,7 @@ def apply_si_on_di_correction(String oc, Integer seq_len) {
         if (idx == i_indices[0]) {
             // First index: use actual seq_len (typically 8bp), mask remainder
             def remaining = 10 - seq_len  // e.g., 10 - 8 = 2
-            "I${seq_len}N${remaining > 0 ? remaining : ''}"
+            remaining > 0 ? "I${seq_len}N${remaining}" : "I${seq_len}"
         } else if (i_indices.size() > 1 && idx == i_indices[1]) {
             // Second index: fully masked (no i5 present)
             'N*'
@@ -186,8 +193,11 @@ process GENERATE_SAMPLESHEET {
             rest=\$((len - used))
             if [ "\$rest" -gt 0 ]; then
                 expanded+=("\${base}\${rest}")
+            elif [ "\$rest" -eq 0 ]; then
+                expanded+=("\$base")
             else
-                expanded+=("\$(echo "\$base" | sed 's/[A-Z]\$//')")
+                echo "ERROR: read \$((i+1)) has only \${len} cycles but mask '\${part}' requires at least \${used} cycles. Check RunInfo.xml and OverrideCycles mask." >&2
+                exit 1
             fi
         else
             expanded+=("\$part")
