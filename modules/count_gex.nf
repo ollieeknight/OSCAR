@@ -44,11 +44,11 @@ create-bam,${create_bam}${is_dogma_or_multiome ? '\nchemistry,ARC-v1' : ''}
 reference,${ref_vdj}
 """ : ""
 
-    // adt_csv is staged in the work dir when provided; name='NO_FILE' means absent
-    // staged path is already absolute — cellranger resolves it correctly
+    // adt_csv is staged as a symlink in the work dir; cell ranger needs an absolute path
+    // task.workDir is always absolute; adt_csv.name is the bare filename in that dir
     def feature_section = (has_adt && adt_csv.name != 'NO_FILE') ? """
 [feature]
-reference,${adt_csv}
+reference,${task.workDir}/${adt_csv.name}
 """ : ""
 
     // fastq_id = meta.id (= BCL Convert Sample_ID = filename prefix)
