@@ -55,8 +55,10 @@ reference,${task.workDir}/${adt_csv.name}
     // fastqs   = published fastq dir — one row per (modality, flowcell) combination.
     // Listing the same fastq_id twice with different dirs is how cellranger multi
     // handles libraries sequenced across multiple flowcells.
+    // Entries where the sample's FASTQs in a given dir are < 10 MB are skipped —
+    // this handles modalities absent from a flowcell that still produce near-empty files.
     def dirs_list = (fastq_dirs instanceof List ? fastq_dirs : [fastq_dirs]) as ArrayList
-    def lib_parts = []
+    def lib_checks = []
     dirs_list.each { dir ->
         metas.each { m ->
             def ft = (m.modality == 'GEX')           ? 'Gene Expression' :
@@ -64,18 +66,21 @@ reference,${task.workDir}/${adt_csv.name}
                      (m.modality == 'VDJ-T')          ? 'VDJ-T' :
                      (m.modality == 'VDJ-B')          ? 'VDJ-B' :
                      (m.modality == 'CRISPR')         ? 'CRISPR Guide Capture' : 'Gene Expression'
-            lib_parts << "${m.id},${dir},${ft}"
+            lib_checks << """\
+if [ \$(find "${dir}" -maxdepth 2 -name "${m.id}*.fastq.gz" -printf '%s\\n' 2>/dev/null | awk '{s+=\$1} END{print s+0}') -ge 10485760 ]; then
+    echo "${m.id},${dir},${ft}" >> multi_config.csv
+fi"""
         }
     }
-    def lib_lines = lib_parts.join('\n')
+    def lib_check_script = lib_checks.join('\n')
 
     """
     cat > multi_config.csv << 'MULTIEOF'
 ${ge_section}${vdj_section}${feature_section}
 [libraries]
 fastq_id,fastqs,feature_types
-${lib_lines}
 MULTIEOF
+${lib_check_script}
 
     cellranger multi \\
         --id        "${library_id}" \\
