@@ -1,48 +1,47 @@
-/* Custom styling for OSCAR documentation */
+/* OSCAR documentation — custom overrides for MkDocs Material */
 
 :root {
-    --md-primary-fg-color: #2c5aa0;
-    --md-primary-fg-color--light: #4a7bc8;
-    --md-primary-fg-color--dark: #1e3f73;
+  --md-primary-fg-color:        oklch(44% 0.12 262);
+  --md-primary-fg-color--light: oklch(55% 0.12 262);
+  --md-primary-fg-color--dark:  oklch(34% 0.10 262);
+  --md-accent-fg-color:         oklch(55% 0.14 262);
+  --md-accent-fg-color--transparent: oklch(55% 0.14 262 / 0.12);
 }
 
-/* Enhance code blocks */
+/* ── Code ─────────────────────────────────────────────────────────────── */
+
 .md-typeset code {
-    background-color: #f5f7fa;
-    border: 1px solid #e1e4e8;
+  background-color: oklch(96.5% 0.008 250);
+  border: 1px solid oklch(87% 0.012 250);
+  border-radius: 3px;
+  padding: 0.1em 0.35em;
 }
 
-/* iframe containers for interactive tools */
-iframe {
-    border: 1px solid #e1e4e8;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
+/* ── Tables ───────────────────────────────────────────────────────────── */
 
-/* Enhance admonitions */
-.md-typeset .admonition {
-    border-left-width: 4px;
-}
-
-/* Logo styling */
-.md-typeset img[alt*="OSCAR"] {
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* Table improvements */
 .md-typeset table:not([class]) {
-    border: 1px solid var(--md-default-fg-color--lightest);
-    border-radius: 4px;
+  border: 1px solid oklch(87% 0.012 250);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px oklch(18% 0.015 250 / 0.06);
 }
 
 .md-typeset table:not([class]) th {
-    background-color: var(--md-code-bg-color);
-    font-weight: 600;
+  background-color: oklch(96.5% 0.008 250);
+  font-weight: 600;
 }
 
-/* Horizontal rules */
+/* ── Horizontal rules ─────────────────────────────────────────────────── */
+
 .md-typeset hr {
-    border-bottom: 1px solid var(--md-default-fg-color--lightest);
-    margin: 2em 0;
+  border-bottom: 1px solid oklch(87% 0.012 250);
+  margin: 2.5em 0;
+}
+
+/* ── iframes (embedded tools) ─────────────────────────────────────────── */
+
+iframe {
+  border: 1px solid oklch(87% 0.012 250);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px oklch(18% 0.015 250 / 0.08);
 }
