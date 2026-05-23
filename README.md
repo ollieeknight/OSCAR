@@ -14,21 +14,25 @@ OSCAR is a comprehensive pipeline designed for processing single-cell RNA, ATAC,
 
 ## Getting Started
 
-To get started with OSCAR, please follow these instructions:
-
 1. Clone the repository:
    ```bash
-   cd $HOME/work/bin/
    git clone https://github.com/ollieeknight/OSCAR
+   cd OSCAR
    ```
 
-2. There are two Apptainer images: `oscar-count.sif` for the counting steps, and `oscar-qc.sif` for post-counting steps.
+2. Build reference genomes (see `reference/` for human and mouse build scripts).
+
+3. Run the pipeline (BCL → FASTQ → count → QC):
    ```bash
-   mkdir -p ${TMPDIR}/OSCAR
-   apptainer pull library://romagnanilab/oscar/oscar-count:latest --dir ${TMPDIR}/OSCAR/
-   apptainer pull library://romagnanilab/oscar/oscar-qc:latest --dir ${TMPDIR}/OSCAR/
+   nextflow run main.nf -profile slurm \
+       --samplesheet /path/to/metadata.csv \
+       --bcl_dir     /path/to/BCL_folder \
+       --outdir      results \
+       --adt_files_dir /path/to/adt_csvs/
    ```
 
-3. Reference genomes are also required, and build steps can be found under `reference/`.
+See `CLAUDE.md` for full parameter reference, samplesheet format, and invocation examples.
 
-   For any questions, please e-mail me at `oliver.knight@charite.de`!
+For any questions, please e-mail `oliver.knight@charite.de`.
+
+> **Note:** Legacy bash scripts are archived in `old/bash/` for reference only.

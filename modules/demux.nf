@@ -246,7 +246,6 @@ process BCL_TO_FASTQ {
 
     script:
     def modality    = metas[0].modality
-    def num_unknown = modality == 'GEX' ? '50' : '0'
     """
     bcl-convert \\
         --bcl-input-directory              ${bcl_dir} \\
@@ -259,7 +258,7 @@ process BCL_TO_FASTQ {
         --bcl-enable-tile-metrics          false \\
         --bcl-enable-adapter-cycle-metrics false \\
         --bcl-only-matched-reads           true \\
-        --num-unknown-barcodes-reported    ${num_unknown}
+        --num-unknown-barcodes-reported    50
 
     for f in fastqs/Reports/Top_Unknown_Barcodes.csv fastqs/Reports/Top_Unknown_Barcodes_L*.csv; do
         [ -f "\$f" ] && mv "\$f" "\${f/Top_Unknown_Barcodes/Top_Unknown_Barcodes_${modality}}" || true

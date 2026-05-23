@@ -2,14 +2,14 @@
 
 Single-cell sequencing pipeline for Romagnani Lab (BIH Charité). Handles scRNA-seq, scATAC-seq, Multiome, DOGMA, ASAP-seq, CITE-seq, VDJ. Runs on SLURM via Nextflow DSL2 with Apptainer containers.
 
-Source bash scripts live in `../bash/` (01–05 + functions.sh). This Nextflow port is complete and replaces them.
+Legacy bash scripts archived in `old/bash/` for reference only. Nextflow is the primary implementation.
 
 ---
 
 ## Directory structure
 
 ```
-nextflow/
+.
 ├── main.nf                    ← entry point; all routing and channel logic
 ├── nextflow.config            ← params, profiles (standard / slurm), resource labels
 ├── assets/
@@ -35,8 +35,12 @@ nextflow/
 │   ├── count_adt.nf   ← COUNT_ADT: full ASAP kallisto pipeline
 │   ├── qc_gex.nf      ← QC_GEX: CELLBENDER → CELLSNP_LITE → VIREO
 │   └── qc_atac.nf     ← QC_ATAC: AMULET + MGATK2 → CELLSNP_LITE → VIREO
-└── apptainer/
-    └── mgatk2_docker/ ← Dockerfile + GHA workflow for quay.io/ollieeknight/mgatk2
+├── apptainer/
+│   └── mgatk2_docker/ ← Dockerfile + GHA workflow for quay.io/ollieeknight/mgatk2
+├── docs/              ← built MkDocs site (served via GitHub Pages from /docs)
+├── reference/         ← genome build scripts (human/mouse)
+├── templates/         ← metadata.csv and ADT CSV templates
+└── old/               ← archived legacy implementation (bash scripts, conda envs)
 ```
 
 ---
