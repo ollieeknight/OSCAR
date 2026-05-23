@@ -284,13 +284,13 @@ process FALCO {
     tuple val(run_name), val(fastq_name), path(fastq)
 
     output:
-    path "${fastq_name}/", emit: report
-    path "versions.yml",   emit: versions
+    path "${run_name}_${fastq_name}/", emit: report
+    path "versions.yml",               emit: versions
 
     script:
     """
-    mkdir -p ${fastq_name}
-    falco -t ${task.cpus} ${fastq} -o ${fastq_name}
+    mkdir -p ${run_name}_${fastq_name}
+    falco -t ${task.cpus} ${fastq} -o ${run_name}_${fastq_name}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
