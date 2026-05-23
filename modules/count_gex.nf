@@ -44,11 +44,9 @@ create-bam,${create_bam}${is_dogma_or_multiome ? '\nchemistry,ARC-v1' : ''}
 reference,${ref_vdj}
 """ : ""
 
-    // adt_csv is staged as a symlink in the work dir; cell ranger needs an absolute path
-    // task.workDir is always absolute; adt_csv.name is the bare filename in that dir
     def feature_section = (has_adt && adt_csv.name != 'NO_FILE') ? """
 [feature]
-reference,${task.workDir}/${adt_csv.name}
+reference,${adt_csv.toAbsolutePath()}
 """ : ""
 
     // fastq_id = meta.id (= BCL Convert Sample_ID = filename prefix)
