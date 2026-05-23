@@ -25,10 +25,10 @@ process FEATUREMAP {
         --fa  FeaturesMismatch.fa  \\
         --header --quiet
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         featuremap: \$(featuremap --version 2>&1 || echo 'unknown')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -50,10 +50,10 @@ process KALLISTO_INDEX {
     """
     kallisto index -i FeaturesMismatch.idx -k 15 ${fa}
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         kallisto: \$(kallisto version 2>&1 | head -1 | sed 's/kallisto, version //')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -89,10 +89,10 @@ process ASAP_TO_KITE {
         -on "${meta.library_id}_ADT" \\
         -c  ${task.cpus}
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         asap_to_kite: \$(asap_to_kite --version 2>&1 || echo 'unknown')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -121,10 +121,10 @@ process KALLISTO_BUS {
         -t ${task.cpus} \\
         ${converted_dir}/${meta.library_id}_ADT/*
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         kallisto: \$(kallisto version 2>&1 | head -1 | sed 's/kallisto, version //')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -150,10 +150,10 @@ process BUSTOOLS_CORRECT {
         ${bus_dir}/output.bus \\
         -o output_corrected.bus
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         bustools: \$(bustools version 2>&1 | head -1 | sed 's/bustools //')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -179,10 +179,10 @@ process BUSTOOLS_SORT {
         -o output_sorted.bus \\
         ${corrected_bus}
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         bustools: \$(bustools version 2>&1 | head -1 | sed 's/bustools //')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -211,9 +211,9 @@ process BUSTOOLS_COUNT {
         -t ${bus_dir}/transcripts.txt \\
         ${sorted_bus}
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         bustools: \$(bustools version 2>&1 | head -1 | sed 's/bustools //')
-    END_VERSIONS
+END_VERSIONS
     """
 }

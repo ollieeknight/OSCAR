@@ -34,9 +34,9 @@ process CELLRANGER_ATAC {
     # Clean up cellranger-atac temp dirs
     rm -rf "${meta.library_id}_ATAC/SC_ATAC_COUNTER_CS" "${meta.library_id}_ATAC/_"*
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         cellranger-atac: \$(cellranger-atac --version 2>&1 | head -1 | sed 's/.* //')
-    END_VERSIONS
+END_VERSIONS
     """
 }

@@ -264,10 +264,10 @@ process BCL_TO_FASTQ {
         [ -f "\$f" ] && mv "\$f" "\${f/Top_Unknown_Barcodes/Top_Unknown_Barcodes_${modality}}" || true
     done
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         bcl-convert: \$(bcl-convert --version 2>&1 | head -1 | sed 's/BCL Convert //')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -292,10 +292,10 @@ process FALCO {
     mkdir -p ${run_name}_${fastq_name}
     falco -t ${task.cpus} ${fastq} -o ${run_name}_${fastq_name}
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         falco: \$(falco --version 2>&1 | sed 's/falco //')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -319,9 +319,9 @@ process MULTIQC {
     """
     multiqc ${config} --force -o . .
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         multiqc: \$(multiqc --version 2>&1 | sed 's/multiqc, version //')
-    END_VERSIONS
+END_VERSIONS
     """
 }

@@ -90,9 +90,9 @@ ${lib_check_script}
 
     rm -rf "${library_id}/SC_MULTI_CS" "${library_id}/_"*
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         cellranger: \$(cellranger --version 2>&1 | head -1 | sed 's/.* //')
-    END_VERSIONS
+END_VERSIONS
     """
 }

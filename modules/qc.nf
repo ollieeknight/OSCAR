@@ -31,10 +31,10 @@ process CELLBENDER {
         --cpu-threads ${task.cpus} \\
         --checkpoint-mins 10000
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         cellbender: \$(cellbender --version 2>&1 | sed 's/CellBender v//')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -74,10 +74,10 @@ process CELLSNP_LITE {
         -p  ${task.cpus} \\
         ${umi_flag}
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         cellsnp-lite: \$(cellsnp-lite --version 2>&1 | sed 's/cellsnp-lite //')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -110,10 +110,10 @@ process VIREO {
         -p ${task.cpus} \\
         --randSeed 42
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         vireo: \$(vireo --version 2>&1 | head -1 | sed 's/vireo //')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -152,10 +152,10 @@ process AMULET {
         . \\
         /opt/AMULET/
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         amulet: \$(AMULET.sh --version 2>&1 || echo 'v1.0')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -188,10 +188,10 @@ process MGATK2 {
         -b  ${barcodes} \\
         -c  ${task.cpus}
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         mgatk2: \$(mgatk2 --version 2>&1 | head -1 || echo 'unknown')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -240,10 +240,10 @@ process MACS3 {
         -q ${params.macs3_qvalue} \\
         --outdir peaks/
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         macs3: \$(macs3 --version 2>&1 | sed 's/macs3 //')
-    END_VERSIONS
+END_VERSIONS
     """
 }
 
@@ -307,9 +307,9 @@ pct        = round(float(doublets.mean()) * 100, 1)
 print("Scrublet: " + str(n_doublets) + " doublets of " + str(n_total) + " barcodes (" + str(pct) + "%)")
 PYEOF
 
-    cat <<-END_VERSIONS > versions.yml
+    cat <<END_VERSIONS > versions.yml
     "${task.process}":
         scrublet: \$(python3 -c 'import scrublet; print(scrublet.__version__)' 2>&1)
-    END_VERSIONS
+END_VERSIONS
     """
 }
