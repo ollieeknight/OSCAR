@@ -194,7 +194,7 @@ process GENERATE_SAMPLESHEET {
             if [ "\$rest" -gt 0 ]; then
                 expanded+=("\${base}\${rest}")
             elif [ "\$rest" -eq 0 ]; then
-                expanded+=("\$base")
+                expanded+=("\${base%[A-Z]}")
             else
                 echo "ERROR: read \$((i+1)) has only \${len} cycles but mask '\${part}' requires at least \${used} cycles. Check RunInfo.xml and OverrideCycles mask." >&2
                 exit 1
