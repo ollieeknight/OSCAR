@@ -35,9 +35,12 @@ process CELLRANGER_MULTI {
     // of storage per library and 20-30% of Cell Ranger runtime.
     def create_bam = (is_human && meta.n_donors > 1) ? 'true' : 'false'
 
+    def chem_line   = is_dogma_or_multiome ? '\nchemistry,ARC-v1'
+                    : is_flex              ? '\nchemistry,' + meta.chemistry
+                    : ''
     def ge_section = """[gene-expression]
 reference,${ref_gex}
-create-bam,${create_bam}${is_dogma_or_multiome ? '\nchemistry,ARC-v1' : is_flex ? '\nchemistry,' + meta.chemistry : ''}
+create-bam,${create_bam}${chem_line}
 """
 
     def vdj_section = has_vdj ? """
