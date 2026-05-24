@@ -16,7 +16,29 @@ workflow DEMUX {
                 [key, meta, bcl_dir]
             }
             .groupTuple(by: 0)
-            .map { key, metas, bcl_dirs -> [key, metas, bcl_dirs[0]] }
+            .map { key, metas, bcl_dirs ->
+                // Materialise ArrayBag → ArrayList before passing to any process
+                def ml      = []
+                metas.each { m -> ml << m }
+                def bcl_dir = bcl_dirs[0]
+
+                // Validate index-length homogeneity (guaranteed by key, but defensive)
+                def index_len = ml[0].index_seqs?.rows[0]?.i7?.length() ?: 10
+                if (ml.any { m -> (m.index_seqs?.rows[0]?.i7?.length() ?: 10) != index_len })
+                    error "Demux group ${key} has mixed index lengths: " +
+                          ml.collect { m -> "${m.id}=${m.index_seqs?.rows[0]?.i7?.length() ?: 10}" }.join(', ')
+
+                // Pre-build samplesheet data section — avoids ArrayBag ops inside process script
+                def is_dual     = ml.any { m -> m.index_seqs.is_dual }
+                def data_header = is_dual ? 'Sample_ID,Index,Index2' : 'Sample_ID,Index'
+                def data_rows   = ml.collectMany { m ->
+                    m.index_seqs.rows.collect { row ->
+                        is_dual ? "${m.id},${row.i7},${row.get('i5', '')}" : "${m.id},${row.i7}"
+                    }
+                }.join('\n')
+
+                [key, ml, bcl_dir, is_dual, data_header, data_rows]
+            }
             .set { ch_demux_input }
 
         GENERATE_SAMPLESHEET(ch_demux_input)

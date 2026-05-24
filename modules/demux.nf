@@ -144,26 +144,17 @@ process GENERATE_SAMPLESHEET {
     container "${params.container_bclconvert}"
 
     input:
-    tuple val(demux_key), val(metas), path(bcl_dir)
+    tuple val(demux_key), val(metas), path(bcl_dir), val(is_dual), val(data_header), val(data_rows)
 
     output:
     tuple val(demux_key), val(metas), path(bcl_dir), path("SampleSheet.csv"), emit: samplesheet
 
     script:
-    def meta        = metas[0]
-    def index_len   = meta.index_seqs?.rows[0]?.i7?.length() ?: 10
-    // Verify all metas in group have same index length (should be guaranteed by grouping key, but be defensive)
-    if (metas.any { m -> (m.index_seqs?.rows[0]?.i7?.length() ?: 10) != index_len }) {
-        error "Demux group has mixed index lengths: ${metas.collect { m -> m.id + '=' + (m.index_seqs?.rows[0]?.i7?.length() ?: 10) }.join(', ')}"
-    }
-    def oc_4        = get_override_cycles(meta.assay, meta.chemistry, meta.index_type, meta.modality, 4, meta.index_seqs, index_len)
-    def oc_3        = get_override_cycles(meta.assay, meta.chemistry, meta.index_type, meta.modality, 3, meta.index_seqs, index_len) ?: oc_4
-    def is_dual     = metas.any { m -> m.index_seqs.is_dual }
-    def data_header = is_dual ? 'Sample_ID,Index,Index2' : 'Sample_ID,Index'
-    def data_rows   = metas.collectMany { m ->
-        m.index_seqs.rows.collect { row ->
-            is_dual ? "${m.id},${row.i7},${row.get('i5', '')}" : "${m.id},${row.i7}"        }
-    }.join('\n')
+    // metas is a plain ArrayList (materialised in subworkflow map) — safe to index
+    def meta      = metas[0]
+    def index_len = meta.index_seqs?.rows[0]?.i7?.length() ?: 10
+    def oc_4      = get_override_cycles(meta.assay, meta.chemistry, meta.index_type, meta.modality, 4, meta.index_seqs, index_len)
+    def oc_3      = get_override_cycles(meta.assay, meta.chemistry, meta.index_type, meta.modality, 3, meta.index_seqs, index_len) ?: oc_4
 
     """
     mapfile -t cycles < <(grep -o 'NumCycles="[0-9]*"' ${bcl_dir}/RunInfo.xml | grep -o '[0-9]*')
