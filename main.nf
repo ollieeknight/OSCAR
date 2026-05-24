@@ -357,12 +357,14 @@ workflow {
             // Each fastq dir is a published path string — no staging, so no filename collision
             // when the same library was sequenced on multiple flowcells.
             ch_routed.gex
-                .map { meta, fastq_dir, fqs -> [meta.library_id, meta, fastq_dir] }
-                .groupTuple(by: 0)
                 .map { lid, metas, fastq_dirs ->
                     def seen         = [] as Set
-                    def unique_metas = metas.findAll { m -> seen.add(m.modality) } as ArrayList  // ← force ArrayList
-                    def unique_dirs  = fastq_dirs.toSet() as ArrayList                            // ← skip .toList(), cast directly
+                    // Reconstruct as a literal ArrayList — never rely on findAll/cast on ArrayBag
+                    def unique_metas = []
+                    metas.each { m -> if (seen.add(m.modality)) unique_metas << m }
+                    def unique_dirs  = []
+                    fastq_dirs.each { d -> if (!unique_dirs.contains(d)) unique_dirs << d }
+
                     def adt_csv_path = unique_metas.collect { it.adt_csv_path }.find { it }
                     def adt_csv      = adt_csv_path ? file(adt_csv_path) : file('NO_FILE')
                     def has_adt      = unique_metas.any { it.modality in ['ADT', 'HTO'] }
