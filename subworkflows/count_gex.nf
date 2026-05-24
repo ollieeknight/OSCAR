@@ -1,3 +1,6 @@
+include { MULTI_CONFIG }      from '../modules/count_gex'
+include { CELLRANGER_MULTI } from '../modules/count_gex'
+
 workflow COUNT_GEX {
     take:
         ch_libraries   // [library_id, metas_list, fastq_dirs, adt_csv]
