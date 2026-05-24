@@ -28,7 +28,11 @@ workflow COUNT_GEX {
 
                 lines += ['', '[libraries]', 'fastq_id,fastqs,feature_types']
 
-                // Build library check shell lines
+                // Per (dir × modality): count reads in the R1 file to exclude BCL Convert
+                // placeholder FASTQs. Placeholders can exceed 10 MB but have <100 real reads
+                // and cause cellranger to fail with "R1 and R2 reads identical". head -n limits
+                // decompression to min_reads*4 lines so we stop early on real FASTQs.
+                def min_reads = 1000
                 def lib_checks = (dirs as List).collectMany { dir ->
                     ml.collect { m ->
                         def ft = m.modality == 'GEX'          ? 'Gene Expression'      :
@@ -36,9 +40,11 @@ workflow COUNT_GEX {
                                  m.modality == 'VDJ-T'        ? 'VDJ-T'                :
                                  m.modality == 'VDJ-B'        ? 'VDJ-B'                :
                                  m.modality == 'CRISPR'       ? 'CRISPR Guide Capture' : 'Gene Expression'
-                        "find \"${dir}\" -maxdepth 2 -name \"${m.id}*.fastq.gz\" " +
-                        "-print -quit 2>/dev/null | grep -q . && " +
-                        "echo \"${m.id},${dir},${ft}\" >> multi_config.csv || true"
+                        [
+                            "r1=\$(find \"${dir}\" -maxdepth 2 -name \"${m.id}*_R1_*.fastq.gz\" -print -quit 2>/dev/null)",
+                            "n_reads=0; [ -n \"\$r1\" ] && n_reads=\$(zcat \"\$r1\" 2>/dev/null | head -n ${min_reads * 4} | awk 'NR%4==1' | wc -l)",
+                            "[ \"\$n_reads\" -ge ${min_reads} ] && echo \"${m.id},${dir},${ft}\" >> multi_config.csv || true"
+                        ].join('\n')
                     }
                 }
 
