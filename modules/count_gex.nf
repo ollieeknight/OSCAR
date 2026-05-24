@@ -19,16 +19,17 @@ process CELLRANGER_MULTI {
     path "versions.yml",                                            emit: versions
 
     script:
-    def meta                 = metas[0]   // all metas share species, n_donors, etc.
-    def is_human             = meta.species == 'human'
-    def ref_gex              = is_human ? params.ref_human : params.ref_mouse
-    def ref_vdj              = is_human ? params.ref_vdj_human : params.ref_vdj_mouse
+    def metas_list   = (metas instanceof List ? metas : [metas]) as ArrayList
+    def meta         = metas_list[0]
+    def is_human     = meta.species == 'human'
+    def ref_gex      = is_human ? params.ref_human : params.ref_mouse
+    def ref_vdj      = is_human ? params.ref_vdj_human : params.ref_vdj_mouse
     def is_dogma_or_multiome = meta.assay in ['DOGMA', 'Multiome']
-    def is_flex              = meta.assay == 'Flex'
+    def is_flex      = meta.assay == 'Flex'
 
-    def has_vdj    = metas.any { it.modality in ['VDJ-T', 'VDJ-B'] }
-    def has_adt    = metas.any { it.modality in ['ADT', 'HTO'] }
-    def has_crispr = metas.any { it.modality == 'CRISPR' }
+    def has_vdj    = metas_list.any { it.modality in ['VDJ-T', 'VDJ-B'] }
+    def has_adt    = metas_list.any { it.modality in ['ADT', 'HTO'] }
+    def has_crispr = metas_list.any { it.modality == 'CRISPR' }
 
     // BAM file only needed for donor demultiplexing (cellsnp-lite/vireo).
     // Skip for mouse (no human SNP VCF) and single-donor runs — saves 20-50GB
