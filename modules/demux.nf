@@ -259,13 +259,13 @@ process BCL_TO_FASTQ {
     script:
     def modality    = metas[0].modality
     """
+    rm -rf fastqs/
+
     bcl-convert \\
         --bcl-input-directory              ${bcl_dir} \\
         --output-directory                 fastqs \\
         --sample-sheet                     ${samplesheet} \\
         --no-lane-splitting                true \\
-        --force \\
-        --bcl-num-parallel-tiles           4 \\
         --bcl-num-conversion-threads       ${task.cpus} \\
         --bcl-enable-tile-metrics          false \\
         --bcl-enable-adapter-cycle-metrics false \\
