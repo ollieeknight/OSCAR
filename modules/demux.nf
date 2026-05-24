@@ -266,6 +266,7 @@ process BCL_TO_FASTQ {
         --output-directory                 fastqs \\
         --sample-sheet                     ${samplesheet} \\
         --no-lane-splitting                true \\
+        --bcl-num-conversion-threads       ${task.cpus} \\
         --bcl-enable-tile-metrics          false \\
         --bcl-enable-adapter-cycle-metrics false \\
         --bcl-only-matched-reads           true \\
