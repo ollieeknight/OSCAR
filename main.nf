@@ -357,6 +357,8 @@ workflow {
             // Each fastq dir is a published path string — no staging, so no filename collision
             // when the same library was sequenced on multiple flowcells.
             ch_routed.gex
+                .map { meta, fastq_dir, fqs -> [meta.library_id, meta, fastq_dir] }
+                .groupTuple(by: 0)
                 .map { lid, metas, fastq_dirs ->
                     def seen         = [] as Set
                     // Reconstruct as a literal ArrayList — never rely on findAll/cast on ArrayBag
