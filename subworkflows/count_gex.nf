@@ -32,7 +32,7 @@ workflow COUNT_GEX {
                 // placeholder FASTQs. Placeholders can exceed 10 MB but have <100 real reads
                 // and cause cellranger to fail with "R1 and R2 reads identical". head -n limits
                 // decompression to min_reads*4 lines so we stop early on real FASTQs.
-                def min_reads = 1000
+                def min_reads = 2500
                 def lib_checks = (dirs as List).collectMany { dir ->
                     ml.collect { m ->
                         def ft = m.modality == 'GEX'          ? 'Gene Expression'      :

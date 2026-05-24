@@ -12,7 +12,7 @@ workflow DEMUX {
         ch_meta_bcl
             .map { meta, bcl_dir ->
                 def index_len = meta.index_seqs?.rows[0]?.i7?.length() ?: 0
-                def key = "${meta.assay}_${meta.index_type}_${meta.chemistry}_${meta.modality}_${index_len}_${bcl_dir.name}"
+                def key = "${meta.assay}_${meta.index_type}_${meta.chemistry}_${meta.modality}_${bcl_dir.name}"
                 [key, meta, bcl_dir]
             }
             .groupTuple(by: 0)
