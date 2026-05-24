@@ -13,7 +13,8 @@ process CELLRANGER_MULTI {
     path "versions.yml",                                            emit: versions
 
     script:
-    def metas_list   = metas.collect { it }
+    def metas_list   = [metas].flatten().findAll { it != null }
+    if (!metas_list) error "CELLRANGER_MULTI: metas is empty for library ${library_id}"
     def meta         = metas_list[0]
     def is_human     = meta.species == 'human'
     def ref_gex      = is_human ? params.ref_human : params.ref_mouse
