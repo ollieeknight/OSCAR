@@ -299,8 +299,8 @@ COUNT_GEX is a two-step subworkflow:
 
 **Step 1 — MULTI_CONFIG** (local executor): generates `multi_config.csv`.
 - Config sections built in the subworkflow `.map {}` as a `List<String>`, joined and passed as a pre-built string — no Groovy collection ops in the process script block.
-- Per (fastq_dir × modality): reads first 10000 lines of R1 via `zcat | head | awk` to count reads. Pairs with <2500 reads are excluded — this filters BCL Convert placeholder FASTQs (which can be >10 MB but contain near-zero real reads).
-- Threshold: `min_reads = 2500` (Groovy variable in subworkflow, easy to tune).
+- Per (fastq_dir × modality): reads first 40000 lines of R1 via `zcat | head | awk` to count reads. Pairs with <10000 reads are excluded — threshold matches cellranger's own chemistry auto-detection minimum (TXRNGR10001). Flowcells contributing fewer reads would fail cellranger regardless.
+- Threshold: `min_reads = 10000` (Groovy variable in subworkflow, easy to tune).
 
 **Step 2 — CELLRANGER_MULTI**: pure bash, no Groovy logic. Receives `path(multi_config)` and runs `cellranger multi --csv multi_config`.
 

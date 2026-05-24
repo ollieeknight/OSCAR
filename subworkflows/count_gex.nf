@@ -29,10 +29,11 @@ workflow COUNT_GEX {
                 lines += ['', '[libraries]', 'fastq_id,fastqs,feature_types']
 
                 // Per (dir × modality): count reads in the R1 file to exclude BCL Convert
-                // placeholder FASTQs. Placeholders can exceed 10 MB but have <100 real reads
-                // and cause cellranger to fail with "R1 and R2 reads identical". head -n limits
-                // decompression to min_reads*4 lines so we stop early on real FASTQs.
-                def min_reads = 2500
+                // placeholder FASTQs. Placeholders can exceed 10 MB but have <100 real reads.
+                // Threshold matches cellranger's own auto-detection minimum (10 000 reads) —
+                // any flowcell contributing fewer reads than this would cause cellranger to
+                // fail with TXRNGR10001 during chemistry auto-detection.
+                def min_reads = 10000
                 def lib_checks = (dirs as List).collectMany { dir ->
                     ml.collect { m ->
                         def ft = m.modality == 'GEX'          ? 'Gene Expression'      :
