@@ -361,15 +361,15 @@ workflow {
                 .groupTuple(by: 0)
                 .map { lid, metas, fastq_dirs ->
                     def seen         = [] as Set
-                    def unique_metas = metas.findAll { m -> seen.add(m.modality) }
-                    def unique_dirs  = fastq_dirs.toSet().toList()
-                    def adt_csv_path = metas.collect { it.adt_csv_path }.find { it }
+                    def unique_metas = metas.findAll { m -> seen.add(m.modality) } as ArrayList  // ← force ArrayList
+                    def unique_dirs  = fastq_dirs.toSet() as ArrayList                            // ← skip .toList(), cast directly
+                    def adt_csv_path = unique_metas.collect { it.adt_csv_path }.find { it }
                     def adt_csv      = adt_csv_path ? file(adt_csv_path) : file('NO_FILE')
                     def has_adt      = unique_metas.any { it.modality in ['ADT', 'HTO'] }
                     if (has_adt && adt_csv.name == 'NO_FILE')
                         error "Library '${lid}' has ADT/HTO modalities but no feature barcode CSV was resolved. " +
-                              "Check that 'adt_file' is set in the samplesheet and either place " +
-                              "{samplesheet_dir}/adt_files/{adt_file}.csv or pass --adt_files_dir."
+                            "Check that 'adt_file' is set in the samplesheet and either place " +
+                            "{samplesheet_dir}/adt_files/{adt_file}.csv or pass --adt_files_dir."
                     [lid, unique_metas, unique_dirs, adt_csv]
                 }
                 .set { ch_gex_libraries }
