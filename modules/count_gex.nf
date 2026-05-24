@@ -50,11 +50,10 @@ process MULTI_CONFIG {
         csv_lines << ''
         csv_lines << '[feature]'
         csv_lines << "reference,${adt_csv.toAbsolutePath()}"
-    }
-
-    csv_lines << ''
-    csv_lines << '[libraries]'
-    csv_lines << 'fastq_id,fastqs,feature_types'
+        // ← missing closing `}` here
+        csv_lines << ''          // these lines are inside the if-block!
+        csv_lines << '[libraries]'
+        csv_lines << 'fastq_id,fastqs,feature_types'
 
     def config_header = csv_lines.join('\n')
 
