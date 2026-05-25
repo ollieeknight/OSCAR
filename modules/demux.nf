@@ -267,21 +267,17 @@ process BCL_TO_FASTQ {
         [ -f "\$f" ] && mv "\$f" "\${f/Top_Unknown_Barcodes/Top_Unknown_Barcodes_${modality}}" || true
     done
 
-    # BGZF EOF sentinel check — O(1) per file; bcl-convert always writes BGZF.
-    # A killed or disk-full write won't have the 28-byte EOF marker → fail here
-    # so the retry loop re-runs with a clean fastqs/ directory.
-    # Hex comparison avoids bash-variable null-byte truncation.
-    BGZF_EOF_HEX="1f8b08040000000000ff0600424302001b0003000000000000000000"
+    # Integrity check — gzip -t validates CRC32 and stream completeness without
+    # decompressing output. Detects files truncated by job kills or disk issues.
+    # bcl-convert does not write the BGZF EOF sentinel, so sentinel checks give
+    # false positives; gzip -t works regardless of whether that block is present.
     corrupt_list=\$(mktemp)
     for f in fastqs/*.fastq.gz; do
-        (
-            actual_hex=\$(tail -c 28 "\$f" | od -A n -t x1 | tr -d ' \n')
-            [ "\$actual_hex" = "\$BGZF_EOF_HEX" ] || echo "\$f" >> "\${corrupt_list}"
-        ) &
+        ( gzip -t "\$f" 2>/dev/null || echo "\$f" >> "\${corrupt_list}" ) &
     done
     wait
     if [ -s "\${corrupt_list}" ]; then
-        echo "ERROR: BGZF EOF marker missing — truncated FASTQ output from BCL Convert:" >&2
+        echo "ERROR: gzip integrity check failed — truncated FASTQ output from BCL Convert:" >&2
         cat "\${corrupt_list}" >&2
         rm -f "\${corrupt_list}"
         exit 1
