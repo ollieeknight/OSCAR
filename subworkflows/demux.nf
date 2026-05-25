@@ -1,5 +1,5 @@
 include { GENERATE_SAMPLESHEET } from '../modules/demux'
-include { BCL_TO_FASTQ }        from '../modules/demux'
+include { BCLCONVERT }        from '../modules/demux'
 include { FALCO }               from '../modules/demux'
 
 workflow DEMUX {
@@ -42,7 +42,7 @@ workflow DEMUX {
             .set { ch_demux_input }
 
         GENERATE_SAMPLESHEET(ch_demux_input)
-        BCL_TO_FASTQ(GENERATE_SAMPLESHEET.out.samplesheet)
+        BCLCONVERT(GENERATE_SAMPLESHEET.out.samplesheet)
 
         // Explode output back to individual metas by matching meta.id to FASTQ filename.
         // meta.id == BCL Convert Sample_ID == FASTQ filename prefix.
@@ -52,7 +52,7 @@ workflow DEMUX {
         // Derive the published fastq dir path from bcl_dir.name (e.g. R463_bcl → R463_fastq).
         // Pass the directory string rather than staged files — prevents filename collisions
         // when the same library is sequenced on multiple flowcells (identical _S1_ naming).
-        BCL_TO_FASTQ.out.fastqs
+        BCLCONVERT.out.fastqs
             .flatMap { metas, bcl_name, fq_files ->
                 def fqs     = fq_files instanceof List ? fq_files : [fq_files]
                 def run     = bcl_name.replaceAll(/_bcl.*$/, '')
@@ -67,7 +67,7 @@ workflow DEMUX {
         // Run Falco per R-read FASTQ (R1/R2/R3 only; I1/I2 index reads skipped)
         // Thread run_name (derived from bcl_dir) so each report lands in the correct
         // {run}_fastq/falco/ directory, not a shared params.run_name dir.
-        BCL_TO_FASTQ.out.fastqs
+        BCLCONVERT.out.fastqs
             .flatMap { metas, bcl_name, fq_files ->
                 def run = bcl_name.replaceAll(/_bcl.*$/, '')
                 (fq_files instanceof List ? fq_files : [fq_files])
@@ -85,5 +85,5 @@ workflow DEMUX {
     emit:
         fastqs        = ch_fastqs        // [meta, fastq_dir_string, [fastq_files]]
         falco_reports = ch_falco_reports // collected falco dirs (passed to MULTIQC in main.nf)
-        versions      = BCL_TO_FASTQ.out.versions
+        versions      = BCLCONVERT.out.versions
 }

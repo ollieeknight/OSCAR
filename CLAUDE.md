@@ -22,7 +22,7 @@ Legacy bash scripts are in `bash/` for reference only. Nextflow is the primary i
 │       ├── Dual_Index_Kit_TN_Set_A.csv      (SI-TN-*)
 │       └── truseq_adt_hto.csv               (TruSeq D7xx indices for ADT/HTO)
 ├── modules/
-│   ├── demux.nf      ← GENERATE_SAMPLESHEET, BCL_TO_FASTQ, FALCO, MULTIQC
+│   ├── demux.nf      ← GENERATE_SAMPLESHEET, BCLCONVERT, FALCO, MULTIQC
 │   ├── count_gex.nf  ← MULTI_CONFIG, CELLRANGER_MULTI
 │   ├── count_atac.nf ← CELLRANGER_ATAC
 │   ├── count_adt.nf  ← FEATUREMAP, KALLISTO_INDEX, ASAP_TO_KITE,
@@ -30,7 +30,7 @@ Legacy bash scripts are in `bash/` for reference only. Nextflow is the primary i
 │   └── qc.nf         ← CELLBENDER, SCRUBLET, CELLSNP_LITE, VIREO,
 │                        AMULET, MGATK2, MACS3
 ├── subworkflows/
-│   ├── demux.nf       ← DEMUX: GENERATE_SAMPLESHEET + BCL_TO_FASTQ + FALCO
+│   ├── demux.nf       ← DEMUX: GENERATE_SAMPLESHEET + BCLCONVERT + FALCO
 │   ├── count_gex.nf   ← COUNT_GEX: MULTI_CONFIG → CELLRANGER_MULTI
 │   ├── count_atac.nf  ← COUNT_ATAC: thin wrapper around CELLRANGER_ATAC
 │   ├── count_adt.nf   ← COUNT_ADT: full ASAP kallisto pipeline
@@ -200,7 +200,7 @@ ch_meta_bcl
         → groupTuple by {assay}_{index_type}_{chemistry}_{modality}_{index_len}_{bcl_dir.name}
         → materialise ArrayBag → ArrayList + pre-build is_dual / data_header / data_rows
         → GENERATE_SAMPLESHEET (local executor) → SampleSheet.csv
-        → BCL_TO_FASTQ → flatMap (match FASTQs back to individual metas by meta.id prefix)
+        → BCLCONVERT → flatMap (match FASTQs back to individual metas by meta.id prefix)
         → ch_fastqs [meta, fastq_dir_string, [matched_fqs]]
         → FALCO → ch_falco_reports
 
@@ -504,7 +504,7 @@ process_high    → 16c / 64GB / 24h
 process_gpu     → 16c / 96GB / 24h  + queue=gpu, --gres=gpu:1, --nv (Apptainer --nv)
 
 withName: GENERATE_SAMPLESHEET|MULTI_CONFIG → local executor (no SLURM job; CSV generation only)
-withName: BCL_TO_FASTQ                      → 16c / 64GB / 24h
+withName: BCLCONVERT                      → 16c / 64GB / 24h
 withName: CELLRANGER_MULTI|CELLRANGER_ATAC  → 64c / 128GB / 48h
 withName: CELLSNP_LITE|VIREO                → 32c /  64GB / 48h
 withName: MGATK2                            → 32c / 128GB / 48h

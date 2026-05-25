@@ -221,13 +221,13 @@ DATAEOF
     """
 }
 
-// ─── BCL_TO_FASTQ ─────────────────────────────────────────────────────────────
+// ─── BCLCONVERT ─────────────────────────────────────────────────────────────
 // Runs BCL Convert using a pre-built SampleSheet from GENERATE_SAMPLESHEET.
 // Input channel: [demux_key, metas_list, bcl_dir, samplesheet]
 
-process BCL_TO_FASTQ {
+process BCLCONVERT {
     tag "$demux_key"
-    label 'process_medium'   // overridden to 16c/32GB/12h via withName: 'BCL_TO_FASTQ'
+    label 'process_medium'   // overridden to 16c/32GB/12h via withName: 'BCLCONVERT'
     container "${params.container_bclconvert}"
     publishDir {
         def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
