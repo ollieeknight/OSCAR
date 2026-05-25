@@ -1,0 +1,32 @@
+title: "OSCAR Pipeline QC Report"
+report_comment: "Single-cell sequencing QC — Romagnani Lab, BIH Charité"
+
+# Show all samples even if only one tool has data for them
+skip_generalstats: false
+
+# Collect whatever is present; no hard requirement on any module
+run_modules:
+  - fastqc        # Falco produces FastQC-compatible output
+  - cellranger
+  - cellbender
+  - custom_content
+
+# Module-specific settings
+module_order:
+  - fastqc:
+      name: "Read QC (Falco)"
+  - cellranger
+  - cellbender
+
+fastqc:
+  # Falco uses FastQC format; suppress per-base warnings that are
+  # expected for 10x barcode reads (R1 always has low base diversity)
+  status_checks: false
+
+extra_fn_clean_s_name:
+  - "_S[0-9]+_L[0-9]+_R[12]_001$": ""
+  - "_001$": ""
+
+# Output
+make_data_dir: true
+export_plots: false
