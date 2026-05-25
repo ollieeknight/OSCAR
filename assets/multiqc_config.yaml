@@ -1,5 +1,4 @@
 title: "OSCAR Pipeline QC Report"
-report_comment: "Single-cell sequencing QC — Romagnani Lab, BIH Charité"
 
 # Show all samples even if only one tool has data for them
 skip_generalstats: false

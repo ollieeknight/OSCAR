@@ -270,10 +270,14 @@ process BCL_TO_FASTQ {
     # BGZF EOF sentinel check — O(1) per file; bcl-convert always writes BGZF.
     # A killed or disk-full write won't have the 28-byte EOF marker → fail here
     # so the retry loop re-runs with a clean fastqs/ directory.
-    BGZF_EOF=\$(printf '\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00\x42\x43\x02\x00\x1b\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00')
+    # Hex comparison avoids bash-variable null-byte truncation.
+    BGZF_EOF_HEX="1f8b08040000000000ff0600424302001b0003000000000000000000"
     corrupt_list=\$(mktemp)
     for f in fastqs/*.fastq.gz; do
-        ( tail -c 28 "\$f" | cmp -s - <(printf '%s' "\$BGZF_EOF") || echo "\$f" >> "\${corrupt_list}" ) &
+        (
+            actual_hex=\$(tail -c 28 "\$f" | od -A n -t x1 | tr -d ' \n')
+            [ "\$actual_hex" = "\$BGZF_EOF_HEX" ] || echo "\$f" >> "\${corrupt_list}"
+        ) &
     done
     wait
     if [ -s "\${corrupt_list}" ]; then
