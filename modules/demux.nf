@@ -257,7 +257,8 @@ process BCLCONVERT {
         --output-directory                 fastqs \\
         --sample-sheet                     ${samplesheet} \\
         --no-lane-splitting                true \\
-        --bcl-num-conversion-threads       ${task.cpus} \\
+        --bcl-num-parallel-tiles           4 \\
+        --bcl-num-conversion-threads       ${task.cpus / 4} \\
         --bcl-num-compression-threads      ${task.cpus} \\
         --bcl-num-decompression-threads    ${task.cpus} \\
         --bcl-enable-tile-metrics          false \\
