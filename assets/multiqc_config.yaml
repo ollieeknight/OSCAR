@@ -7,7 +7,6 @@ skip_generalstats: false
 run_modules:
   - fastqc        # Falco produces FastQC-compatible output
   - cellranger
-  - cellbender
   - custom_content
 
 # Module-specific settings
@@ -15,7 +14,6 @@ module_order:
   - fastqc:
       name: "Read QC (Falco)"
   - cellranger
-  - cellbender
 
 fastqc:
   # Falco uses FastQC format; suppress per-base warnings that are

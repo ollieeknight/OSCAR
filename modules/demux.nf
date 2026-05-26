@@ -326,7 +326,7 @@ END_VERSIONS
 process MULTIQC {
     label 'process_low'
     container "${params.container_multiqc}"
-    publishDir { "${params.outdir}/${params.run_name}_outs/multiqc" }, mode: 'copy'
+    publishDir { "${params.outdir}/${params.run_name}_fastq/multiqc" }, mode: 'copy'
 
     input:
     path(reports)
@@ -339,7 +339,7 @@ process MULTIQC {
     script:
     def config = params.multiqc_config ? "--config ${params.multiqc_config}" : ''
     """
-    multiqc ${config} --force -o . .
+    multiqc ${config} --force --filename multiqc_report -o . .
 
     cat <<END_VERSIONS > versions.yml
     "${task.process}":

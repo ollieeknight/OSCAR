@@ -268,9 +268,6 @@ workflow {
         QC_GEX(ch_gex_outs)
         QC_ATAC(ch_atac_outs)
 
-        QC_GEX.out.logs.flatten().collect().set { ch_multiqc_input }
-        MULTIQC(ch_multiqc_input)
-
     } else {
         // ── Obtain FASTQs (BCL demux or pre-existing) ─────────────────────────
         if (params.from_fastq) {
@@ -335,11 +332,15 @@ workflow {
             ch_fastqs = DEMUX.out.fastqs
         }
 
-        // ── --run-until FASTQ: stop after demux ───────────────────────────────
-        if (params.run_until == 'FASTQ') {
-            // Only BCL path produces falco reports; from_fastq has no demux step
+        // MultiQC runs on FALCO reports from demux (BCL mode only)
+        if (!params.from_fastq) {
             DEMUX.out.falco_reports.flatten().collect().set { ch_multiqc_input }
             MULTIQC(ch_multiqc_input)
+        }
+
+        // ── --run-until FASTQ: stop after demux ───────────────────────────────
+        if (params.run_until == 'FASTQ') {
+            // nothing extra; MultiQC already launched above
 
         } else {
             // ── Count ─────────────────────────────────────────────────────────
@@ -406,24 +407,10 @@ workflow {
             )
 
             // ── --run-until cellranger: stop after counting ───────────────────
-            if (params.run_until == 'cellranger') {
-                if (!params.from_fastq) {
-                    DEMUX.out.falco_reports.flatten().collect().set { ch_multiqc_input }
-                    MULTIQC(ch_multiqc_input)
-                }
-
-            } else {
-                // ── Full run: QC + MultiQC ────────────────────────────────────
+            if (params.run_until != 'cellranger') {
+                // ── Full run: QC ──────────────────────────────────────────────
                 QC_GEX(COUNT_GEX.out.outs)
                 QC_ATAC(COUNT_ATAC.out.outs)
-
-                Channel.empty()
-                    .mix(params.from_fastq ? Channel.empty() : DEMUX.out.falco_reports.flatten())
-                    .mix(QC_GEX.out.logs.flatten())
-                    .collect()
-                    .set { ch_multiqc_input }
-
-                MULTIQC(ch_multiqc_input)
             }
         }
     }
