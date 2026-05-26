@@ -1,4 +1,4 @@
-include { CELLBENDER, SCRUBLET } from '../modules/qc'
+include { CELLBENDER; SCRUBLET } from '../modules/qc'
 include { CELLSNP_LITE } from '../modules/qc'
 include { VIREO       } from '../modules/qc'
 
