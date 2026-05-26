@@ -192,7 +192,7 @@ process BUSTOOLS_COUNT {
     tag "$meta.library_id"
     label 'process_low'
     container "${params.container_bustools}"
-    publishDir { "${params.outdir}/${params.run_name}_outs/${meta.library_id}_ATAC/ADT" }, mode: 'copy'
+    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}_ATAC/ADT" }, mode: 'copy'
 
     input:
     tuple val(meta), path(t2g), path(bus_dir), path(sorted_bus)

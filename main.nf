@@ -2,16 +2,6 @@
 
 nextflow.enable.dsl = 2
 
-// Auto-derive run_name from primary bcl_dir if not explicitly set.
-// This MUST happen before any module includes so that the compiled modules inherit the updated params map.
-if (!params.run_name || params.run_name == 'null') {
-    if (params.bcl_dir) {
-        params.run_name = file(params.bcl_dir).name.replaceAll(/_bcl$/, '')
-    } else {
-        params.run_name = 'run'
-    }
-}
-
 // ─── Imports ──────────────────────────────────────────────────────────────────
 include { MULTIQC }        from './modules/demux'
 include { DEMUX }          from './subworkflows/demux'
@@ -244,7 +234,15 @@ workflow {
         params.adt_files_dir = file(params.adt_files_dir).toAbsolutePath().toString()
     }
 
-    log.info "INFO: run_name = '${params.run_name}'"
+    def primary_run_name = params.run_name
+    if (!primary_run_name || primary_run_name == 'null') {
+        if (params.bcl_dir) {
+            primary_run_name = file(params.bcl_dir).name.replaceAll(/_bcl$/, '')
+        } else {
+            primary_run_name = 'run'
+        }
+    }
+    log.info "INFO: run_name = '${primary_run_name}'"
 
     preflight_check()
 
@@ -273,7 +271,9 @@ workflow {
             lines.tail().each { line ->
                 if (!line.trim().isEmpty()) {
                     def vals = line.split(',', -1).collect { it.trim() }
-                    _all_rows << parse_row([hdrs, vals].transpose().collectEntries(), si_indexes_fallback, ss_path)
+                    def meta = parse_row([hdrs, vals].transpose().collectEntries(), si_indexes_fallback, ss_path)
+                    meta.run_name = primary_run_name
+                    _all_rows << meta
                 }
             }
         }
@@ -349,6 +349,7 @@ workflow {
                         if (!line.trim().isEmpty()) {
                             def vals = line.split(',', -1).collect { it.trim() }
                             def meta = parse_row([hdrs, vals].transpose().collectEntries(), bcl_si, ss_path)
+                            meta.run_name = bcl_dir.name.replaceAll(/_bcl$/, '')
                             _meta_bcl_pairs << [meta, bcl_dir]
                             _bcl_rows       << meta
                         }
@@ -369,7 +370,17 @@ workflow {
 
         // MultiQC runs on FALCO reports from demux (BCL mode only)
         if (!params.from_fastq) {
-            DEMUX.out.falco_reports.flatten().collect().set { ch_multiqc_input }
+            def run_name = params.run_name
+            if (!run_name || run_name == 'null') {
+                if (params.bcl_dir) {
+                    run_name = file(params.bcl_dir).name.replaceAll(/_bcl$/, '')
+                } else {
+                    run_name = 'run'
+                }
+            }
+            DEMUX.out.falco_reports.flatten().collect()
+                .map { reports -> [run_name, reports] }
+                .set { ch_multiqc_input }
             MULTIQC(ch_multiqc_input)
         }
 
@@ -400,6 +411,7 @@ workflow {
                     // Reconstruct as a literal ArrayList — never rely on findAll/cast on ArrayBag
                     def unique_metas = []
                     metas.each { m -> if (seen.add(m.modality)) unique_metas << m }
+                    unique_metas.each { m -> m.run_name = primary_run_name }
                     def unique_dirs  = []
                     fastq_dirs.each { d -> if (!unique_dirs.contains(d)) unique_dirs << d }
 
@@ -418,7 +430,11 @@ workflow {
             ch_routed.atac
                 .map { meta, fastq_dir, fqs -> [meta.library_id, meta, fastq_dir] }
                 .groupTuple(by: 0)
-                .map { lid, metas, fastq_dirs -> [metas[0], fastq_dirs.toSet().toList()] }
+                .map { lid, metas, fastq_dirs ->
+                    def meta = metas[0]
+                    meta.run_name = primary_run_name
+                    [meta, fastq_dirs.toSet().toList()]
+                }
                 .set { ch_atac_libraries }
 
             COUNT_GEX(ch_gex_libraries)

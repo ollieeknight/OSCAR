@@ -28,7 +28,7 @@ process CELLRANGER_MULTI {
     tag "$library_id"
     label 'process_high'
     container "${params.container_cellranger}"
-    storeDir { "${params.outdir}/${params.run_name}_outs" }
+    storeDir { "${params.outdir}/${metas[0].run_name}_outs" }
 
     input:
     tuple val(library_id), val(metas), path(multi_config)

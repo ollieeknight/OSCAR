@@ -310,10 +310,10 @@ END_VERSIONS
 process MULTIQC {
     label 'process_low'
     container "${params.container_multiqc}"
-    publishDir { "${params.outdir}/${params.run_name}_fastq/multiqc" }, mode: 'copy'
+    publishDir { "${params.outdir}/${run_name}_fastq/multiqc" }, mode: 'copy'
 
     input:
-    path(reports)
+    tuple val(run_name), path(reports)
 
     output:
     path "multiqc_report.html",      emit: report
