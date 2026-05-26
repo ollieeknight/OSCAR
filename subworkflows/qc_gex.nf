@@ -24,13 +24,13 @@ workflow QC_GEX {
             .set { ch_multi_donor }
 
         // Build [meta, bam, bai, barcodes] for cellsnp-lite
-        // BAM: per_sample_outs/{library}/count/sample_alignments.bam
+        // BAM: per_sample_outs/{library}/sample_alignments.bam
         // Barcodes: from cellbender output_cell_barcodes.csv
         ch_snp_input = ch_multi_donor
             .join(CELLBENDER.out.barcodes, by: 0)
             .map { meta, outs, barcodes ->
-                def bam = file("${outs}/per_sample_outs/${meta.library_id}/count/sample_alignments.bam")
-                def bai = file("${outs}/per_sample_outs/${meta.library_id}/count/sample_alignments.bam.bai")
+                def bam = file("${outs}/per_sample_outs/${meta.library_id}/sample_alignments.bam")
+                def bai = file("${outs}/per_sample_outs/${meta.library_id}/sample_alignments.bam.bai")
                 [ meta, bam, bai, barcodes ]
             }
 
