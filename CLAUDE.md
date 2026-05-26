@@ -452,7 +452,7 @@ container_bustools = "quay.io/biocontainers/bustools:0.45.1--h9f5acd7_0"
 samplesheet     = null     // path to metadata.csv
 bcl_dir         = null     // path to BCL folder (RunInfo.xml inside)
 outdir          = 'results'
-run_name        = 'run'    // prefix for _fastq / _outs dirs (use --run_name R463)
+run_name        = null     // prefix for _fastq / _outs dirs; auto-derived from bcl_dir (R463_bcl → R463) if not set
 
 // Entry point (exactly one active at a time)
 from_fastq      = false    // start from pre-existing FASTQs

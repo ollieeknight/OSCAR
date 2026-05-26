@@ -211,6 +211,17 @@ def detect_sequencer(String bcl_path) {
 // ─── Workflow ─────────────────────────────────────────────────────────────────
 
 workflow {
+    // Auto-derive run_name from primary bcl_dir if not explicitly set.
+    // R463_bcl → R463; R463 → R463; arbitrary dir → dir name as-is.
+    if (!params.run_name) {
+        if (params.bcl_dir) {
+            params.run_name = file(params.bcl_dir).name.replaceAll(/_bcl$/, '')
+        } else {
+            params.run_name = 'run'
+        }
+    }
+    log.info "INFO: run_name = '${params.run_name}'"
+
     preflight_check()
 
     def all_ss_paths = [params.samplesheet]

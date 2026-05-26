@@ -7,7 +7,7 @@ process CELLRANGER_ATAC {
     tag "$meta.library_id"
     label 'process_high'   // overridden to 64c/128GB/96h via withName
     container "${params.container_cellranger_atac}"
-    publishDir { "${params.outdir}/${params.run_name}_outs/${meta.library_id}_ATAC" }, mode: 'copy'
+    storeDir "${params.outdir}/${params.run_name}_outs"
 
     input:
     tuple val(meta), val(fastq_dirs)
@@ -30,9 +30,6 @@ process CELLRANGER_ATAC {
         --localcores ${task.cpus} \\
         --localmem  ${task.memory.toGiga()} \\
         ${extra_args}
-
-    # Clean up cellranger-atac temp dirs
-    rm -rf "${meta.library_id}_ATAC/SC_ATAC_COUNTER_CS" "${meta.library_id}_ATAC/_"*
 
     cat <<END_VERSIONS > versions.yml
     "${task.process}":

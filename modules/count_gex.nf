@@ -28,7 +28,7 @@ process CELLRANGER_MULTI {
     tag "$library_id"
     label 'process_high'
     container "${params.container_cellranger}"
-    publishDir { "${params.outdir}/${params.run_name}_outs/${library_id}" }, mode: 'copy'
+    storeDir "${params.outdir}/${params.run_name}_outs"
 
     input:
     tuple val(library_id), val(metas), path(multi_config)
@@ -44,8 +44,6 @@ process CELLRANGER_MULTI {
         --csv       "${multi_config}" \\
         --localcores ${task.cpus} \\
         --localmem  ${task.memory.toGiga()}
-
-    rm -rf "${library_id}/SC_MULTI_CS" "${library_id}/_"*
 
     cat <<END_VERSIONS > versions.yml
     "${task.process}":
