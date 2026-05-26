@@ -211,6 +211,29 @@ def detect_sequencer(String bcl_path) {
 // ─── Workflow ─────────────────────────────────────────────────────────────────
 
 workflow {
+    // Force absolute paths for all primary and extra input directory/file parameters
+    if (params.samplesheet) {
+        params.samplesheet = file(params.samplesheet).toAbsolutePath().toString()
+    }
+    if (params.extra_samplesheets) {
+        params.extra_samplesheets = params.extra_samplesheets.split(',').collect { file(it.trim()).toAbsolutePath().toString() }.join(',')
+    }
+    if (params.bcl_dir) {
+        params.bcl_dir = file(params.bcl_dir).toAbsolutePath().toString()
+    }
+    if (params.extra_bcl_dirs) {
+        params.extra_bcl_dirs = params.extra_bcl_dirs.split(',').collect { file(it.trim()).toAbsolutePath().toString() }.join(',')
+    }
+    if (params.fastq_dir) {
+        params.fastq_dir = file(params.fastq_dir).toAbsolutePath().toString()
+    }
+    if (params.outs_dir) {
+        params.outs_dir = file(params.outs_dir).toAbsolutePath().toString()
+    }
+    if (params.adt_files_dir) {
+        params.adt_files_dir = file(params.adt_files_dir).toAbsolutePath().toString()
+    }
+
     // Auto-derive run_name from primary bcl_dir if not explicitly set.
     // R463_bcl → R463; R463 → R463; arbitrary dir → dir name as-is.
     if (!params.run_name) {

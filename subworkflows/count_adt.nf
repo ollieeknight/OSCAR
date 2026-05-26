@@ -19,6 +19,11 @@ workflow COUNT_ADT {
         // Resolve ADT CSV from adt_meta.adt_csv_path (set in parse_row via --adt_files_dir)
         ch_adt_csv = ch_asap_adt
             .map { atac_meta, atac_outs, adt_meta, adt_fastqs ->
+                if (!adt_meta.adt_csv_path) {
+                    error "Library '${adt_meta.library_id}' has ASAP ADT/HTO modalities but no feature barcode CSV was resolved. " +
+                          "Check that 'adt_file' is set in the samplesheet and either place " +
+                          "{samplesheet_dir}/adt_files/{adt_file}.csv or pass --adt_files_dir."
+                }
                 def adt_csv = file(adt_meta.adt_csv_path)
                 [ adt_meta, adt_csv, adt_fastqs ]
             }

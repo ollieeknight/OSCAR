@@ -1,4 +1,4 @@
-include { CELLBENDER  } from '../modules/qc'
+include { CELLBENDER, SCRUBLET } from '../modules/qc'
 include { CELLSNP_LITE } from '../modules/qc'
 include { VIREO       } from '../modules/qc'
 
@@ -14,6 +14,9 @@ workflow QC_GEX {
 
         // Ambient RNA removal (GPU)
         CELLBENDER(ch_input)
+
+        // GEX Doublet detection with Scrublet
+        SCRUBLET(CELLBENDER.out.h5)
 
         // Donor demultiplexing — only when n_donors > 1 and species == human
         ch_input
@@ -36,7 +39,8 @@ workflow QC_GEX {
 
     emit:
         cellbender = CELLBENDER.out.h5       // [meta, h5]
+        doublets   = SCRUBLET.out.doublets   // [meta, doublets.csv]
         vireo      = VIREO.out.donor_ids     // [meta, donor_ids.tsv] (empty if n_donors <= 1)
         logs       = Channel.empty()
-        versions   = CELLBENDER.out.versions
+        versions   = CELLBENDER.out.versions.mix(SCRUBLET.out.versions)
 }

@@ -27,14 +27,14 @@ Legacy bash scripts are in `bash/` for reference only. Nextflow is the primary i
 │   ├── count_atac.nf ← CELLRANGER_ATAC
 │   ├── count_adt.nf  ← FEATUREMAP, KALLISTO_INDEX, ASAP_TO_KITE,
 │   │                    KALLISTO_BUS, BUSTOOLS_CORRECT, BUSTOOLS_SORT, BUSTOOLS_COUNT
-│   └── qc.nf         ← CELLBENDER, CELLSNP_LITE, VIREO,
+│   └── qc.nf         ← CELLBENDER, SCRUBLET, CELLSNP_LITE, VIREO,
 │                        AMULET, MGATK2, MACS3
 ├── subworkflows/
 │   ├── demux.nf       ← DEMUX: GENERATE_SAMPLESHEET + BCLCONVERT + FALCO
 │   ├── count_gex.nf   ← COUNT_GEX: MULTI_CONFIG → CELLRANGER_MULTI
 │   ├── count_atac.nf  ← COUNT_ATAC: thin wrapper around CELLRANGER_ATAC
 │   ├── count_adt.nf   ← COUNT_ADT: full ASAP kallisto pipeline
-│   ├── qc_gex.nf      ← QC_GEX: CELLBENDER → [CELLSNP_LITE → VIREO]
+│   ├── qc_gex.nf      ← QC_GEX: CELLBENDER → SCRUBLET → [CELLSNP_LITE → VIREO]
 │   └── qc_atac.nf     ← QC_ATAC: AMULET + MGATK2 + MACS3 → [CELLSNP_LITE → VIREO]
 ├── apptainer/
 │   └── mgatk2_docker/ ← Dockerfile + GHA workflow for quay.io/ollieeknight/mgatk2
@@ -349,6 +349,8 @@ Input: `[library_id, metas, outs_dir]` from COUNT_GEX.
 
 ```
 CELLBENDER  (GPU)   — ambient RNA removal
+  ↓
+SCRUBLET            — GEX doublet detection (outputs doublets.csv metadata)
   ↓ (if n_donors > 1 && species == human)
 CELLSNP_LITE  : pileup from per_sample_outs BAM (mode='gex', UMI-tagged)
 VIREO         : probabilistic donor demultiplexing
@@ -356,7 +358,7 @@ VIREO         : probabilistic donor demultiplexing
 
 CELLBENDER uses the raw feature-barcode matrix (`raw_feature_bc_matrix.h5`). Requires GPU node.
 
-Output channels: `cellbender` (h5), `vireo` (donor_ids.tsv, empty if single-donor).
+Output channels: `cellbender` (h5), `doublets` (doublets.csv), `vireo` (donor_ids.tsv, empty if single-donor).
 
 ### ATAC QC — QC_ATAC
 
@@ -392,7 +394,8 @@ results/
 │   │       ├── per_sample_outs/
 │   │       ├── multi/
 │   │       ├── cellbender/            ← output.h5, output_cell_barcodes.csv
-│   │       └── vireo/                 ← donor_ids.tsv (multi-donor only)
+│   │       ├── scrublet/              ← doublets.csv (GEX doublet scores)
+│   │       └── vireo/                 ← donor_ids.tsv, cellsnp/ (multi-donor only)
 │   │
 │   └── {library_id}_ATAC/             ← ATAC / DOGMA-ATAC output
 │       └── outs/
@@ -400,8 +403,7 @@ results/
 │           ├── AMULET/                ← MultipletSummary.txt, MultipletBarcodes.txt
 │           ├── mgatk2/                ← mgatk2_out/
 │           ├── peaks/                 ← MACS3 peak files
-│           ├── cellsnp/               ← SNP pileup (multi-donor only)
-│           └── vireo/                 ← donor_ids.tsv (multi-donor only)
+│           └── vireo/                 ← donor_ids.tsv, cellsnp/ (multi-donor only)
 │
 └── multiqc/
     └── multiqc_report.html

@@ -18,7 +18,7 @@ process CELLBENDER {
 
     script:
     """
-    feature_matrix=\$(find ${outs_dir} -name 'raw_feature_bc_matrix.h5' | head -1)
+    feature_matrix=\$(find -L ${outs_dir} -name 'raw_feature_bc_matrix.h5' | head -1)
     if [ -z "\$feature_matrix" ]; then
         echo "ERROR: raw_feature_bc_matrix.h5 not found in ${outs_dir}" >&2
         exit 1
@@ -47,7 +47,7 @@ process CELLSNP_LITE {
     tag { "${meta.library_id} (${mode})" }
     label 'process_medium'   // overridden to 32c/64GB/96h via withName
     container "${params.container_cellsnp}"
-    publishDir { "${params.outdir}/${params.run_name}_outs/${mode == 'atac' ? "${meta.library_id}_ATAC" : meta.library_id}/cellsnp" }, mode: 'copy'
+    publishDir { "${params.outdir}/${params.run_name}_outs/${mode == 'atac' ? "${meta.library_id}_ATAC" : meta.library_id}/vireo/cellsnp" }, mode: 'copy'
 
     input:
     tuple val(meta), path(bam), path(bai), path(barcodes)
@@ -141,8 +141,8 @@ process AMULET {
         ? '/opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed' \
         : '/opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_mm10.bed'
     """
-    fragments=\$(find ${outs_dir} -name 'fragments.tsv.gz'   | head -1)
-    singlecell=\$(find ${outs_dir} -name 'singlecell.csv'    | head -1)
+    fragments=\$(find -L ${outs_dir} -name 'fragments.tsv.gz'   | head -1)
+    singlecell=\$(find -L ${outs_dir} -name 'singlecell.csv'    | head -1)
 
     AMULET.sh \\
         "\$fragments" \\
@@ -219,7 +219,7 @@ process MACS3 {
     script:
     def gsize = (meta.species == 'human') ? 'hs' : 'mm'
     """
-    fragments=\$(find ${outs_dir} -name 'fragments.tsv.gz' | head -1)
+    fragments=\$(find -L ${outs_dir} -name 'fragments.tsv.gz' | head -1)
     if [ -z "\$fragments" ]; then
         echo "ERROR: fragments.tsv.gz not found in ${outs_dir}" >&2
         exit 1
@@ -246,3 +246,59 @@ process MACS3 {
 END_VERSIONS
     """
 }
+
+// ─── SCRUBLET ────────────────────────────────────────────────────────────────
+// GEX Doublet detection.
+// Source: nf-core/scdownstream doublet detection step
+
+process SCRUBLET {
+    tag "$meta.library_id"
+    label 'process_low'
+    container "${params.container_scrublet}"
+    publishDir { "${params.outdir}/${params.run_name}_outs/${meta.library_id}/scrublet" }, mode: 'copy'
+
+    input:
+    tuple val(meta), path(cellbender_h5)
+
+    output:
+    tuple val(meta), path("doublets.csv"), emit: doublets
+    path "versions.yml",                  emit: versions
+
+    script:
+    """
+    python -c "
+    import scrublet as scr
+    import scipy.io
+    import pandas as pd
+    import collections
+    import h5py
+    import scipy.sparse
+    
+    with h5py.File('${cellbender_h5}', 'r') as f:
+        group = f['matrix']
+        data = group['data'][:]
+        indices = group['indices'][:]
+        indptr = group['indptr'][:]
+        shape = group['shape'][:]
+        barcodes = [b.decode('utf-8') if isinstance(b, bytes) else str(b) for b in group['barcodes'][:]]
+        
+    counts_matrix = scipy.sparse.csc_matrix((data, indices, indptr), shape=shape).T
+    
+    scrub = scr.Scrublet(counts_matrix, expected_doublet_rate=0.08)
+    doublet_scores, predicted_doublets = scrub.doublet_detector()
+    
+    df = pd.DataFrame({
+        'doublet_score': doublet_scores,
+        'is_gex_doublet': predicted_doublets
+    }, index=barcodes)
+    df.index.name = 'barcode'
+    df.to_csv('doublets.csv')
+    "
+
+    cat <<END_VERSIONS > versions.yml
+    \\"${task.process}\\":
+        scrublet: \\\$(python -c \\"import scrublet; print(scrublet.__version__)\\" 2>&1)
+END_VERSIONS
+    """
+}
+
