@@ -350,7 +350,7 @@ process VALIDATE_FASTQ {
 
     script:
     """
-    pigz -t -p ${task.cpus} ${fastq}
+    pigz -t -f -p ${task.cpus} ${fastq}
 
     cat <<END_VERSIONS > versions.yml
     "${task.process}":
