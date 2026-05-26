@@ -1,0 +1,74 @@
+May-26 14:43:47.816 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -preview -w /tmp/work
+May-26 14:43:47.866 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 26.04.1
+May-26 14:43:47.882 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/Users/olive/.nextflow/plugins; core-plugins: nf-amazon@3.9.1,nf-azure@1.22.3,nf-cloudcache@0.6.0,nf-codecommit@0.5.2,nf-console@1.3.0,nf-google@1.27.2,nf-k8s@1.5.2,nf-seqera@0.19.1,nf-tower@1.27.0,nf-wave@1.20.0
+May-26 14:43:47.902 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+May-26 14:43:47.902 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+May-26 14:43:47.904 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.14.1 in 'deployment' mode
+May-26 14:43:47.915 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+May-26 14:43:48.013 [main] DEBUG nextflow.plugin.PluginUpdater - Using plugin repository: HttpPluginRepository [registry]; url=https://registry.nextflow.io/api
+May-26 14:43:48.017 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+May-26 14:43:48.032 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /Users/olive/Library/CloudStorage/OneDrive-Charité-UniversitätsmedizinBerlin/lab_book/code/OSCAR/nextflow.config
+May-26 14:43:48.034 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /Users/olive/Library/CloudStorage/OneDrive-Charité-UniversitätsmedizinBerlin/lab_book/code/OSCAR/nextflow.config
+May-26 14:43:48.035 [main] DEBUG nextflow.config.ConfigParserFactory - Using config parser v2
+May-26 14:43:48.046 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+May-26 14:43:48.273 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+May-26 14:43:48.273 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+May-26 14:43:48.283 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /Users/olive/.nextflow/secrets/store.json
+May-26 14:43:48.284 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@3c74aa0d] - activable => nextflow.secret.LocalSecretsProvider@3c74aa0d
+May-26 14:43:48.293 [main] DEBUG nextflow.cli.CmdRun - * PREVIEW * null [kickass_einstein] - revision: 400fc4f1bf
+May-26 14:43:48.340 [main] DEBUG nextflow.Session - Session UUID: 2f4426f6-cbe1-430e-9d19-7c9e3bbf6efa
+May-26 14:43:48.340 [main] DEBUG nextflow.Session - Run name: kickass_einstein
+May-26 14:43:48.340 [main] DEBUG nextflow.Session - Executor pool size: 10
+May-26 14:43:48.344 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+May-26 14:43:48.347 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=30; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+May-26 14:43:48.366 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 26.04.1 build 0
+  Created: 11-05-2026 12:38 UTC (14:38 CEST)
+  System: Mac OS X 26.5
+  Runtime: Groovy 4.0.31 on OpenJDK 64-Bit Server VM 26.0.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 27833@MBP-J75Q7L4PP7 [192.168.178.48]
+  CPUs: 10 - Mem: 16 GB (95.8 MB) - Swap: 0 (0)
+May-26 14:43:48.373 [main] DEBUG nextflow.Session - Work-dir: /tmp/work [Mac OS X]
+May-26 14:43:48.373 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /Users/olive/Library/CloudStorage/OneDrive-Charité-UniversitätsmedizinBerlin/lab_book/code/OSCAR/bin
+May-26 14:43:48.378 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+May-26 14:43:48.382 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+May-26 14:43:48.383 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+May-26 14:43:48.402 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+May-26 14:43:48.408 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 11; maxThreads: 1000
+May-26 14:43:48.436 [main] DEBUG nextflow.Session - Session start
+May-26 14:43:48.439 [main] DEBUG nextflow.script.ScriptLoaderFactory - Using script parser v2
+May-26 14:43:49.084 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+May-26 14:43:49.092 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=0; peakCpus=0; peakMemory=0; ]
+May-26 14:43:49.258 [main] ERROR nextflow.cli.Launcher - Script compilation failed
+nextflow.exception.ScriptCompilationException: Script compilation failed
+	at nextflow.script.parser.v2.ScriptLoaderV2.parse0(ScriptLoaderV2.groovy:129)
+	at nextflow.script.parser.v2.ScriptLoaderV2.parse(ScriptLoaderV2.groovy:81)
+	at nextflow.script.parser.v2.ScriptLoaderV2.parse(ScriptLoaderV2.groovy)
+	at nextflow.script.ScriptRunner.parseScript(ScriptRunner.groovy:215)
+	at nextflow.script.ScriptRunner.execute(ScriptRunner.groovy:126)
+	at nextflow.cli.CmdRun.run(CmdRun.groovy:442)
+	at nextflow.cli.Launcher.run(Launcher.groovy:526)
+	at nextflow.cli.Launcher.main(Launcher.groovy:686)
+Caused by: org.codehaus.groovy.control.MultipleCompilationErrorsException: startup failed:
+Main: 7: Statements cannot be mixed with script declarations -- move statements into a process, workflow, or function @ line 7, column 1.
+   if (params.samplesheet) {
+   ^
+
+1 error
+
+	at org.codehaus.groovy.control.ErrorCollector.failIfErrors(ErrorCollector.java:292)
+	at org.codehaus.groovy.control.ErrorCollector.addFatalError(ErrorCollector.java:148)
+	at nextflow.script.parser.ScriptAstBuilder.collectSyntaxError(ScriptAstBuilder.java:2187)
+	at nextflow.script.parser.ScriptAstBuilder.compilationUnit(ScriptAstBuilder.java:239)
+	at nextflow.script.parser.ScriptAstBuilder.buildAST(ScriptAstBuilder.java:202)
+	at nextflow.script.parser.ScriptParserPlugin.buildAST(ScriptParserPlugin.java:51)
+	at org.codehaus.groovy.control.SourceUnit.buildAST(SourceUnit.java:256)
+	at java.base/java.util.Iterator.forEachRemaining(Iterator.java:133)
+	at java.base/java.util.Spliterators$IteratorSpliterator.forEachRemaining(Spliterators.java:1939)
+	at java.base/java.util.stream.ReferencePipeline$Head.forEach(ReferencePipeline.java:803)
+	at org.codehaus.groovy.control.CompilationUnit.compile(CompilationUnit.java:631)
+	at nextflow.script.parser.v2.ScriptCompiler.compile0(ScriptCompiler.java:146)
+	at nextflow.script.parser.v2.ScriptCompiler.compile(ScriptCompiler.java:112)
+	at nextflow.script.parser.v2.ScriptLoaderV2.parse0(ScriptLoaderV2.groovy:114)
+	... 7 common frames omitted
