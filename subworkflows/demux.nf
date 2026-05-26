@@ -57,7 +57,7 @@ workflow DEMUX {
             .flatMap { metas, bcl_name, fq_files ->
                 def fqs     = fq_files instanceof List ? fq_files : [fq_files]
                 def run     = bcl_name.replaceAll(/_bcl.*$/, '')
-                def fq_dir  = file("${params.outdir}/${run}_fastq").toAbsolutePath().toString()
+                def fq_dir  = fqs[0].parent.toAbsolutePath().toString()
                 metas.collectMany { meta ->
                     def matched = fqs.findAll { f -> f.name.contains(meta.id) }
                     matched ? [[meta, fq_dir, matched]] : []

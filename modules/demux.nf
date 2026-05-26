@@ -232,11 +232,6 @@ process BCLCONVERT {
     publishDir {
         def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
         "${params.outdir}/${run}_fastq"
-    }, mode: 'copy', pattern: 'fastqs/*.fastq.gz',
-        saveAs: { fn -> fn.tokenize('/')[-1] }
-    publishDir {
-        def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
-        "${params.outdir}/${run}_fastq"
     }, mode: 'copy', pattern: 'fastqs/Reports/Top_Unknown_Barcodes_*.csv',
         saveAs: { fn -> fn.tokenize('/')[-1] }
     input:
@@ -340,6 +335,8 @@ process VALIDATE_FASTQ {
     tag "$fastq_name"
     label 'process_low'
     container "${params.container_pigz}"
+    publishDir { "${params.outdir}/${meta.run_name}_fastq" }, mode: 'copy',
+        saveAs: { fn -> file(fn).name }
 
     input:
     tuple val(meta), val(fastq_dir), path(fastq), val(fastq_name)
