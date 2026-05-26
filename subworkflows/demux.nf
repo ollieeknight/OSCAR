@@ -71,7 +71,7 @@ workflow DEMUX {
             .flatMap { metas, bcl_name, fq_files ->
                 def run = bcl_name.replaceAll(/_bcl.*$/, '')
                 (fq_files instanceof List ? fq_files : [fq_files])
-                    .findAll { f -> f.name =~ /_R[0-9]+_/ }
+                    .findAll { f -> f.name =~ /_R[0-9]+_/ && f.size() > 1024 * 1024 }
                     .collect { f -> [run, f.name.replaceAll(/\.fastq\.gz$/, ''), f] }
             }
             .set { ch_falco_input }
