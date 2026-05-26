@@ -2,6 +2,16 @@
 
 nextflow.enable.dsl = 2
 
+// Auto-derive run_name from primary bcl_dir if not explicitly set.
+// This MUST happen before any module includes so that the compiled modules inherit the updated params map.
+if (!params.run_name || params.run_name == 'null') {
+    if (params.bcl_dir) {
+        params.run_name = file(params.bcl_dir).name.replaceAll(/_bcl$/, '')
+    } else {
+        params.run_name = 'run'
+    }
+}
+
 // ─── Imports ──────────────────────────────────────────────────────────────────
 include { MULTIQC }        from './modules/demux'
 include { DEMUX }          from './subworkflows/demux'
@@ -234,15 +244,6 @@ workflow {
         params.adt_files_dir = file(params.adt_files_dir).toAbsolutePath().toString()
     }
 
-    // Auto-derive run_name from primary bcl_dir if not explicitly set.
-    // R463_bcl → R463; R463 → R463; arbitrary dir → dir name as-is.
-    if (!params.run_name || params.run_name == 'null') {
-        if (params.bcl_dir) {
-            params.run_name = file(params.bcl_dir).name.replaceAll(/_bcl$/, '')
-        } else {
-            params.run_name = 'run'
-        }
-    }
     log.info "INFO: run_name = '${params.run_name}'"
 
     preflight_check()
