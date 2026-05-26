@@ -27,14 +27,14 @@ Legacy bash scripts are in `bash/` for reference only. Nextflow is the primary i
 │   ├── count_atac.nf ← CELLRANGER_ATAC
 │   ├── count_adt.nf  ← FEATUREMAP, KALLISTO_INDEX, ASAP_TO_KITE,
 │   │                    KALLISTO_BUS, BUSTOOLS_CORRECT, BUSTOOLS_SORT, BUSTOOLS_COUNT
-│   └── qc.nf         ← CELLBENDER, SCRUBLET, CELLSNP_LITE, VIREO,
+│   └── qc.nf         ← CELLBENDER, CELLSNP_LITE, VIREO,
 │                        AMULET, MGATK2, MACS3
 ├── subworkflows/
 │   ├── demux.nf       ← DEMUX: GENERATE_SAMPLESHEET + BCLCONVERT + FALCO
 │   ├── count_gex.nf   ← COUNT_GEX: MULTI_CONFIG → CELLRANGER_MULTI
 │   ├── count_atac.nf  ← COUNT_ATAC: thin wrapper around CELLRANGER_ATAC
 │   ├── count_adt.nf   ← COUNT_ADT: full ASAP kallisto pipeline
-│   ├── qc_gex.nf      ← QC_GEX: CELLBENDER + SCRUBLET → [CELLSNP_LITE → VIREO]
+│   ├── qc_gex.nf      ← QC_GEX: CELLBENDER → [CELLSNP_LITE → VIREO]
 │   └── qc_atac.nf     ← QC_ATAC: AMULET + MGATK2 + MACS3 → [CELLSNP_LITE → VIREO]
 ├── apptainer/
 │   └── mgatk2_docker/ ← Dockerfile + GHA workflow for quay.io/ollieeknight/mgatk2
@@ -222,8 +222,7 @@ ch_routed.gex
         → CELLRANGER_MULTI: cellranger multi --csv multi_config.csv
     → ch_gex_outs [library_id, metas, outs_dir]
     → QC_GEX:
-        → CELLBENDER (GPU) ─┐  (parallel)
-        → SCRUBLET          ─┘
+        → CELLBENDER (GPU)
         → (if n_donors > 1 && species == human) CELLSNP_LITE → VIREO
 
 ch_routed.atac
@@ -349,17 +348,15 @@ Output: `{library_id}_ATAC/ADT/`
 Input: `[library_id, metas, outs_dir]` from COUNT_GEX.
 
 ```
-CELLBENDER  (GPU) ─┐  parallel — ambient RNA removal
-SCRUBLET          ─┘            doublet scoring (GEX features only; ADT/HTO rows excluded)
+CELLBENDER  (GPU)   — ambient RNA removal
   ↓ (if n_donors > 1 && species == human)
 CELLSNP_LITE  : pileup from per_sample_outs BAM (mode='gex', UMI-tagged)
 VIREO         : probabilistic donor demultiplexing
 ```
 
-CELLBENDER uses the raw feature-barcode matrix (`raw_feature_bc_matrix.h5`). Requires GPU node.  
-SCRUBLET reads `raw_feature_bc_matrix/` (Market Exchange format), filters to Gene Expression features before PCA.
+CELLBENDER uses the raw feature-barcode matrix (`raw_feature_bc_matrix.h5`). Requires GPU node.
 
-Output channels: `cellbender` (h5), `scrublet` (scores CSV), `vireo` (donor_ids.tsv, empty if single-donor).
+Output channels: `cellbender` (h5), `vireo` (donor_ids.tsv, empty if single-donor).
 
 ### ATAC QC — QC_ATAC
 
@@ -395,7 +392,6 @@ results/
 │   │       ├── per_sample_outs/
 │   │       ├── multi/
 │   │       ├── cellbender/            ← output.h5, output_cell_barcodes.csv
-│   │       ├── scrublet/              ← {library_id}_scrublet_scores.csv
 │   │       └── vireo/                 ← donor_ids.tsv (multi-donor only)
 │   │
 │   └── {library_id}_ATAC/             ← ATAC / DOGMA-ATAC output
@@ -430,7 +426,6 @@ container_asap = "quay.io/ollieeknight/asap_to_kite:main"
 
 // GEX QC
 container_cellbender = "quay.io/biocontainers/cellbender:0.3.2--pyhdfd78af_0"
-container_scrublet   = "quay.io/biocontainers/scrublet:0.2.3--pyh5e36f6f_0"
 
 // ATAC peak calling
 container_macs3 = "quay.io/biocontainers/macs3:3.0.1--py311h320fe9a_1"
@@ -490,7 +485,6 @@ atac_whitelist = "/home/knighto/bin/cellranger-atac-2.2.0/lib/python/atac/barcod
 
 // ── QC tuning ─────────────────────────────────────────────────────────────────
 macs3_qvalue           = 0.05   // FDR threshold for peak calling
-scrublet_doublet_rate  = 0.06   // expected doublet rate (~6% for standard 10x loading)
 ```
 
 ---
@@ -512,7 +506,7 @@ withName: KALLISTO_BUS                      → 16c /  96GB / 48h
 ```
 
 Process labels in modules:
-- `AMULET`, `MGATK2`, `MACS3`, `SCRUBLET` → `process_medium` (MGATK2 overridden above)
+- `AMULET`, `MGATK2`, `MACS3` → `process_medium` (MGATK2 overridden above)
 - `CELLBENDER` → `process_gpu`
 - `CELLRANGER_MULTI`, `CELLRANGER_ATAC` → `process_high` (overridden above)
 

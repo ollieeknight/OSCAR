@@ -258,9 +258,9 @@ process BCLCONVERT {
         --sample-sheet                     ${samplesheet} \\
         --no-lane-splitting                true \\
         --bcl-num-parallel-tiles           2 \\
-        --bcl-num-conversion-threads       ${task.cpus / 2} \\
-        --bcl-num-compression-threads      ${task.cpus} \\
-        --bcl-num-decompression-threads    ${task.cpus} \\
+        --bcl-num-conversion-threads       ${task.cpus / 4} \\
+        --bcl-num-compression-threads      ${task.cpus / 2} \\
+        --bcl-num-decompression-threads    ${task.cpus / 4} \\
         --bcl-enable-tile-metrics          false \\
         --bcl-enable-adapter-cycle-metrics false \\
         --bcl-only-matched-reads           true \\
@@ -276,9 +276,8 @@ process BCLCONVERT {
     # false positives; gzip -t works regardless of whether that block is present.
     corrupt_list=\$(mktemp)
     for f in fastqs/*.fastq.gz; do
-        ( gzip -t "\$f" 2>/dev/null || echo "\$f" >> "\${corrupt_list}" ) &
+        gzip -t "\$f" 2>/dev/null || echo "\$f" >> "\${corrupt_list}"
     done
-    wait
     if [ -s "\${corrupt_list}" ]; then
         echo "ERROR: gzip integrity check failed — truncated FASTQ output from BCL Convert:" >&2
         cat "\${corrupt_list}" >&2

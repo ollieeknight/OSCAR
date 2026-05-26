@@ -205,7 +205,7 @@ END_VERSIONS
 
 process MACS3 {
     tag "$meta.library_id"
-    label 'process_low'
+    label 'process_medium'
     container "${params.container_macs3}"
     publishDir { "${params.outdir}/${params.run_name}_outs/${meta.library_id}_ATAC/peaks" }, mode: 'copy'
 
@@ -243,73 +243,6 @@ process MACS3 {
     cat <<END_VERSIONS > versions.yml
     "${task.process}":
         macs3: \$(macs3 --version 2>&1 | sed 's/macs3 //')
-END_VERSIONS
-    """
-}
-
-// ─── SCRUBLET ─────────────────────────────────────────────────────────────────
-// Computational doublet detection for GEX/CITE/DOGMA libraries.
-// Runs on the raw (unfiltered) feature-barcode matrix from cellranger multi.
-// GEX features are extracted before doublet simulation so ADT/HTO rows in
-// CITE/DOGMA libraries do not confound the gene-expression PCA.
-// Expected doublet rate: params.scrublet_doublet_rate (default 0.06 / ~6%).
-
-process SCRUBLET {
-    tag "$meta.library_id"
-    label 'process_low'
-    container "${params.container_scrublet}"
-    publishDir { "${params.outdir}/${params.run_name}_outs/${meta.library_id}/scrublet" }, mode: 'copy'
-
-    input:
-    tuple val(meta), path(outs_dir)
-
-    output:
-    tuple val(meta), path("${meta.library_id}_scrublet_scores.csv"), emit: scores
-    path "versions.yml",                                              emit: versions
-
-    script:
-    """
-    raw_matrix=\$(find ${outs_dir} -type d -name 'raw_feature_bc_matrix' | sort | head -1)
-    if [ -z "\$raw_matrix" ]; then
-        echo "ERROR: raw_feature_bc_matrix not found in ${outs_dir}" >&2
-        exit 1
-    fi
-
-    python3 << PYEOF
-import scrublet as scr
-import scipy.io, pandas as pd, numpy as np, os
-
-matrix_dir = "\$raw_matrix"
-matrix   = scipy.io.mmread(os.path.join(matrix_dir, 'matrix.mtx.gz')).T.tocsc()
-features = pd.read_csv(os.path.join(matrix_dir, 'features.tsv.gz'), sep='\\t',
-                       header=None, names=['id', 'name', 'type'])
-barcodes = pd.read_csv(os.path.join(matrix_dir, 'barcodes.tsv.gz'), sep='\\t',
-                       header=None, names=['barcode'])
-
-# Keep Gene Expression features only — removes ADT/HTO rows in CITE/DOGMA libs
-gex_mask = features['type'] == 'Gene Expression'
-matrix   = matrix[:, gex_mask.values]
-
-scrub = scr.Scrublet(matrix, expected_doublet_rate=${params.scrublet_doublet_rate})
-scores, doublets = scrub.scrub_doublets(
-    min_counts=2, min_cells=3, min_gene_variability_pctl=85, n_prin_comps=30
-)
-
-pd.DataFrame({
-    'barcode':           barcodes['barcode'].values,
-    'doublet_score':     scores.tolist(),
-    'predicted_doublet': doublets.tolist()
-}).to_csv('${meta.library_id}_scrublet_scores.csv', index=False)
-
-n_total    = len(barcodes)
-n_doublets = int(doublets.sum())
-pct        = round(float(doublets.mean()) * 100, 1)
-print("Scrublet: " + str(n_doublets) + " doublets of " + str(n_total) + " barcodes (" + str(pct) + "%)")
-PYEOF
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        scrublet: \$(python3 -c 'import scrublet; print(scrublet.__version__)' 2>&1)
 END_VERSIONS
     """
 }
