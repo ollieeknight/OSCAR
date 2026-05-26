@@ -1,6 +1,7 @@
 include { GENERATE_SAMPLESHEET } from '../modules/demux'
 include { BCLCONVERT }        from '../modules/demux'
 include { FALCO }               from '../modules/demux'
+include { VALIDATE_FASTQ }      from '../modules/demux'
 
 workflow DEMUX {
     take:
@@ -64,6 +65,23 @@ workflow DEMUX {
             }
             .set { ch_fastqs }
 
+        // Transpose FASTQ file lists to validate each individual file as a separate task
+        ch_fastqs
+            .transpose(by: 2)
+            .map { meta, fq_dir, fastq -> [meta, fq_dir, fastq, fastq.name] }
+            .set { ch_to_validate }
+
+        VALIDATE_FASTQ(ch_to_validate)
+
+        // Group validated files back into lists per library meta
+        VALIDATE_FASTQ.out.fastq
+            .map { meta, fq_dir, fastq -> [meta.id, meta, fq_dir, fastq] }
+            .groupTuple(by: 0)
+            .map { id, metas, fq_dirs, fastqs ->
+                [metas[0], fq_dirs[0], fastqs]
+            }
+            .set { ch_validated_fastqs }
+
         // Run Falco per R-read FASTQ (R1/R2/R3 only; I1/I2 index reads skipped)
         // Thread run_name (derived from bcl_dir) so each report lands in the correct
         // {run}_fastq/falco/ directory, not a shared params.run_name dir.
@@ -83,7 +101,7 @@ workflow DEMUX {
             .set { ch_falco_reports }
 
     emit:
-        fastqs        = ch_fastqs        // [meta, fastq_dir_string, [fastq_files]]
-        falco_reports = ch_falco_reports // collected falco dirs (passed to MULTIQC in main.nf)
-        versions      = BCLCONVERT.out.versions
+        fastqs        = ch_validated_fastqs  // [meta, fastq_dir_string, [validated_fastq_files]]
+        falco_reports = ch_falco_reports     // collected falco dirs (passed to MULTIQC in main.nf)
+        versions      = BCLCONVERT.out.versions.mix(VALIDATE_FASTQ.out.versions)
 }

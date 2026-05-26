@@ -270,22 +270,6 @@ process BCLCONVERT {
         [ -f "\$f" ] && mv "\$f" "\${f/Top_Unknown_Barcodes/Top_Unknown_Barcodes_${modality}}" || true
     done
 
-    # Integrity check — gzip -t validates CRC32 and stream completeness without
-    # decompressing output. Detects files truncated by job kills or disk issues.
-    # bcl-convert does not write the BGZF EOF sentinel, so sentinel checks give
-    # false positives; gzip -t works regardless of whether that block is present.
-    corrupt_list=\$(mktemp)
-    for f in fastqs/*.fastq.gz; do
-        gzip -t "\$f" 2>/dev/null || echo "\$f" >> "\${corrupt_list}"
-    done
-    if [ -s "\${corrupt_list}" ]; then
-        echo "ERROR: gzip integrity check failed — truncated FASTQ output from BCL Convert:" >&2
-        cat "\${corrupt_list}" >&2
-        rm -f "\${corrupt_list}"
-        exit 1
-    fi
-    rm -f "\${corrupt_list}"
-
     cat <<END_VERSIONS > versions.yml
     "${task.process}":
         bcl-convert: \$(bcl-convert --version 2>&1 | head -1 | sed 's/BCL Convert //')
@@ -344,6 +328,33 @@ process MULTIQC {
     cat <<END_VERSIONS > versions.yml
     "${task.process}":
         multiqc: \$(multiqc --version 2>&1 | sed 's/multiqc, version //')
+END_VERSIONS
+    """
+}
+
+// ─── VALIDATE_FASTQ ───────────────────────────────────────────────────────────
+// Lightweight validation step that runs gzip -t on each individual fastq file.
+// Fully distributed across Slurm nodes and benefits from Nextflow caching.
+
+process VALIDATE_FASTQ {
+    tag "$fastq_name"
+    label 'process_low'
+    container "${params.container_pigz}"
+
+    input:
+    tuple val(meta), val(fastq_dir), path(fastq), val(fastq_name)
+
+    output:
+    tuple val(meta), val(fastq_dir), path(fastq), emit: fastq
+    path "versions.yml",                          emit: versions
+
+    script:
+    """
+    pigz -t -p ${task.cpus} ${fastq}
+
+    cat <<END_VERSIONS > versions.yml
+    "${task.process}":
+        pigz: \$(pigz --version 2>&1 | head -1 | sed 's/pigz //')
 END_VERSIONS
     """
 }
