@@ -78,7 +78,7 @@ workflow DEMUX {
             .map { meta, fq_dir, fastq -> [meta.id, meta, fq_dir, fastq] }
             .groupTuple(by: 0)
             .map { id, metas, fq_dirs, fastqs ->
-                [metas[0], fq_dirs[0], fastqs]
+                [metas[0], fq_dirs.unique(false), fastqs]
             }
             .set { ch_validated_fastqs }
 

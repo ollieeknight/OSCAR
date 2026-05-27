@@ -404,7 +404,7 @@ workflow {
             // Each fastq dir is a published path string — no staging, so no filename collision
             // when the same library was sequenced on multiple flowcells.
             ch_routed.gex
-                .map { meta, fastq_dir, fqs -> [meta.library_id, meta, fastq_dir] }
+                .map { meta, fastq_dirs, fqs -> [meta.library_id, meta, fastq_dirs] }
                 .groupTuple(by: 0)
                 .map { lid, metas, fastq_dirs ->
                     def seen         = [] as Set
@@ -413,7 +413,7 @@ workflow {
                     metas.each { m -> if (seen.add(m.modality)) unique_metas << m }
                     unique_metas.each { m -> m.run_name = primary_run_name }
                     def unique_dirs  = []
-                    fastq_dirs.each { d -> if (!unique_dirs.contains(d)) unique_dirs << d }
+                    fastq_dirs.flatten().each { d -> if (!unique_dirs.contains(d)) unique_dirs << d }
 
                     def adt_csv_path = unique_metas.collect { it.adt_csv_path }.find { it }
                     def adt_csv      = adt_csv_path ? file(adt_csv_path) : file('NO_FILE')
@@ -428,12 +428,12 @@ workflow {
 
             // ATAC: group by library_id to collect dirs from multiple flowcells
             ch_routed.atac
-                .map { meta, fastq_dir, fqs -> [meta.library_id, meta, fastq_dir] }
+                .map { meta, fastq_dirs, fqs -> [meta.library_id, meta, fastq_dirs] }
                 .groupTuple(by: 0)
                 .map { lid, metas, fastq_dirs ->
                     def meta = metas[0]
                     meta.run_name = primary_run_name
-                    [meta, fastq_dirs.toSet().toList()]
+                    [meta, fastq_dirs.flatten().unique()]
                 }
                 .set { ch_atac_libraries }
 
@@ -445,7 +445,7 @@ workflow {
                 .map    { meta, outs -> [meta.library_id, meta, outs] }
 
             ch_asap_adt_fastqs = ch_routed.asap_adt
-                .map { meta, fastq_dir, fqs -> [meta.library_id, meta, fqs] }
+                .map { meta, fastq_dirs, fqs -> [meta.library_id, meta, fqs] }
                 .groupTuple(by: 0)
                 .map { lid, metas, fq_lists -> [lid, metas[0], fq_lists.flatten()] }
 
