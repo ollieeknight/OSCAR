@@ -97,7 +97,7 @@ workflow DEMUX {
         FALCO(ch_falco_input)
 
         FALCO.out.report
-            .collect()
+            .groupTuple(by: 0)
             .set { ch_falco_reports }
 
     emit:

@@ -7,7 +7,7 @@ process CELLRANGER_ATAC {
     tag "$meta.library_id"
     label 'process_high'   // overridden to 64c/128GB/96h via withName
     container "${params.container_cellranger_atac}"
-    storeDir { "${params.outdir}/${meta.run_name}_outs" }
+    publishDir { "${params.outdir}/${meta.run_name}_outs" }, mode: 'copy'
 
     input:
     tuple val(meta), val(fastq_dirs)

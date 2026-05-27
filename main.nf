@@ -370,18 +370,7 @@ workflow {
 
         // MultiQC runs on FALCO reports from demux (BCL mode only)
         if (!params.from_fastq) {
-            def run_name = params.run_name
-            if (!run_name || run_name == 'null') {
-                if (params.bcl_dir) {
-                    run_name = file(params.bcl_dir).name.replaceAll(/_bcl$/, '')
-                } else {
-                    run_name = 'run'
-                }
-            }
-            DEMUX.out.falco_reports.flatten().collect()
-                .map { reports -> [run_name, reports] }
-                .set { ch_multiqc_input }
-            MULTIQC(ch_multiqc_input)
+            MULTIQC(DEMUX.out.falco_reports)
         }
 
         // ── --run-until FASTQ: stop after demux ───────────────────────────────

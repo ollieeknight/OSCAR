@@ -285,8 +285,8 @@ process FALCO {
     tuple val(run_name), val(fastq_name), path(fastq)
 
     output:
-    path "${run_name}_${fastq_name}/", emit: report
-    path "versions.yml",               emit: versions
+    tuple val(run_name), path("${run_name}_${fastq_name}/"), emit: report
+    path "versions.yml",                                     emit: versions
 
     script:
     """
