@@ -7,8 +7,8 @@ workflow COUNT_GEX {
     main:
         ch_libraries
             .map { lid, metas, dirs, adt_csv ->
-                def ml       = (metas as List).findAll { it != null }
-                def meta     = ml[0]
+                def ml       = (metas as List).findAll { it != null }.sort { it.id }
+                def meta     = ml.find { it.modality == 'GEX' } ?: ml[0]
                 def is_human = meta.species == 'human'
                 def ref_gex  = is_human ? params.ref_human : params.ref_mouse
                 def ref_vdj  = is_human ? params.ref_vdj_human : params.ref_vdj_mouse
@@ -34,7 +34,7 @@ workflow COUNT_GEX {
                 // any flowcell contributing fewer reads than this would cause cellranger to
                 // fail with TXRNGR10001 during chemistry auto-detection.
                 def min_reads = 10000
-                def lib_checks = (dirs as List).collectMany { dir ->
+                def lib_checks = (dirs as List).sort().collectMany { dir ->
                     ml.collect { m ->
                         def ft = m.modality == 'GEX'          ? 'Gene Expression'      :
                                  m.modality in ['ADT','HTO']  ? 'Antibody Capture'     :
