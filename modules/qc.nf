@@ -12,8 +12,9 @@ process CELLBENDER {
     tuple val(meta), path(outs_dir)
 
     output:
-    tuple val(meta), path("output.h5"),               emit: h5
-    tuple val(meta), path("output_cell_barcodes.csv"), emit: barcodes
+    tuple val(meta), path("cellbender_out/output.h5"),               emit: h5
+    tuple val(meta), path("cellbender_out/output_cell_barcodes.csv"), emit: barcodes
+    path "cellbender_out/*"
 
     script:
     """
@@ -23,10 +24,12 @@ process CELLBENDER {
         exit 1
     fi
 
+    mkdir -p cellbender_out
+
     cellbender remove-background \\
         --cuda \\
         --input  "\$feature_matrix" \\
-        --output output.h5 \\
+        --output cellbender_out/output.h5 \\
         --cpu-threads ${task.cpus} \\
         --checkpoint-mins 10000
     """
@@ -84,14 +87,16 @@ process VIREO {
     val(mode)   // 'gex' or 'atac'
 
     output:
-    tuple val(meta), path("donor_ids.tsv"), emit: donor_ids
+    tuple val(meta), path("vireo_out/donor_ids.tsv"), emit: donor_ids
+    path "vireo_out/*"
 
     script:
     def out_dir = (mode == 'atac') ? "${meta.library_id}_ATAC" : meta.library_id
     """
+    mkdir -p vireo_out
     vireo \\
         -c ${cellsnp_dir} \\
-        -o . \\
+        -o vireo_out \\
         -N ${meta.n_donors} \\
         -p ${task.cpus} \\
         --randSeed 42
@@ -112,8 +117,9 @@ process AMULET {
     tuple val(meta), path(outs_dir)
 
     output:
-    tuple val(meta), path("MultipletSummary.txt"),         emit: summary
-    tuple val(meta), path("MultipletBarcodes.txt"),        emit: barcodes
+    tuple val(meta), path("amulet_out/MultipletSummary.txt"),         emit: summary
+    tuple val(meta), path("amulet_out/MultipletBarcodes.txt"),        emit: barcodes
+    path "amulet_out/*"
 
     script:
     def autosomes = (meta.species == 'human') ? '/opt/AMULET/human_autosomes.txt' : '/opt/AMULET/mouse_autosomes.txt'
@@ -124,12 +130,14 @@ process AMULET {
     fragments=\$(find -L ${outs_dir} -name 'fragments.tsv.gz'   | head -1)
     singlecell=\$(find -L ${outs_dir} -name 'singlecell.csv'    | head -1)
 
+    mkdir -p amulet_out
+
     AMULET.sh \\
         "\$fragments" \\
         "\$singlecell" \\
         ${autosomes} \\
         ${restriction} \\
-        . \\
+        amulet_out \\
         /opt/AMULET/
     """
 }
@@ -255,12 +263,15 @@ process SCRUBLET {
     tuple val(meta), path(cellbender_h5)
 
     output:
-    tuple val(meta), path("doublets.csv"), emit: doublets
+    tuple val(meta), path("scrublet_out/doublets.csv"), emit: doublets
+    path "scrublet_out/*"
 
     script:
     """
     export MPLCONFIGDIR=./tmp/mpl
     export NUMBA_CACHE_DIR=./tmp/numba
+
+    mkdir -p scrublet_out
 
     python << 'PYEOF'
 import os
@@ -275,7 +286,7 @@ df = pd.DataFrame({
     'is_gex_doublet': adata.obs['predicted_doublet'].astype(bool)
 }, index=adata.obs_names)
 df.index.name = 'barcode'
-df.to_csv('doublets.csv')
+df.to_csv('scrublet_out/doublets.csv')
 PYEOF
     """
 }
