@@ -247,7 +247,7 @@ process VIRAL_DETECT {
 
 process SCRUBLET {
     tag "$meta.library_id"
-    label 'process_low'
+    label 'process_medium'
     container "${params.container_scrublet}"
     publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}/scrublet" }, mode: 'copy'
 
