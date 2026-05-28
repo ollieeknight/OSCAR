@@ -266,38 +266,28 @@ process SCRUBLET {
 
     script:
     """
+    export MPLCONFIGDIR=./tmp/mpl
+    export NUMBA_CACHE_DIR=./tmp/numba
+
     python << 'PYEOF'
-import scrublet as scr
-import scipy.io
+import os
+import scanpy as sc
 import pandas as pd
-import collections
-import h5py
-import scipy.sparse
 
-with h5py.File('${cellbender_h5}', 'r') as f:
-    group = f['matrix']
-    data = group['data'][:]
-    indices = group['indices'][:]
-    indptr = group['indptr'][:]
-    shape = group['shape'][:]
-    barcodes = [b.decode('utf-8') if isinstance(b, bytes) else str(b) for b in group['barcodes'][:]]
-
-counts_matrix = scipy.sparse.csc_matrix((data, indices, indptr), shape=shape).T
-
-scrub = scr.Scrublet(counts_matrix, expected_doublet_rate=0.08)
-doublet_scores, predicted_doublets = scrub.doublet_detector()
+adata = sc.read_10x_h5('${cellbender_h5}')
+sc.pp.scrublet(adata, expected_doublet_rate=0.08)
 
 df = pd.DataFrame({
-    'doublet_score': doublet_scores,
-    'is_gex_doublet': predicted_doublets
-}, index=barcodes)
+    'doublet_score': adata.obs['doublet_score'],
+    'is_gex_doublet': adata.obs['predicted_doublet'].astype(bool)
+}, index=adata.obs_names)
 df.index.name = 'barcode'
 df.to_csv('doublets.csv')
 PYEOF
 
     cat <<END_VERSIONS > versions.yml
-    \\"${task.process}\\":
-        scrublet: \\\$(python -c \\"import scrublet; print(scrublet.__version__)\\" 2>&1)
+    "${task.process}":
+        scanpy: \$(python -c "import scanpy; print(scanpy.__version__)" 2>&1)
 END_VERSIONS
     """
 }
