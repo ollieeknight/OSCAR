@@ -96,9 +96,8 @@ process VIREO {
     val(mode)   // 'gex' or 'atac'
 
     output:
-    tuple val(meta), path("donor_ids.tsv"),       emit: donor_ids
-    tuple val(meta), path("variant_doublets.tsv"), emit: doublets
-    path "versions.yml",                           emit: versions
+    tuple val(meta), path("donor_ids.tsv"), emit: donor_ids
+    path "versions.yml",                    emit: versions
 
     script:
     def out_dir = (mode == 'atac') ? "${meta.library_id}_ATAC" : meta.library_id

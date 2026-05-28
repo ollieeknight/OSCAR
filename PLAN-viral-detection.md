@@ -94,7 +94,7 @@ Viral-Track aligns raw FASTQs to a large viral genome database using STAR (with 
 ### Steps
 
 **B1 — Build Viral-Track STAR index**
-- Download RVDB-nt (`C-RVDBvXX.fasta.gz`, human-virus curated): https://rvdb.dbi.udel.edu/
+- Download RVDB-nt (`C-RVDBvXX.fasta.gz`, human-virus curated): shttps://rvdb.dbi.udel.edu/
 - Build STAR index: `STAR --runMode genomeGenerate --genomeDir viral_star_index --genomeFastaFiles rvdb.fa --genomeSAindexNbases 7`  (small genome → use `--genomeSAindexNbases 7`)
 - Store at `params.viral_star_index`
 
