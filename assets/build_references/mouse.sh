@@ -1,124 +1,76 @@
 #!/bin/bash
+set -euo pipefail
 
-# Define default paths and variables
-CONDA_ENV_PATH="$HOME/work/bin/miniforge3/envs/genome_processing"
-DEFAULT_CELLRANGER_PATH="$HOME/group/work/bin/cellranger-arc-2.1.0"
-CELLRANGER_PATH=${1:-$DEFAULT_CELLRANGER_PATH}
+BIND_PATHS="/charite-store-f/f-cc12-ag-romagnani,/sc-projects/sc-proj-cc12-ag-romagnani,/sc-scratch/sc-scratch-cc12-ag-romagnani,/home/knighto"
+
+BEDTOOLS_IMG="/sc-scratch/sc-scratch-cc12-ag-romagnani/apptainer_cache/quay.io-biocontainers-bedtools_2.27.1--h077b44d_9.img"
+SAMTOOLS_IMG="/sc-scratch/sc-scratch-cc12-ag-romagnani/apptainer_cache/quay.io-biocontainers-samtools-1.23.1--ha83d96e_0.img"
+CELLRANGER_ARC_IMG="/sc-scratch/sc-scratch-cc12-ag-romagnani/apptainer_cache/quay.io-biocontainers-cellranger-arc_2.0.2.img"
+
+OUTDIR="/sc-projects/sc-proj-cc12-ag-romagnani/ref/mm"
 GENOME="GRCm38-hardmasked-optimised-arc"
-BUILD="${GENOME}-build"
-SOURCE="${GENOME}-source"
+BUILD="${OUTDIR}/${GENOME}-build"
+SOURCE="${OUTDIR}/${GENOME}-source"
 FASTA_NAME="Mus_musculus.GRCm38.dna_sm.primary_assembly"
 FASTA_URL="https://ftp.ensembl.org/pub/release-98/fasta/mus_musculus/dna/${FASTA_NAME}.fa.gz"
 GTF_URL="https://storage.googleapis.com/generecovery/mouse_mm10_optimized_annotation_v2.gtf.gz"
-#MOTIFS_URL="https://testjaspar.uio.no/download/data/2024/CORE/JASPAR2024_CORE_non-redundant_pfms_jaspar.txt"
+BLACKLIST_URL="https://raw.githubusercontent.com/caleblareau/mitoblacklist/master/combinedBlacklist/mm10.full.blacklist.bed"
+# MOTIFS_URL="https://testjaspar.uio.no/download/data/2024/CORE/JASPAR2024_CORE_non-redundant_pfms_jaspar.txt"
 
-# Function to prompt user for input
-prompt_user() {
-    echo "Conda environment 'genome_processing' does not exist."
-    echo "Do you want to create it? (yes/no)"
-    read create_env
+mkdir -p "${OUTDIR}" "${BUILD}" "${SOURCE}"
 
-    if [ "$create_env" == "yes" ]; then
-        conda create -y -n genome_processing bcftools samtools bedtools bwa
-    else
-        echo "Do you want to specify a different environment name? (yes/no)"
-        read specify_env
-
-        if [ "$specify_env" == "yes" ]; then
-            echo "Please enter the environment name:"
-            read env_name
-            conda activate "$env_name"
-            if [ $? -ne 0 ]; then
-                echo "Error: conda env '$env_name' does not exist"
-                exit 1
-            fi
-        else
-            echo "Exiting script."
-            exit 1
-        fi
-    fi
-}
-
-# Function to check if required packages are installed
-check_packages() {
-    required_packages=("bcftools" "samtools" "bedtools" "bwa")
-    for pkg in "${required_packages[@]}"; do
-        if ! conda list -n "$1" | grep -q "^$pkg"; then
-            echo "Error: Package '$pkg' is not installed in the conda environment '$1'"
-            exit 1
-        fi
-    done
-}
-
-# Check if conda environment exists
-CONDA_ENV_PATH=$(conda info --base)/envs/genome_processing
-if [ ! -d "$CONDA_ENV_PATH" ]; then
-    prompt_user
-else
-    # Activate the conda environment
-    conda activate genome_processing
-fi
-
-# Check if all required packages are installed
-check_packages "genome_processing"
-
-# Check if cellranger is installed
-if [ ! -d "$CELLRANGER_PATH" ]; then
-    echo "Please make sure cellranger 7.0.0 or above is properly pathed"
-    exit 1
-fi
-
-# Update PATH for Cell Ranger
-export PATH="$CELLRANGER_PATH:$PATH"
-
-# Create directories for build and source
-mkdir -p "${BUILD}" "${SOURCE}"
-
-# Download FASTA, GTF, and motifs files if not already present
 FASTA_IN="${SOURCE}/${FASTA_NAME}.fa"
-GTF_IN="${SOURCE}/mouse_mm10_optimized_annotation_v2.gtf"
-#MOTIFS_IN="${SOURCE}/JASPAR2024_CORE_non-redundant_pfms_jaspar.txt"
-
 if [ ! -f "${FASTA_IN}" ]; then
+    echo "Downloading FASTA..."
     curl -sS "${FASTA_URL}" | zcat > "${FASTA_IN}"
 fi
 
+GTF_IN="${SOURCE}/mouse_mm10_optimized_annotation_v2.gtf"
 if [ ! -f "${GTF_IN}" ]; then
+    echo "Downloading GTF..."
     curl -sS "${GTF_URL}" | zcat > "${GTF_IN}"
 fi
 
-# if [ ! -f "${MOTIFS_IN}" ]; then
-#     curl -sS "${MOTIFS_URL}" > "${MOTIFS_IN}"
-# fi
+BLACKLIST_IN="${SOURCE}/mm10.full.blacklist.bed"
+if [ ! -f "${BLACKLIST_IN}" ]; then
+    echo "Downloading blacklist BED file..."
+    curl -sS "${BLACKLIST_URL}" > "${BLACKLIST_IN}"
+fi
 
-# Modify FASTA file
-FASTA_MOD="${BUILD}/$(basename "${FASTA_IN}").mod"
-sed -E 's/^>(\S+).*/>\1 \1/; s/^>([0-9]+|[XY]) />chr\1 /; s/^>MT />chrM /' "${FASTA_IN}" > "${FASTA_MOD}"
+FASTA_MOD="${BUILD}/${FASTA_NAME}.fa.mod"
+if [ ! -f "${FASTA_MOD}" ]; then
+    echo "Reformatting FASTA headers..."
+    sed -E \
+        's/^>(\S+).*/>\1 \1/; s/^>([0-9]+|[XY]) />chr\1 /; s/^>MT />chrM /' \
+        "${FASTA_IN}" > "${FASTA_MOD}"
+fi
 
-# Modify motifs file
-# MOTIFS_MOD="${BUILD}/$(basename "${MOTIFS_IN}").mod"
-# awk 'substr($1, 1, 1) == ">" { print ">" $2 "_" substr($1,2) } !substr($1, 1, 1) == ">" { print }' "${MOTIFS_IN}" > "${MOTIFS_MOD}"
+FASTA_MASKED="${BUILD}/${FASTA_NAME}_hardmasked.fa.mod"
+if [ ! -f "${FASTA_MASKED}" ]; then
+    apptainer exec -B ${BIND_PATHS} "${BEDTOOLS_IMG}" \
+        bedtools maskfasta \
+            -fi "${FASTA_MOD}" \
+            -bed "${BLACKLIST_IN}" \
+            -fo "${FASTA_MASKED}"
+fi
 
-# Download and mask the blacklist
-curl -sS https://raw.githubusercontent.com/caleblareau/mitoblacklist/master/combinedBlacklist/mm10.full.blacklist.bed > "${SOURCE}/mm10.full.blacklist.bed"
-mv "${BUILD}/${FASTA_NAME}.fa.mod" "${BUILD}/${FASTA_NAME}_original.fa.mod"
-bedtools maskfasta -fi "${BUILD}/${FASTA_NAME}_original.fa.mod" -bed "${SOURCE}/mm10.full.blacklist.bed" -fo "${BUILD}/${FASTA_NAME}_hardmasked.fa.mod"
-
-# Create configuration file
 CONFIG_IN="${BUILD}/genome.config"
-cat <<EOF > "${CONFIG_IN}"
+cat > "${CONFIG_IN}" <<CONFIGEOF
 {
     organism: "Mus_musculus"
     genome: ["${GENOME}"]
-    input_fasta: ["${BUILD}/${FASTA_NAME}_hardmasked.fa.mod"]
+    input_fasta: ["${FASTA_MASKED}"]
     input_gtf: ["${GTF_IN}"]
-    # input_motifs: "${MOTIFS_MOD}"
+    # input_motifs: ""
     non_nuclear_contigs: ["chrM"]
 }
-EOF
+CONFIGEOF
 
-# Run Cell Ranger to create reference
-cellranger-arc mkref --ref-version 'A' --config "${CONFIG_IN}"
+cd "${OUTDIR}"
+apptainer exec -B ${BIND_PATHS} "${CELLRANGER_ARC_IMG}" \
+    cellranger-arc mkref \
+        --ref-version 'A' \
+        --config "${CONFIG_IN}"
 
-# Clean up
 rm -r "${SOURCE}" "${BUILD}"
+echo "Done. Reference built at ${OUTDIR}/${GENOME}/"

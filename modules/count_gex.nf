@@ -64,19 +64,21 @@ for mod, feat in MODALITY_FEATURE.items():
     )
     if not staged:
         continue
-    if len(staged) % 2 != 0:
-        print(f"[cellranger_multi] ERROR: odd file count for {mod}: {staged}", file=sys.stderr)
+
+    r1_files = sorted(p for p in staged if re.search(r'_R1_', p.name))
+    r2_files = sorted(p for p in staged if re.search(r'_R2_', p.name))
+    if len(r1_files) != len(r2_files):
+        print(f"[cellranger_multi] ERROR: R1/R2 count mismatch for {mod}: {len(r1_files)} R1s vs {len(r2_files)} R2s", file=sys.stderr)
         sys.exit(1)
+    if not r1_files:
+        continue
 
     final_dir = Path("fastq_all") / mod
     final_dir.mkdir(parents=True, exist_ok=True)
     lane      = 0
     sample_id = None
 
-    for i in range(0, len(staged), 2):
-        r1, r2 = staged[i], staged[i + 1]
-        assert re.search(r'_R1_', r1.name), f"Expected R1: {r1}"
-        assert re.search(r'_R2_', r2.name), f"Expected R2: {r2}"
+    for r1, r2 in zip(r1_files, r2_files):
         n = count_reads(r1)
         if n < min_reads:
             print(f"[cellranger_multi] skip {mod}/{r1.parent.name}: {n} reads", file=sys.stderr)
