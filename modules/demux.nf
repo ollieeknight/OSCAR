@@ -240,7 +240,6 @@ process BCLCONVERT {
     output:
     tuple val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"), emit: fastqs
     path "fastqs/Reports/Top_Unknown_Barcodes_*.csv",                optional: true, emit: unknown_barcodes
-    path "versions.yml",                                              emit: versions
 
     script:
     def modality    = metas[0].modality
@@ -264,11 +263,6 @@ process BCLCONVERT {
     for f in fastqs/Reports/Top_Unknown_Barcodes.csv fastqs/Reports/Top_Unknown_Barcodes_L*.csv; do
         [ -f "\$f" ] && mv "\$f" "\${f/Top_Unknown_Barcodes/Top_Unknown_Barcodes_${modality}}" || true
     done
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        bcl-convert: \$(bcl-convert --version 2>&1 | head -1 | sed 's/BCL Convert //')
-END_VERSIONS
     """
 }
 
@@ -286,17 +280,11 @@ process FALCO {
 
     output:
     tuple val(run_name), path("${run_name}_${fastq_name}/"), emit: report
-    path "versions.yml",                                     emit: versions
 
     script:
     """
     mkdir -p ${run_name}_${fastq_name}
     falco -t ${task.cpus} ${fastq} -o ${run_name}_${fastq_name}
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        falco: \$(falco --version 2>&1 | sed 's/falco //')
-END_VERSIONS
     """
 }
 
@@ -313,17 +301,11 @@ process MULTIQC {
     output:
     path "multiqc_report.html",      emit: report
     path "multiqc_report_data/",     emit: data
-    path "versions.yml",        emit: versions
 
     script:
     def config = params.multiqc_config ? "--config ${params.multiqc_config}" : ''
     """
     multiqc ${config} --force --filename multiqc_report -o . .
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        multiqc: \$(multiqc --version 2>&1 | sed 's/multiqc, version //')
-END_VERSIONS
     """
 }
 
@@ -332,7 +314,7 @@ END_VERSIONS
 // Fully distributed across Slurm nodes and benefits from Nextflow caching.
 
 process VALIDATE_FASTQ {
-    tag "$fastq_name"
+    tag "$meta.id"
     label 'process_low'
     container "${params.container_pigz}"
     publishDir { "${params.outdir}/${meta.run_name}_fastq" }, mode: 'copy',
@@ -343,15 +325,9 @@ process VALIDATE_FASTQ {
 
     output:
     tuple val(meta), val(fastq_dir), path(fastq), emit: fastq
-    path "versions.yml",                          emit: versions
 
     script:
     """
     pigz -t -f -p ${task.cpus} ${fastq}
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        pigz: \$(pigz --version 2>&1 | head -1 | sed 's/pigz //')
-END_VERSIONS
     """
 }

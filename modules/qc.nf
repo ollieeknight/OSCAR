@@ -14,7 +14,6 @@ process CELLBENDER {
     output:
     tuple val(meta), path("output.h5"),               emit: h5
     tuple val(meta), path("output_cell_barcodes.csv"), emit: barcodes
-    path "versions.yml",                               emit: versions
 
     script:
     """
@@ -30,11 +29,6 @@ process CELLBENDER {
         --output output.h5 \\
         --cpu-threads ${task.cpus} \\
         --checkpoint-mins 10000
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        cellbender: \$(cellbender --version 2>&1 | sed 's/CellBender v//')
-END_VERSIONS
     """
 }
 
@@ -55,7 +49,6 @@ process CELLSNP_LITE {
 
     output:
     tuple val(meta), path("cellsnp_${meta.library_id}/"), emit: vcf
-    path "versions.yml",                                   emit: versions
 
     script:
     def out_dir    = (mode == 'atac') ? "${meta.library_id}_ATAC" : meta.library_id
@@ -73,11 +66,6 @@ process CELLSNP_LITE {
         --gzip \\
         -p  ${task.cpus} \\
         ${umi_flag}
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        cellsnp-lite: \$(cellsnp-lite --version 2>&1 | sed 's/cellsnp-lite //')
-END_VERSIONS
     """
 }
 
@@ -97,7 +85,6 @@ process VIREO {
 
     output:
     tuple val(meta), path("donor_ids.tsv"), emit: donor_ids
-    path "versions.yml",                    emit: versions
 
     script:
     def out_dir = (mode == 'atac') ? "${meta.library_id}_ATAC" : meta.library_id
@@ -108,11 +95,6 @@ process VIREO {
         -N ${meta.n_donors} \\
         -p ${task.cpus} \\
         --randSeed 42
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        vireo: \$(vireo --version 2>&1 | head -1 | sed 's/vireo //')
-END_VERSIONS
     """
 }
 
@@ -132,7 +114,6 @@ process AMULET {
     output:
     tuple val(meta), path("MultipletSummary.txt"),         emit: summary
     tuple val(meta), path("MultipletBarcodes.txt"),        emit: barcodes
-    path "versions.yml",                                   emit: versions
 
     script:
     def autosomes = (meta.species == 'human') ? '/opt/AMULET/human_autosomes.txt' : '/opt/AMULET/mouse_autosomes.txt'
@@ -150,11 +131,6 @@ process AMULET {
         ${restriction} \\
         . \\
         /opt/AMULET/
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        amulet: \$(AMULET.sh --version 2>&1 || echo 'v1.0')
-END_VERSIONS
     """
 }
 
@@ -173,7 +149,6 @@ process MGATK2 {
 
     output:
     tuple val(meta), path("mgatk2_out/"), emit: results
-    path "versions.yml",                  emit: versions
 
     script:
     def bam       = "${outs_dir}/possorted_bam.bam"
@@ -186,11 +161,6 @@ process MGATK2 {
         -o  mgatk2_out \\
         -b  ${barcodes} \\
         -c  ${task.cpus}
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        mgatk2: \$(mgatk2 --version 2>&1 | head -1 || echo 'unknown')
-END_VERSIONS
     """
 }
 
@@ -213,7 +183,6 @@ process MACS3 {
 
     output:
     tuple val(meta), path("peaks/"), emit: peaks
-    path "versions.yml",              emit: versions
 
     script:
     def gsize = (meta.species == 'human') ? 'hs' : 'mm'
@@ -238,11 +207,37 @@ process MACS3 {
         --nolambda \\
         -q ${params.macs3_qvalue} \\
         --outdir peaks/
+    """
+}
 
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        macs3: \$(macs3 --version 2>&1 | sed 's/macs3 //')
-END_VERSIONS
+// ─── VIRAL_DETECT ─────────────────────────────────────────────────────────────
+// Detect viral transcripts using Salmon alevin on CellRanger unassigned reads.
+// Input: unassigned_alignments.bam from cellranger multi outs (human reads pre-filtered).
+// Reference: Salmon index built from RVDB-nt (C-RVDBv31.0); see PLAN for build details.
+
+process VIRAL_DETECT {
+    tag "$meta.library_id"
+    label 'process_high'
+    container "${params.container_salmon}"
+    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}/outs/viral" },
+               mode: 'copy'
+
+    input:
+    tuple val(meta), path(bam), path(bai)
+    path viral_index
+
+    output:
+    tuple val(meta), path("${meta.library_id}_viral/"), emit: counts
+
+    script:
+    """
+    salmon alevin \\
+        --index      ${viral_index} \\
+        --bamInput   ${bam} \\
+        --chromiumV3 \\
+        --sketch \\
+        -p           ${task.cpus} \\
+        -o           ${meta.library_id}_viral
     """
 }
 
@@ -261,7 +256,6 @@ process SCRUBLET {
 
     output:
     tuple val(meta), path("doublets.csv"), emit: doublets
-    path "versions.yml",                  emit: versions
 
     script:
     """
@@ -283,11 +277,6 @@ df = pd.DataFrame({
 df.index.name = 'barcode'
 df.to_csv('doublets.csv')
 PYEOF
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        scanpy: \$(python -c "import scanpy; print(scanpy.__version__)" 2>&1)
-END_VERSIONS
     """
 }
 

@@ -9,5 +9,4 @@ workflow COUNT_ATAC {
 
     emit:
         outs     = CELLRANGER_ATAC.out.outs     // [meta, outs_dir]
-        versions = CELLRANGER_ATAC.out.versions
 }

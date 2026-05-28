@@ -54,5 +54,4 @@ workflow COUNT_ADT {
 
     emit:
         counts   = BUSTOOLS_COUNT.out.counts   // [meta, count_files]
-        versions = BUSTOOLS_COUNT.out.versions
 }

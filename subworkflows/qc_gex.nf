@@ -1,6 +1,5 @@
 include { CELLBENDER; SCRUBLET } from '../modules/qc'
-include { CELLSNP_LITE } from '../modules/qc'
-include { VIREO       } from '../modules/qc'
+include { GENOTYPE             } from './genotype'
 
 workflow QC_GEX {
     take:
@@ -34,13 +33,11 @@ workflow QC_GEX {
                 [ meta, bam, bai, barcodes ]
             }
 
-        CELLSNP_LITE(ch_snp_input, 'gex')
-        VIREO(CELLSNP_LITE.out.vcf, 'gex')
+        GENOTYPE(ch_snp_input, 'gex')
 
     emit:
         cellbender = CELLBENDER.out.h5       // [meta, h5]
         doublets   = SCRUBLET.out.doublets   // [meta, doublets.csv]
-        vireo      = VIREO.out.donor_ids     // [meta, donor_ids.tsv] (empty if n_donors <= 1)
+        vireo      = GENOTYPE.out.donor_ids  // [meta, donor_ids.tsv] (empty if n_donors <= 1)
         logs       = Channel.empty()
-        versions   = CELLBENDER.out.versions.mix(SCRUBLET.out.versions)
 }

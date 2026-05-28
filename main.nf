@@ -3,13 +3,14 @@
 nextflow.enable.dsl = 2
 
 // ─── Imports ──────────────────────────────────────────────────────────────────
-include { MULTIQC }        from './modules/demux'
 include { DEMUX }          from './subworkflows/demux'
+include { REPORT }         from './subworkflows/report'
 include { COUNT_GEX }      from './subworkflows/count_gex'
 include { COUNT_ATAC }     from './subworkflows/count_atac'
 include { COUNT_ADT }      from './subworkflows/count_adt'
 include { QC_GEX }         from './subworkflows/qc_gex'
 include { QC_ATAC }        from './subworkflows/qc_atac'
+include { VIRAL_DETECT }   from './modules/qc'
 
 // ─── Helper functions ─────────────────────────────────────────────────────────
 
@@ -368,9 +369,9 @@ workflow {
             ch_fastqs = DEMUX.out.fastqs
         }
 
-        // MultiQC runs on FALCO reports from demux (BCL mode only)
+        // REPORT (MultiQC) runs on FALCO reports from demux (BCL mode only)
         if (!params.from_fastq) {
-            MULTIQC(DEMUX.out.falco_reports)
+            REPORT(DEMUX.out.falco_reports)
         }
 
         // ── --run-until FASTQ: stop after demux ───────────────────────────────
@@ -389,40 +390,93 @@ workflow {
                 }
                 .set { ch_routed }
 
-            // GEX: group by library_id, deduplicate metas by modality, collect unique fastq dirs.
-            // Each fastq dir is a published path string — no staging, so no filename collision
-            // when the same library was sequenced on multiple flowcells.
+            // GEX: group by library_id; keep actual FASTQ files (path-staged in CELLRANGER_MULTI).
+            // Package [meta, files] as a map so both travel together through groupTuple.
             ch_routed.gex
-                .map { meta, fastq_dirs, fqs -> [meta.library_id, meta, fastq_dirs] }
+                .map { meta, _fastq_dir, fqs ->
+                    def files = (fqs instanceof List ? fqs : [fqs]).sort { it.name }
+                    [meta.library_id, [modality: meta.modality, meta: meta, files: files]]
+                }
                 .groupTuple(by: 0)
-                .map { lid, metas, fastq_dirs ->
-                    def seen         = [] as Set
-                    // Reconstruct as a literal ArrayList — never rely on findAll/cast on ArrayBag
-                    def unique_metas = []
-                    metas.each { m -> if (seen.add(m.modality)) unique_metas << m }
-                    unique_metas.each { m -> m.run_name = primary_run_name }
-                    def unique_dirs  = []
-                    fastq_dirs.flatten().each { d -> if (!unique_dirs.contains(d)) unique_dirs << d }
+                .map { lid, entries ->
+                    // Materialise ArrayBag → ArrayList
+                    def el = []
+                    entries.each { el << it }
 
-                    def adt_csv_path = unique_metas.collect { it.adt_csv_path }.find { it }
+                    // Collect entries per modality. Sort entries by first-file URI for
+                    // deterministic flowcell ordering, then flatten. Files within each
+                    // entry are already name-sorted by BCLCONVERT so R1 < R2 within
+                    // a flowcell — global name-sort would group all R1s together.
+                    def mod_data = [:].withDefault { [meta: null, entries: [], files: []] }
+                    el.each { e ->
+                        if (!mod_data[e.modality].meta) mod_data[e.modality].meta = e.meta
+                        mod_data[e.modality].entries << e
+                    }
+                    mod_data.each { _mod, d ->
+                        d.entries = d.entries.sort { it.files[0].toUriString() }
+                        d.files   = d.entries.collectMany { it.files }
+                    }
+
+                    // Canonical meta list — sorted by id for deterministic stageAs ordering
+                    def all_metas = []
+                    mod_data.each { _mod, d -> all_metas << d.meta }
+                    all_metas = all_metas.sort { it.id }
+                    all_metas.each { m -> m.run_name = primary_run_name }
+
+                    def meta       = all_metas.find { it.modality == 'GEX' } ?: all_metas[0]
+                    def is_human   = meta.species == 'human'
+                    def ref_gex    = is_human ? params.ref_human : params.ref_mouse
+                    def ref_vdj    = is_human ? params.ref_vdj_human : params.ref_vdj_mouse
+                    def has_vdj    = all_metas.any { it.modality in ['VDJ-T', 'VDJ-B'] }
+                    def has_adt    = all_metas.any { it.modality in ['ADT', 'HTO'] }
+                    def create_bam = (is_human && meta.n_donors > 1) ? 'true' : 'false'
+
+                    def lines = ['[gene-expression]',
+                                 "reference,${ref_gex}",
+                                 "create-bam,${create_bam}"]
+                    if (meta.assay in ['DOGMA', 'Multiome'])          lines << 'chemistry,ARC-v1'
+                    else if (meta.assay == 'Flex' && meta.chemistry)  lines << "chemistry,${meta.chemistry}"
+                    if (has_vdj) lines += ['', '[vdj]', "reference,${ref_vdj}"]
+
+                    def adt_csv_path = all_metas.collect { it.adt_csv_path }.find { it }
                     def adt_csv      = adt_csv_path ? file(adt_csv_path) : file('NO_FILE')
-                    def has_adt      = unique_metas.any { it.modality in ['ADT', 'HTO'] }
-                    if (has_adt && adt_csv.name == 'NO_FILE')
+                    def has_adt_csv  = adt_csv.name != 'NO_FILE'
+                    if (has_adt && !has_adt_csv)
                         error "Library '${lid}' has ADT/HTO modalities but no feature barcode CSV was resolved. " +
                             "Check that 'adt_file' is set in the samplesheet and either place " +
                             "{samplesheet_dir}/adt_files/{adt_file}.csv or pass --adt_files_dir."
-                    [lid, unique_metas, unique_dirs, adt_csv]
+                    if (has_adt && has_adt_csv)
+                        lines += ['', '[feature]', "reference,${adt_csv.toAbsolutePath()}"]
+
+                    // [libraries] section omitted — Python template in CELLRANGER_MULTI generates it
+                    def config_header = lines.join('\n')
+
+                    def no_file = [file('NO_FILE')]
+                    def gf      = { mod -> (mod_data[mod]?.files) ?: no_file }
+
+                    [lid, all_metas, config_header, adt_csv,
+                     gf('GEX'), gf('ADT'), gf('HTO'), gf('VDJ-T'), gf('VDJ-B'), gf('CRISPR')]
                 }
                 .set { ch_gex_libraries }
 
-            // ATAC: group by library_id to collect dirs from multiple flowcells
+            // ATAC: group by library_id; keep actual FASTQ files for path-based caching
             ch_routed.atac
-                .map { meta, fastq_dirs, fqs -> [meta.library_id, meta, fastq_dirs] }
+                .map { meta, _fastq_dir, fqs ->
+                    def files = (fqs instanceof List ? fqs : [fqs]).sort { it.name }
+                    [meta.library_id, [meta: meta, files: files]]
+                }
                 .groupTuple(by: 0)
-                .map { lid, metas, fastq_dirs ->
-                    def meta = metas[0]
+                .map { lid, entries ->
+                    def el = []
+                    entries.each { el << it }
+
+                    def meta = el[0].meta
                     meta.run_name = primary_run_name
-                    [meta, fastq_dirs.flatten().unique()]
+
+                    // Sort entries by first-file URI (deterministic flowcell order),
+                    // then flatten. Files within each entry are already name-sorted.
+                    def all_files = el.sort { it.files[0].toUriString() }.collectMany { it.files }
+                    [meta, all_files]
                 }
                 .set { ch_atac_libraries }
 
@@ -451,6 +505,18 @@ workflow {
                 // ── Full run: QC ──────────────────────────────────────────────
                 QC_GEX(COUNT_GEX.out.outs)
                 QC_ATAC(COUNT_ATAC.out.outs)
+
+                // ── Viral detection — optional, gated on params.viral_salmon_index ──
+                if (params.viral_salmon_index) {
+                    ch_viral_input = COUNT_GEX.out.outs
+                        .map { library_id, metas, outs ->
+                            def meta = metas[0] + [library_id: library_id]
+                            def bam  = file("${outs}/unassigned_alignments.bam")
+                            def bai  = file("${outs}/unassigned_alignments.bam.bai")
+                            [meta, bam, bai]
+                        }
+                    VIRAL_DETECT(ch_viral_input, file(params.viral_salmon_index))
+                }
             }
         }
     }

@@ -1,7 +1,6 @@
 include { GENERATE_SAMPLESHEET } from '../modules/demux'
-include { BCLCONVERT }        from '../modules/demux'
-include { FALCO }               from '../modules/demux'
-include { VALIDATE_FASTQ }      from '../modules/demux'
+include { BCLCONVERT }          from '../modules/demux'
+include { FASTQ_QC }            from './fastq_qc'
 
 workflow DEMUX {
     take:
@@ -50,14 +49,12 @@ workflow DEMUX {
         // When the same library appears across multiple BCL dirs (multi-run), both
         // sets of FASTQs end up as separate [meta, fastqs] items; groupTuple in main.nf
         // merges them before counting.
-        // Derive the published fastq dir path from bcl_dir.name (e.g. R463_bcl → R463_fastq).
         // Pass the directory string rather than staged files — prevents filename collisions
         // when the same library is sequenced on multiple flowcells (identical _S1_ naming).
         BCLCONVERT.out.fastqs
             .flatMap { metas, bcl_name, fq_files ->
-                def fqs     = fq_files instanceof List ? fq_files : [fq_files]
-                def run     = bcl_name.replaceAll(/_bcl.*$/, '')
-                def fq_dir  = fqs[0].parent.toAbsolutePath().toString()
+                def fqs    = fq_files instanceof List ? fq_files : [fq_files]
+                def fq_dir = fqs[0].parent.toAbsolutePath().toString()
                 metas.collectMany { meta ->
                     def matched = fqs.findAll { f -> f.name.contains(meta.id) }
                     matched ? [[meta, fq_dir, matched]] : []
@@ -65,43 +62,9 @@ workflow DEMUX {
             }
             .set { ch_fastqs }
 
-        // Transpose FASTQ file lists to validate each individual file as a separate task
-        ch_fastqs
-            .transpose(by: 2)
-            .map { meta, fq_dir, fastq -> [meta, fq_dir, fastq, fastq.name] }
-            .set { ch_to_validate }
-
-        VALIDATE_FASTQ(ch_to_validate)
-
-        // Group validated files back into lists per library meta
-        VALIDATE_FASTQ.out.fastq
-            .map { meta, fq_dir, fastq -> [meta.id, meta, fq_dir, fastq] }
-            .groupTuple(by: 0)
-            .map { id, metas, fq_dirs, fastqs ->
-                [metas[0], fq_dirs.unique(false), fastqs]
-            }
-            .set { ch_validated_fastqs }
-
-        // Run Falco per R-read FASTQ (R1/R2/R3 only; I1/I2 index reads skipped)
-        // Thread run_name (derived from bcl_dir) so each report lands in the correct
-        // {run}_fastq/falco/ directory, not a shared params.run_name dir.
-        BCLCONVERT.out.fastqs
-            .flatMap { metas, bcl_name, fq_files ->
-                def run = bcl_name.replaceAll(/_bcl.*$/, '')
-                (fq_files instanceof List ? fq_files : [fq_files])
-                    .findAll { f -> f.name =~ /_R[0-9]+_/ && f.size() > 1024 * 1024 }
-                    .collect { f -> [run, f.name.replaceAll(/\.fastq\.gz$/, ''), f] }
-            }
-            .set { ch_falco_input }
-
-        FALCO(ch_falco_input)
-
-        FALCO.out.report
-            .groupTuple(by: 0)
-            .set { ch_falco_reports }
+        FASTQ_QC(ch_fastqs)
 
     emit:
-        fastqs        = ch_validated_fastqs  // [meta, fastq_dir_string, [validated_fastq_files]]
-        falco_reports = ch_falco_reports     // collected falco dirs (passed to MULTIQC in main.nf)
-        versions      = BCLCONVERT.out.versions.mix(VALIDATE_FASTQ.out.versions)
+        fastqs        = FASTQ_QC.out.fastqs        // [meta, [fastq_dir_strings], [validated_fastq_files]]
+        falco_reports = FASTQ_QC.out.falco_reports // [run_name, [report_dirs]] (passed to REPORT in main.nf)
 }

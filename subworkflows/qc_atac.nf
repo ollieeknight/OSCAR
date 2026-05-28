@@ -1,8 +1,7 @@
 include { AMULET      } from '../modules/qc'
 include { MGATK2      } from '../modules/qc'
 include { MACS3       } from '../modules/qc'
-include { CELLSNP_LITE } from '../modules/qc'
-include { VIREO       } from '../modules/qc'
+include { GENOTYPE    } from './genotype'
 
 workflow QC_ATAC {
     take:
@@ -34,13 +33,11 @@ workflow QC_ATAC {
                 [ meta, bam, bai, barcodes ]
             }
 
-        CELLSNP_LITE(ch_snp_input, 'atac')
-        VIREO(CELLSNP_LITE.out.vcf, 'atac')
+        GENOTYPE(ch_snp_input, 'atac')
 
     emit:
-        amulet   = AMULET.out.summary    // [meta, MultipletSummary.txt]
-        mgatk    = MGATK2.out.results    // [meta, mgatk2_out/]
-        peaks    = MACS3.out.peaks       // [meta, peaks/]
-        vireo    = VIREO.out.donor_ids   // [meta, donor_ids.tsv]
-        versions = AMULET.out.versions
+        amulet   = AMULET.out.summary        // [meta, MultipletSummary.txt]
+        mgatk    = MGATK2.out.results        // [meta, mgatk2_out/]
+        peaks    = MACS3.out.peaks           // [meta, peaks/]
+        vireo    = GENOTYPE.out.donor_ids    // [meta, donor_ids.tsv]
 }

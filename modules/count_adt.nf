@@ -16,7 +16,6 @@ process FEATUREMAP {
 
     output:
     tuple val(meta), path("FeaturesMismatch.t2g"), path("FeaturesMismatch.fa"), emit: index_files
-    path "versions.yml", emit: versions
 
     script:
     """
@@ -24,11 +23,6 @@ process FEATUREMAP {
         --t2g FeaturesMismatch.t2g \\
         --fa  FeaturesMismatch.fa  \\
         --header --quiet
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        featuremap: \$(featuremap --version 2>&1 || echo 'unknown')
-END_VERSIONS
     """
 }
 
@@ -44,16 +38,10 @@ process KALLISTO_INDEX {
 
     output:
     tuple val(meta), path(t2g), path("FeaturesMismatch.idx"), emit: index
-    path "versions.yml", emit: versions
 
     script:
     """
     kallisto index -i FeaturesMismatch.idx -k 15 ${fa}
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        kallisto: \$(kallisto version 2>&1 | head -1 | sed 's/kallisto, version //')
-END_VERSIONS
     """
 }
 
@@ -70,7 +58,6 @@ process ASAP_TO_KITE {
 
     output:
     tuple val(meta), path("kite_converted/"), emit: converted_fastqs
-    path "versions.yml",                      emit: versions
 
     script:
     def fastq_dirs = adt_fastqs instanceof List \
@@ -88,11 +75,6 @@ process ASAP_TO_KITE {
         -of kite_converted/"${meta.library_id}_ADT" \\
         -on "${meta.library_id}_ADT" \\
         -c  ${task.cpus}
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        asap_to_kite: \$(asap_to_kite --version 2>&1 || echo 'unknown')
-END_VERSIONS
     """
 }
 
@@ -108,7 +90,6 @@ process KALLISTO_BUS {
 
     output:
     tuple val(meta), path(t2g), path("bus_output/"), emit: bus
-    path "versions.yml",                              emit: versions
 
     script:
     """
@@ -120,11 +101,6 @@ process KALLISTO_BUS {
         -x 0,0,16:0,16,26:1,0,0 \\
         -t ${task.cpus} \\
         ${converted_dir}/${meta.library_id}_ADT/*
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        kallisto: \$(kallisto version 2>&1 | head -1 | sed 's/kallisto, version //')
-END_VERSIONS
     """
 }
 
@@ -141,7 +117,6 @@ process BUSTOOLS_CORRECT {
 
     output:
     tuple val(meta), path(t2g), path(bus_dir), path("output_corrected.bus"), emit: corrected
-    path "versions.yml",                                                       emit: versions
 
     script:
     """
@@ -149,11 +124,6 @@ process BUSTOOLS_CORRECT {
         -w ${whitelist} \\
         ${bus_dir}/output.bus \\
         -o output_corrected.bus
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        bustools: \$(bustools version 2>&1 | head -1 | sed 's/bustools //')
-END_VERSIONS
     """
 }
 
@@ -169,7 +139,6 @@ process BUSTOOLS_SORT {
 
     output:
     tuple val(meta), path(t2g), path(bus_dir), path("output_sorted.bus"), emit: sorted
-    path "versions.yml",                                                    emit: versions
 
     script:
     """
@@ -178,11 +147,6 @@ process BUSTOOLS_SORT {
         -m ${task.memory.toGiga()}G \\
         -o output_sorted.bus \\
         ${corrected_bus}
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        bustools: \$(bustools version 2>&1 | head -1 | sed 's/bustools //')
-END_VERSIONS
     """
 }
 
@@ -199,7 +163,6 @@ process BUSTOOLS_COUNT {
 
     output:
     tuple val(meta), path("cells_x_genes*"), emit: counts
-    path "versions.yml",                      emit: versions
 
     script:
     """
@@ -210,10 +173,5 @@ process BUSTOOLS_COUNT {
         -e ${bus_dir}/matrix.ec \\
         -t ${bus_dir}/transcripts.txt \\
         ${sorted_bus}
-
-    cat <<END_VERSIONS > versions.yml
-    "${task.process}":
-        bustools: \$(bustools version 2>&1 | head -1 | sed 's/bustools //')
-END_VERSIONS
     """
 }
