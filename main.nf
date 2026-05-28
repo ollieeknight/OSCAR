@@ -451,11 +451,13 @@ workflow {
                     // [libraries] section omitted — Python template in CELLRANGER_MULTI generates it
                     def config_header = lines.join('\n')
 
-                    def no_file = [file('NO_FILE')]
-                    def gf      = { mod -> (mod_data[mod]?.files) ?: no_file }
-
                     [lid, all_metas, config_header, adt_csv,
-                     gf('GEX'), gf('ADT'), gf('HTO'), gf('VDJ-T'), gf('VDJ-B'), gf('CRISPR')]
+                     (mod_data['GEX']?.files)    ?: [file('NO_FILE')],
+                     (mod_data['ADT']?.files)    ?: [file('NO_FILE')],
+                     (mod_data['HTO']?.files)    ?: [file('NO_FILE')],
+                     (mod_data['VDJ-T']?.files)  ?: [file('NO_FILE')],
+                     (mod_data['VDJ-B']?.files)  ?: [file('NO_FILE')],
+                     (mod_data['CRISPR']?.files) ?: [file('NO_FILE')]]
                 }
                 .set { ch_gex_libraries }
 
