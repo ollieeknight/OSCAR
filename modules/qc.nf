@@ -219,33 +219,58 @@ process MACS3 {
 }
 
 // ─── VIRAL_DETECT ─────────────────────────────────────────────────────────────
-// Detect viral transcripts using Salmon alevin on CellRanger unassigned reads.
-// Input: unassigned_alignments.bam from cellranger multi outs (human reads pre-filtered).
-// Reference: Salmon index built from RVDB-nt (C-RVDBv31.0); see PLAN for build details.
+// Detect viral transcripts using simpleaf (piscem + alevin-fry).
+// BAM→FASTQ via bamtofastq v1.4.1; piscem index built from RVDB-nt C-RVDBv31.0.
+// bamtofastq writes: {outdir}/{libid}_{n}_{n}_{flowcell}/bamtofastq_S1_L001_R{1,2}_001.fastq.gz
+// ALEVIN_FRY_HOME set to PWD/.alevin_fry_home per-task for isolation.
 
 process VIRAL_DETECT {
     tag "$meta.library_id"
     label 'process_high'
-    container "${params.container_salmon}"
+    container "${params.container_simpleaf}"
     publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}/outs/viral" },
                mode: 'copy'
 
     input:
-    tuple val(meta), path(bam), path(bai)
-    path viral_index
+    tuple val(meta), path(bam), path(bai), path(whitelist), val(simpleaf_chemistry)
+    path  viral_index
+    path  bamtofastq_bin
 
     output:
     tuple val(meta), path("${meta.library_id}_viral/"), emit: counts
+    path "versions.yml",                                emit: versions
 
     script:
     """
-    salmon alevin \\
-        --index      ${viral_index} \\
-        --bamInput   ${bam} \\
-        --chromiumV3 \\
-        --sketch \\
-        -p           ${task.cpus} \\
-        -o           ${meta.library_id}_viral
+    chmod +x ${bamtofastq_bin}
+    ./${bamtofastq_bin} \\
+        --nthreads ${task.cpus} \\
+        --relaxed \\
+        ${bam} \\
+        fastqs/
+
+    r1=\$(find fastqs -name '*_R1_*.fastq.gz' | sort | paste -sd',')
+    r2=\$(find fastqs -name '*_R2_*.fastq.gz' | sort | paste -sd',')
+
+    export ALEVIN_FRY_HOME=\${PWD}/.alevin_fry_home
+    mkdir -p "\${ALEVIN_FRY_HOME}"
+    simpleaf set-paths
+
+    simpleaf quant \\
+        --reads1        "\${r1}" \\
+        --reads2        "\${r2}" \\
+        --threads       ${task.cpus} \\
+        --index         ${viral_index} \\
+        --chemistry     ${simpleaf_chemistry} \\
+        --resolution    cr-like \\
+        --unfiltered-pl ${whitelist} \\
+        --output        ${meta.library_id}_viral
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        simpleaf: \$(simpleaf --version | sed 's/simpleaf //')
+        bamtofastq: \$(./bamtofastq_linux --help 2>&1 | head -1 | sed 's/bamtofastq v//')
+    END_VERSIONS
     """
 }
 

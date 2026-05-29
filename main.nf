@@ -165,6 +165,38 @@ def parse_row(row, Map si_indexes, String ss_path) {
     ]
 }
 
+// ─── Viral detection helpers ─────────────────────────────────────────────────
+
+def get_viral_whitelist(chemistry, barcodes_dir) {
+    def wl = [
+        'SC3Pv2':       '737K-august-2016.txt',
+        'SC3Pv3':       '3M-february-2018_TRU.txt.gz',
+        'SC3Pv4':       '3M-3pgex-may-2023_TRU.txt.gz',
+        'SC5P':         '3M-5pgex-jan-2023.txt.gz',
+        'SC5Pv3':       '3M-5pgex-jan-2023.txt.gz',
+        'ARCv1':        '737K-arc-v1.txt.gz',
+        'Flex-v2-R1':   '737K-flex-v2.txt.gz',
+    ]
+    def fn = wl[chemistry]
+    if (!fn) error "VIRAL_DETECT: no whitelist registered for chemistry '${chemistry}'"
+    return "${barcodes_dir}/${fn}"
+}
+
+def get_simpleaf_chemistry(chemistry) {
+    def chem = [
+        'SC3Pv2':       '10xv2',
+        'SC3Pv3':       '10xv3',
+        'SC3Pv4':       '10xv4-3p',
+        'SC5P':         '10xv2-5p',
+        'SC5Pv3':       '10xv3-5p',
+        'ARCv1':        '10xv3',
+        'Flex-v2-R1':   '10x-flexv2-gex-3p',
+    ]
+    def s = chem[chemistry]
+    if (!s) error "VIRAL_DETECT: no simpleaf chemistry registered for '${chemistry}'"
+    return s
+}
+
 // ─── Sequencer auto-detection ────────────────────────────────────────────────
 // Reads <Instrument> from RunInfo.xml and maps the prefix to the i5 orientation
 // used by load_si_indexes().
@@ -508,16 +540,22 @@ workflow {
                 QC_GEX(COUNT_GEX.out.outs)
                 QC_ATAC(COUNT_ATAC.out.outs)
 
-                // ── Viral detection — optional, gated on params.viral_salmon_index ──
-                if (params.viral_salmon_index) {
+                // ── Viral detection — optional, gated on params.viral_piscem_index ──
+                if (params.viral_piscem_index) {
                     ch_viral_input = COUNT_GEX.out.outs
                         .map { library_id, metas, outs ->
-                            def meta = metas[0] + [library_id: library_id]
-                            def bam  = file("${outs}/unassigned_alignments.bam")
-                            def bai  = file("${outs}/unassigned_alignments.bam.bai")
-                            [meta, bam, bai]
+                            def meta   = metas[0] + [library_id: library_id]
+                            def bam    = file("${outs}/unassigned_alignments.bam")
+                            def bai    = file("${outs}/unassigned_alignments.bam.bai")
+                            def wl     = file(get_viral_whitelist(meta.chemistry, params.tenx_barcodes_dir))
+                            def schem  = get_simpleaf_chemistry(meta.chemistry)
+                            [meta, bam, bai, wl, schem]
                         }
-                    VIRAL_DETECT(ch_viral_input, file(params.viral_salmon_index))
+                    VIRAL_DETECT(
+                        ch_viral_input,
+                        file(params.viral_piscem_index),
+                        file(params.bamtofastq_bin)
+                    )
                 }
             }
         }
