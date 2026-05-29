@@ -554,6 +554,7 @@ workflow {
                     VIRAL_DETECT(
                         ch_viral_input,
                         file(params.viral_piscem_index),
+                        file(params.viral_t2g),
                         file(params.bamtofastq_bin)
                     )
                 }

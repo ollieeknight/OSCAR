@@ -234,6 +234,7 @@ process VIRAL_DETECT {
     input:
     tuple val(meta), path(bam), path(bai), path(whitelist), val(simpleaf_chemistry)
     path  viral_index
+    path  viral_t2g
     path  bamtofastq_bin
 
     output:
@@ -262,6 +263,7 @@ process VIRAL_DETECT {
         --threads       ${task.cpus} \\
         --index         ${viral_index} \\
         --chemistry     ${simpleaf_chemistry} \\
+        --t2g-map       ${viral_t2g} \\
         --resolution    cr-like \\
         --unfiltered-pl ${whitelist} \\
         --output        ${meta.library_id}_viral
