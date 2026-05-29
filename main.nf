@@ -341,14 +341,12 @@ workflow {
         if (params.from_fastq) {
             ch_meta
                 .map { meta ->
-                    def fqs = files("${params.fastq_dir}/**/${meta.id}*.fastq.gz")
-                    def parents = fqs.collect { it.parent.toString() }.unique()
-                    parents.collect { pdir ->
-                        def matched_fqs = fqs.findAll { it.parent.toString() == pdir }
-                        [meta, pdir, matched_fqs]
-                    }
+                    def baseDir = new File(params.fastq_dir)
+                    def fqs = (baseDir.listFiles() ?: [])
+                        .findAll { f -> f.isFile() && f.name.startsWith(meta.id) && f.name.endsWith('.fastq.gz') }
+                        .collect { it.toPath() }
+                    [meta, params.fastq_dir, fqs]
                 }
-                .flatMap()
                 .filter { meta, fastq_dir, fqs -> !fqs.isEmpty() }
                 .set { ch_fastqs }
         } else {
