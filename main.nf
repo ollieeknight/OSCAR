@@ -341,8 +341,7 @@ workflow {
         if (params.from_fastq) {
             ch_meta
                 .map { meta ->
-                    def fqs = file("${params.fastq_dir}/**/${meta.id}*.fastq.gz")
-                    fqs = fqs instanceof List ? fqs : (fqs.exists() ? [fqs] : [])
+                    def fqs = files("${params.fastq_dir}/**/${meta.id}*.fastq.gz")
                     def parents = fqs.collect { it.parent.toString() }.unique()
                     parents.collect { pdir ->
                         def matched_fqs = fqs.findAll { it.parent.toString() == pdir }
