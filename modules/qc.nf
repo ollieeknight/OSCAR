@@ -45,7 +45,8 @@ process CELLSNP_LITE {
     tag { "${meta.library_id} (${mode})" }
     label 'process_medium'   // overridden to 32c/64GB/96h via withName
     container "${params.container_cellsnp}"
-    publishDir { "${params.outdir}/${meta.run_name}_outs/${mode == 'atac' ? "${meta.library_id}_ATAC" : meta.library_id}/vireo/cellsnp" }, mode: 'copy'
+    publishDir { "${params.outdir}/${meta.run_name}_outs/${mode == 'atac' ? "${meta.library_id}_ATAC" : meta.library_id}/vireo" }, mode: 'copy',
+               saveAs: { fn -> fn.contains('/') ? file(fn).name : null }
 
     input:
     tuple val(meta), path(bam), path(bai), path(barcodes)
@@ -53,6 +54,7 @@ process CELLSNP_LITE {
 
     output:
     tuple val(meta), path("cellsnp_${meta.library_id}/"), emit: vcf
+    path "cellsnp_${meta.library_id}/*"
 
     script:
     def out_dir    = (mode == 'atac') ? "${meta.library_id}_ATAC" : meta.library_id
@@ -231,7 +233,7 @@ process VIRAL_DETECT {
     tag "$meta.library_id"
     label 'process_high'
     container "${params.container_simpleaf}"
-    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}/outs" },
+    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}" },
                mode: 'copy'
 
     input:
