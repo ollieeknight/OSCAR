@@ -6,7 +6,8 @@ process CELLBENDER {
     tag "$meta.library_id"
     label 'process_gpu'
     container "${params.container_cellbender}"
-    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}/cellbender" }, mode: 'copy'
+    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}/cellbender" }, mode: 'copy',
+               saveAs: { fn -> file(fn).name }
 
     input:
     tuple val(meta), path(outs_dir)
@@ -80,7 +81,8 @@ process VIREO {
     tag "$meta.library_id"
     label 'process_medium'   // overridden to 32c/64GB/96h via withName: 'CELLSNP_LITE|VIREO'
     container "${params.container_vireo}"
-    publishDir { "${params.outdir}/${meta.run_name}_outs/${mode == 'atac' ? "${meta.library_id}_ATAC" : meta.library_id}/vireo" }, mode: 'copy'
+    publishDir { "${params.outdir}/${meta.run_name}_outs/${mode == 'atac' ? "${meta.library_id}_ATAC" : meta.library_id}/vireo" }, mode: 'copy',
+               saveAs: { fn -> file(fn).name }
 
     input:
     tuple val(meta), path(cellsnp_dir)
@@ -111,7 +113,8 @@ process AMULET {
     tag "$meta.library_id"
     label 'process_medium'
     container "${params.container_amulet}"
-    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}_ATAC/AMULET" }, mode: 'copy'
+    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}_ATAC/AMULET" }, mode: 'copy',
+               saveAs: { fn -> file(fn).name }
 
     input:
     tuple val(meta), path(outs_dir)
@@ -150,23 +153,23 @@ process MGATK2 {
     tag "$meta.library_id"
     label 'process_medium'   // overridden to 32c/128GB/96h via withName: 'MGATK2'
     container "${params.container_mgatk}"
-    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}_ATAC/mgatk2" }, mode: 'copy'
+    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}_ATAC" }, mode: 'copy'
 
     input:
     tuple val(meta), path(outs_dir)
 
     output:
-    tuple val(meta), path("mgatk2_out/"), emit: results
+    tuple val(meta), path("mgatk2/"), emit: results
 
     script:
     def bam       = "${outs_dir}/possorted_bam.bam"
     def barcodes  = "${outs_dir}/filtered_peak_bc_matrix/barcodes.tsv"
     """
-    mkdir -p mgatk2_out
+    mkdir -p mgatk2
 
     mgatk2 run \\
         -i  ${bam} \\
-        -o  mgatk2_out \\
+        -o  mgatk2 \\
         -b  ${barcodes} \\
         -c  ${task.cpus}
     """
@@ -184,7 +187,7 @@ process MACS3 {
     tag "$meta.library_id"
     label 'process_medium'
     container "${params.container_macs3}"
-    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}_ATAC/peaks" }, mode: 'copy'
+    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}_ATAC" }, mode: 'copy'
 
     input:
     tuple val(meta), path(outs_dir)
@@ -228,7 +231,7 @@ process VIRAL_DETECT {
     tag "$meta.library_id"
     label 'process_high'
     container "${params.container_simpleaf}"
-    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}/outs/viral" },
+    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}/outs" },
                mode: 'copy'
 
     input:
@@ -238,7 +241,7 @@ process VIRAL_DETECT {
     path  bamtofastq_bin
 
     output:
-    tuple val(meta), path("${meta.library_id}_viral/"), emit: counts
+    tuple val(meta), path("viral/"), emit: counts
     path "versions.yml",                                emit: versions
 
     script:
@@ -266,7 +269,7 @@ process VIRAL_DETECT {
         --t2g-map       ${viral_t2g} \\
         --resolution    cr-like \\
         --unfiltered-pl ${whitelist} \\
-        --output        ${meta.library_id}_viral
+        --output        viral
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -284,7 +287,8 @@ process SCRUBLET {
     tag "$meta.library_id"
     label 'process_medium'
     container "${params.container_scrublet}"
-    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}/scrublet" }, mode: 'copy'
+    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}/scrublet" }, mode: 'copy',
+               saveAs: { fn -> file(fn).name }
 
     input:
     tuple val(meta), path(cellbender_h5)
