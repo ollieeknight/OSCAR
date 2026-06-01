@@ -358,7 +358,30 @@ VIREO         : probabilistic donor demultiplexing
 
 CELLBENDER uses the raw feature-barcode matrix (`raw_feature_bc_matrix.h5`). Requires GPU node.
 
-Output channels: `cellbender` (h5), `doublets` (doublets.csv), `vireo` (donor_ids.tsv, empty if single-donor).
+Output channels: `cellbender` (h5), `barcodes` (output_cell_barcodes.csv), `doublets` (doublets.csv), `vireo` (donor_ids.tsv, empty if single-donor).
+
+### GEX RNA Velocity — SIMPLEAF_VELOCITY
+
+Runs in `main.nf` after `QC_GEX` (needs cellbender barcodes as permitted list). Gated on `params.run_velocity` (default `true`). Skipped for Flex (probe-based chemistry).
+
+Re-quantifies GEX FASTQs against a spliceu (spliced+unspliced) reference using simpleaf USA mode. Cell barcodes are the cellbender `output_cell_barcodes.csv` — ambient-corrected, pre-filtered. The `-1` barcode suffix is stripped before passing to simpleaf.
+
+```
+SIMPLEAF_VELOCITY  — spliced/unspliced/ambiguous quantification
+  input:  GEX FASTQs (NFS paths, val), cellbender barcodes (path)
+  index:  spliceu piscem index (params.spliceu_index_human / _mouse)
+  output: velocity/af_quant/  → load in R with fishpond::loadFry()
+```
+
+**R import (Seurat):**
+```r
+library(fishpond)
+fry <- loadFry("path/to/{library_id}/velocity/af_quant", outputFormat = "velocity")
+# assays: spliced, unspliced, ambiguous
+spliced   <- assay(fry, "spliced")    # genes × cells sparse matrix
+unspliced <- assay(fry, "unspliced")
+# add as Seurat layers, or pass to scVelo via anndata
+```
 
 ### ATAC QC — QC_ATAC
 
@@ -390,12 +413,14 @@ results/
 │
 ├── {run_name}_outs/
 │   ├── {library_id}/                  ← GEX / CITE / DOGMA-GEX / Flex output
-│   │   └── outs/
-│   │       ├── per_sample_outs/
-│   │       ├── multi/
-│   │       ├── cellbender/            ← output.h5, output_cell_barcodes.csv
-│   │       ├── scrublet/              ← doublets.csv (GEX doublet scores)
-│   │       └── vireo/                 ← donor_ids.tsv, cellsnp/ (multi-donor only)
+│   │   ├── outs/                      ← CellRanger raw output
+│   │   │   ├── per_sample_outs/
+│   │   │   └── multi/
+│   │   ├── cellbender/                ← output.h5, output_cell_barcodes.csv
+│   │   ├── scrublet/                  ← doublets.csv (GEX doublet scores)
+│   │   ├── vireo/                     ← donor_ids.tsv, cellsnp/ (multi-donor only)
+│   │   ├── viral/                     ← simpleaf viral counts (optional)
+│   │   └── velocity/                  ← af_quant/ spliced/unspliced counts (run_velocity=true)
 │   │
 │   └── {library_id}_ATAC/             ← ATAC / DOGMA-ATAC output
 │       └── outs/
@@ -484,6 +509,13 @@ ref_mouse     = "/sc-projects/.../GRCm38-hardmasked-optimised-arc"
 ref_vdj_mouse = "/sc-projects/.../GRCm38-IMGT-VDJ-2024"
 snp_vcf       = "/sc-projects/.../genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz"
 atac_whitelist = "/home/knighto/bin/cellranger-atac-2.2.0/lib/python/atac/barcodes/737K-cratac-v1.txt.gz"
+
+// ── RNA Velocity ──────────────────────────────────────────────────────────────
+run_velocity          = true   // set false to skip SIMPLEAF_VELOCITY; not run for Flex
+spliceu_index_human   = "/home/knighto/work/ref/hs/GRCh38-hardmasked-optimised-arc-simpleaf/index"
+spliceu_index_mouse   = "/home/knighto/work/ref/mm/GRCm38-hardmasked-optimised-arc-simpleaf/index"
+// indexes built with: simpleaf index --ref-type spliced+unspliced --fasta genome.fa --gtf genes.gtf
+// t2g_3col.tsv is inside the index/ directory; no separate t2g param needed
 
 // ── QC tuning ─────────────────────────────────────────────────────────────────
 macs3_qvalue           = 0.05   // FDR threshold for peak calling

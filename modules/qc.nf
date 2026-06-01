@@ -281,6 +281,66 @@ process VIRAL_DETECT {
     """
 }
 
+// ─── SIMPLEAF_VELOCITY ────────────────────────────────────────────────────────
+// Spliced/unspliced quantification for RNA velocity.
+// Re-quantifies GEX FASTQs using simpleaf USA mode (spliceu reference).
+// Runs after cellbender; uses cellbender barcodes as the permitted list.
+// Not run for Flex (probe-based chemistry, no intronic signal).
+// R import: fishpond::loadFry("velocity/af_quant", outputFormat = "velocity")
+
+process SIMPLEAF_VELOCITY {
+    tag "$meta.library_id"
+    label 'process_high'
+    container "${params.container_simpleaf}"
+    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}" },
+               mode: 'copy'
+
+    input:
+    tuple val(meta), val(gex_fastq_dirs), val(simpleaf_chemistry), path(barcodes)
+    path spliceu_index
+
+    output:
+    tuple val(meta), path("velocity/"), emit: counts
+    path "versions.yml",                emit: versions
+
+    script:
+    """
+    r1=\$(find ${gex_fastq_dirs.replace(',', ' ')} \\
+              -name '${meta.id}*_R1_*.fastq.gz' 2>/dev/null | sort | paste -sd',')
+    r2=\$(find ${gex_fastq_dirs.replace(',', ' ')} \\
+              -name '${meta.id}*_R2_*.fastq.gz' 2>/dev/null | sort | paste -sd',')
+
+    if [ -z "\$r1" ] || [ -z "\$r2" ]; then
+        echo "ERROR: no FASTQs found for ${meta.id} in: ${gex_fastq_dirs}" >&2
+        exit 1
+    fi
+
+    # Cellbender outputs barcodes with -1 suffix (CellRanger format); strip for simpleaf
+    sed 's/-1\$//' ${barcodes} > barcodes_clean.txt
+
+    export ALEVIN_FRY_HOME=\${PWD}/.alevin_fry_home
+    mkdir -p "\${ALEVIN_FRY_HOME}"
+    simpleaf set-paths
+
+    simpleaf quant \\
+        --reads1        "\${r1}" \\
+        --reads2        "\${r2}" \\
+        --threads       ${task.cpus} \\
+        --index         ${spliceu_index} \\
+        --chemistry     ${simpleaf_chemistry} \\
+        --t2g-map       ${spliceu_index}/t2g_3col.tsv \\
+        --resolution    cr-like \\
+        --unfiltered-pl barcodes_clean.txt \\
+        --usa-mode \\
+        --output        velocity
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        simpleaf: \$(simpleaf --version | sed 's/simpleaf //')
+    END_VERSIONS
+    """
+}
+
 // ─── SCRUBLET ────────────────────────────────────────────────────────────────
 // GEX Doublet detection.
 // Source: nf-core/scdownstream doublet detection step

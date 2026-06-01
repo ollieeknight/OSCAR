@@ -36,8 +36,9 @@ workflow QC_GEX {
         GENOTYPE(ch_snp_input, 'gex')
 
     emit:
-        cellbender = CELLBENDER.out.h5       // [meta, h5]
-        doublets   = SCRUBLET.out.doublets   // [meta, doublets.csv]
-        vireo      = GENOTYPE.out.donor_ids  // [meta, donor_ids.tsv] (empty if n_donors <= 1)
+        cellbender = CELLBENDER.out.h5        // [meta, h5]
+        barcodes   = CELLBENDER.out.barcodes  // [meta, output_cell_barcodes.csv]
+        doublets   = SCRUBLET.out.doublets    // [meta, doublets.csv]
+        vireo      = GENOTYPE.out.donor_ids   // [meta, donor_ids.tsv] (empty if n_donors <= 1)
         logs       = Channel.empty()
 }

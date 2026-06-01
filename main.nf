@@ -10,7 +10,7 @@ include { COUNT_ATAC }     from './subworkflows/count_atac'
 include { COUNT_ADT }      from './subworkflows/count_adt'
 include { QC_GEX }         from './subworkflows/qc_gex'
 include { QC_ATAC }        from './subworkflows/qc_atac'
-include { VIRAL_DETECT }   from './modules/qc'
+include { VIRAL_DETECT; SIMPLEAF_VELOCITY } from './modules/qc'
 
 // ─── Helper functions ─────────────────────────────────────────────────────────
 
@@ -195,6 +195,20 @@ def get_simpleaf_chemistry(chemistry) {
     def s = chem[chemistry]
     if (!s) error "VIRAL_DETECT: no simpleaf chemistry registered for '${chemistry}'"
     return s
+}
+
+// Maps OSCAR chemistry to simpleaf chemistry string for velocity quantification.
+// Returns null for unsupported chemistries (Flex) — caller skips velocity for those libraries.
+def get_velocity_chemistry(chemistry) {
+    def chem = [
+        'SC3Pv2':  '10xv2',
+        'SC3Pv3':  '10xv3',
+        'SC3Pv4':  '10xv4-3p',
+        'SC5P':    '10xv2-5p',
+        'SC5Pv3':  '10xv3-5p',
+        'ARCv1':   '10xv3',
+    ]
+    return chem[chemistry]   // null for Flex, NA, or unknown → caller skips
 }
 
 // ─── Sequencer auto-detection ────────────────────────────────────────────────
@@ -421,7 +435,9 @@ workflow {
 
             // GEX: group by library_id; keep actual FASTQ files (path-staged in CELLRANGER_MULTI).
             // Package [meta, files] as a map so both travel together through groupTuple.
+            // Tap raw GEX items before transformation for velocity channel (needs fastq_dir string).
             ch_routed.gex
+                .tap { ch_gex_for_velocity }
                 .map { meta, _fastq_dir, fqs ->
                     def files = (fqs instanceof List ? fqs : [fqs]).sort { it.name }
                     [meta.library_id, [modality: meta.modality, meta: meta, files: files]]
@@ -490,6 +506,25 @@ workflow {
                 }
                 .set { ch_gex_libraries }
 
+            // ── RNA Velocity: collect GEX FASTQ directories per library ──────────────
+            // Uses the raw fastq_dir NFS strings (not staged files) — same pattern as
+            // CELLRANGER_MULTI. Runs after cellbender; see SIMPLEAF_VELOCITY call below.
+            ch_gex_for_velocity
+                .filter { meta, fastq_dir, _fqs ->
+                    meta.modality == 'GEX' && get_velocity_chemistry(meta.chemistry) != null
+                }
+                .map { meta, fastq_dir, _fqs ->
+                    [ meta.library_id, meta, fastq_dir, get_velocity_chemistry(meta.chemistry) ]
+                }
+                .groupTuple(by: 0)
+                .map { library_id, metas, fastq_dirs, chems ->
+                    def ml = []; metas.each { ml << it }
+                    def dl = []; fastq_dirs.each { dl << it }
+                    def meta = ml[0] + [library_id: library_id, run_name: primary_run_name]
+                    [ library_id, meta, dl.join(','), chems[0] ]
+                }
+                .set { ch_velocity_fastqs }   // [library_id, meta, fastq_dirs_csv, simpleaf_chemistry]
+
             // ATAC: group by library_id; keep actual FASTQ files for path-based caching
             ch_routed.atac
                 .map { meta, _fastq_dir, fqs ->
@@ -553,6 +588,28 @@ workflow {
                         file(params.viral_piscem_index),
                         file(params.viral_t2g),
                         file(params.bamtofastq_bin)
+                    )
+                }
+
+                // ── RNA Velocity — simpleaf USA mode, gated on params.run_velocity ──
+                // Joins GEX FASTQs with cellbender barcodes (ambient-corrected cell list).
+                if (params.run_velocity) {
+                    ch_velocity_fastqs
+                        .join(
+                            QC_GEX.out.barcodes.map { meta, bc -> [ meta.library_id, bc ] },
+                            by: 0
+                        )
+                        .multiMap { library_id, meta, fastq_dirs, chemistry, barcodes ->
+                            def is_human = meta.species == 'human'
+                            def idx = file(is_human ? params.spliceu_index_human : params.spliceu_index_mouse)
+                            input: [ meta, fastq_dirs, chemistry, barcodes ]
+                            index: idx
+                        }
+                        .set { ch_velocity_split }
+
+                    SIMPLEAF_VELOCITY(
+                        ch_velocity_split.input,
+                        ch_velocity_split.index
                     )
                 }
             }
