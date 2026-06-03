@@ -478,7 +478,7 @@ workflow {
                     def ref_vdj    = is_human ? params.ref_vdj_human : params.ref_vdj_mouse
                     def has_vdj    = all_metas.any { it.modality in ['VDJ-T', 'VDJ-B'] }
                     def has_adt    = all_metas.any { it.modality in ['ADT', 'HTO'] }
-                    def create_bam = (is_human && meta.n_donors > 1) ? 'true' : 'false'
+                    def create_bam = 'true'
 
                     def lines = ['[gene-expression]',
                                  "reference,${ref_gex}",
