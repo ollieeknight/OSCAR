@@ -47,6 +47,9 @@ def load_si_indexes(String projectDir, String sequencer) {
 // Resolve a raw index value to BCL Convert rows.
 // Returns [is_dual: bool, rows: [[i7: seq] or [i7: seq, i5: seq]]]
 def resolve_index(String index, Map si_indexes) {
+    if (index == null || index.toUpperCase() == 'NA' || index == '') {
+        return [is_dual: false, rows: []]
+    }
     if (si_indexes.single.containsKey(index))
         return [is_dual: false, rows: si_indexes.single[index].collect { [i7: it] }]
     if (si_indexes.dual.containsKey(index)) {
@@ -87,7 +90,7 @@ def preflight_samplesheet(String path) {
                     'species', 'n_donors', 'adt_file']
     def valid_assays      = ['GEX', 'CITE', 'DOGMA', 'ATAC', 'Multiome', 'ASAP', 'Flex']
     def valid_modalities  = ['GEX', 'ATAC', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR', 'GENO']
-    def valid_index_types = ['SI', 'DI']
+    def valid_index_types = ['SI', 'DI', 'NA']
     def valid_chemistry   = ['SC3Pv2', 'SC3Pv3', 'SC3Pv4', 'SC5P', 'SC5Pv3', 'ARCv1', 'ATAC',
                              'Flex-v2-R1', 'Flex-v2-RNA-R2', 'NA']
 
@@ -112,7 +115,7 @@ def preflight_samplesheet(String path) {
         if (!['human', 'mouse'].any { it.equalsIgnoreCase(row.species) })
             error "ERROR: row ${i + 2}: unknown species '${row.species}'. Valid: human, mouse"
         if (!valid_index_types.contains(row.index_type?.trim()))
-            error "ERROR: row ${i + 2}: unknown index_type '${row.index_type}'. Valid: SI, DI"
+            error "ERROR: row ${i + 2}: unknown index_type '${row.index_type}'. Valid: SI, DI, NA"
         def chem = row.chemistry?.trim() ?: ''
         if (chem != 'NA' && !valid_chemistry.any { chem.startsWith(it) })
             error "ERROR: row ${i + 2}: unrecognised chemistry '${row.chemistry}'. Valid: ${valid_chemistry.join(', ')}"
@@ -123,7 +126,8 @@ def parse_row(row, Map si_indexes, String ss_path) {
     def n_donors = (row.n_donors == null || row.n_donors.trim() in ['NA', '', 'na']) \
         ? 1 : row.n_donors.trim().toInteger()
     def index    = row.index.trim()
-    def adt_file = row.adt_file?.trim() ?: null
+    def raw_adt  = row.adt_file?.trim()
+    def adt_file = (raw_adt == null || raw_adt.toUpperCase() == 'NA' || raw_adt == '') ? null : raw_adt
 
     // ADT CSV resolution (local-first, centralized fallback):
     //   1. {samplesheet_dir}/adt_files/{adt_file}.csv  (co-located with the run, preferred)
@@ -575,6 +579,7 @@ workflow {
                 // ── Viral detection — optional, gated on params.viral_piscem_index ──
                 if (params.viral_piscem_index) {
                     ch_viral_input = COUNT_GEX.out.outs
+                        .filter { library_id, metas, outs -> metas[0].species == 'human' }
                         .map { library_id, metas, outs ->
                             def meta   = metas[0] + [library_id: library_id]
                             def bam    = file("${outs}/unassigned_alignments.bam")

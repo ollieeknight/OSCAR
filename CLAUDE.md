@@ -120,6 +120,8 @@ assay,experiment_id,historical_number,replicate,modality,chemistry,index_type,in
 | n_donors | integer or `NA` (`NA` → treated as 1; no genotyping) |
 | adt_file | stem name of ADT CSV (e.g. `CITE_JIA_adt`); blank for non-ADT rows |
 
+> **Lab convention — mouse samples**: always use `n_donors=1`. Genotyping (CELLSNP_LITE → VIREO) is gated on `n_donors > 1 && species == human`, so it never runs for mouse regardless, but `1` is the explicit correct value.
+
 Examples:
 
 ```csv
