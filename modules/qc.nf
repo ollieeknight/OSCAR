@@ -331,7 +331,6 @@ process SIMPLEAF_VELOCITY {
         --t2g-map       ${spliceu_index}/t2g_3col.tsv \\
         --resolution    cr-like \\
         --unfiltered-pl barcodes_clean.txt \\
-        --usa-mode \\
         --output        velocity
 
     cat <<-END_VERSIONS > versions.yml
