@@ -513,7 +513,7 @@ snp_vcf       = "/sc-projects/.../genome1K.phase3.SNP_AF5e2.chr1toX.hg38.vcf.gz"
 atac_whitelist = "/home/knighto/bin/cellranger-atac-2.2.0/lib/python/atac/barcodes/737K-cratac-v1.txt.gz"
 
 // ── RNA Velocity ──────────────────────────────────────────────────────────────
-run_velocity          = true   // set false to skip SIMPLEAF_VELOCITY; not run for Flex
+run_velocity          = false  // set true to run SIMPLEAF_VELOCITY; not run for Flex
 spliceu_index_human   = "/home/knighto/work/ref/hs/GRCh38-hardmasked-optimised-arc-simpleaf/index"
 spliceu_index_mouse   = "/home/knighto/work/ref/mm/GRCm38-hardmasked-optimised-arc-simpleaf/index"
 // indexes built with: simpleaf index --ref-type spliced+unspliced --fasta genome.fa --gtf genes.gtf
