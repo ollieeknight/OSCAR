@@ -13,6 +13,7 @@ From: ubuntu:22.04
         git \
         ca-certificates \
         build-essential \
+        cmake \
         libssl-dev \
         pkg-config \
         zlib1g-dev \
