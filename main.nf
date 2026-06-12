@@ -84,6 +84,46 @@ def preflight_check() {
         log.warn "WARNING: --run-until ignored — --from-cellranger starts at QC"
 }
 
+def preflight_flex(String ss_path) {
+    def lines = new File(ss_path).readLines().findAll { !it.trim().isEmpty() }
+    def headers = lines[0].split(',').collect { it.trim() }
+    def has_flex = lines.tail().any { line ->
+        def vals = line.split(',', -1)
+        def row = [headers, vals].transpose().collectEntries()
+        row.assay?.trim()?.equalsIgnoreCase('Flex')
+    }
+    if (!has_flex) return
+
+    if (!(params.flex_backend in ['cellranger', 'cyto', 'both']))
+        error "ERROR: --flex_backend must be 'cellranger', 'cyto', or 'both' (got '${params.flex_backend}')"
+
+    def uses_cr   = params.flex_backend in ['cellranger', 'both']
+    def uses_cyto = params.flex_backend in ['cyto', 'both']
+
+    if (uses_cr) {
+        if (!params.flex_probe_set)
+            error "ERROR: Flex run requires --flex_probe_set (standard 10x probe set CSV) when flex_backend includes cellranger."
+        if (!file(params.flex_probe_set).exists())
+            error "ERROR: --flex_probe_set not found: ${params.flex_probe_set}"
+    }
+    if (params.flex_probe_set_custom && !file(params.flex_probe_set_custom).exists())
+        error "ERROR: --flex_probe_set_custom not found: ${params.flex_probe_set_custom}"
+    if (params.flex_samples_file && !file(params.flex_samples_file).exists())
+        error "ERROR: --flex_samples_file not found: ${params.flex_samples_file}"
+
+    if (uses_cyto) {
+        if (!params.container_cyto || !file(params.container_cyto).exists())
+            error "ERROR: cyto container not found at '${params.container_cyto}'. " +
+                  "Build it: apptainer build ${params.container_cyto} OSCAR/containers/cyto.def"
+        if (!params.flex_cb_whitelist || !file(params.flex_cb_whitelist).exists())
+            error "ERROR: --flex_cb_whitelist not found: ${params.flex_cb_whitelist}. " +
+                  "Extract from container: see PLAN-flex-backends.md"
+        if (params.flex_samples_file && !params.flex_sample_probes_ref)
+            error "ERROR: --flex_sample_probes_ref required when using cyto with multiplex Flex. " +
+                  "Download probe-barcodes-fixed-rna-profiling-rna.txt from 10x website."
+    }
+}
+
 def preflight_samplesheet(String path) {
     def required = ['assay', 'experiment_id', 'historical_number', 'replicate',
                     'modality', 'chemistry', 'index_type', 'index',
@@ -301,6 +341,7 @@ workflow {
     if (params.extra_samplesheets)
         all_ss_paths += params.extra_samplesheets.split(',').collect { it.trim() }
     all_ss_paths.each { preflight_samplesheet(it) }
+    all_ss_paths.each { preflight_flex(it) }
 
     // ── Resolve sequencer / i5 orientation (non-BCL fallback) ────────────────
     // In BCL mode, sequencer is auto-detected per BCL dir inside the BCL branch
@@ -484,7 +525,10 @@ workflow {
                                  "reference,${ref_gex}",
                                  "create-bam,${create_bam}"]
                     if (meta.assay in ['DOGMA', 'Multiome'])          lines << 'chemistry,ARC-v1'
-                    else if (meta.assay == 'Flex' && meta.chemistry)  lines << "chemistry,${meta.chemistry}"
+                    else if (meta.assay == 'Flex' && meta.chemistry) {
+                        lines << "chemistry,${meta.chemistry}"
+                        lines << "probe-set,${params.flex_probe_set}"
+                    }
                     if (has_vdj) lines += ['', '[vdj]', "reference,${ref_vdj}"]
 
                     def adt_csv_path = all_metas.collect { it.adt_csv_path }.find { it }
@@ -498,9 +542,19 @@ workflow {
                         lines += ['', '[feature]', "reference,${adt_csv.toAbsolutePath()}"]
 
                     // [libraries] section omitted — Python template in CELLRANGER_MULTI generates it
+                    // [samples] section content passed as val; appended after [libraries] by CELLRANGER_MULTI
+                    def flex_samples_content = ''
+                    if (meta.assay == 'Flex' && params.flex_samples_file) {
+                        def sf = file(params.flex_samples_file)
+                        if (sf.exists()) {
+                            flex_samples_content = '\n\n[samples]\n' + sf.text.trim()
+                        } else {
+                            log.warn "WARNING: --flex_samples_file not found: ${params.flex_samples_file} — [samples] section will be omitted (singleplex only)"
+                        }
+                    }
                     def config_header = lines.join('\n')
 
-                    [lid, all_metas, config_header, adt_csv,
+                    [lid, all_metas, config_header, adt_csv, flex_samples_content,
                      (mod_data['GEX']?.files)    ?: [file('NO_FILE')],
                      (mod_data['ADT']?.files)    ?: [file('NO_FILE')],
                      (mod_data['HTO']?.files)    ?: [file('NO_FILE')],

@@ -11,6 +11,7 @@ process CELLRANGER_MULTI {
 
     input:
     tuple val(library_id), val(metas), val(config_header), path(adt_csv),
+          val(flex_samples_content),
           path(gex_fastqs,    stageAs: "fastqs/gex/run_???/*"),
           path(adt_fastqs,    stageAs: "fastqs/adt/run_???/*"),
           path(hto_fastqs,    stageAs: "fastqs/hto/run_???/*"),
@@ -28,6 +29,10 @@ process CELLRANGER_MULTI {
 ${config_header}
 OSCAR_CR_HEADER_EOF
 
+    cat > flex_samples.txt << 'OSCAR_FLEX_SAMPLES_EOF'
+${flex_samples_content}
+OSCAR_FLEX_SAMPLES_EOF
+
     python3 << 'OSCAR_PYEOF'
 import re, subprocess, sys
 from pathlib import Path
@@ -37,6 +42,9 @@ min_reads  = ${min_reads}
 
 with open("config_header.txt") as fh:
     config_header = fh.read().strip()
+
+with open("flex_samples.txt") as fh:
+    flex_samples_content = fh.read().strip()
 
 MODALITY_FEATURE = {
     "gex":    "Gene Expression",
@@ -95,6 +103,8 @@ cfg = config_header
 if lib_lines:
     cfg += "\\n\\n[libraries]\\nfastq_id,fastqs,feature_types\\n"
     cfg += "\\n".join(lib_lines)
+if flex_samples_content:
+    cfg += "\\n" + flex_samples_content
 cfg = re.sub(r'\\n{3,}', '\\n\\n', cfg)
 
 with open("multi_config.csv", "w") as fh:
