@@ -263,7 +263,7 @@ process BCLCONVERT {
         --bcl-only-lane                    ${lane} \\
         --bcl-enable-tile-metrics          false \\
         --bcl-enable-adapter-cycle-metrics false \\
-        --num-unknown-barcodes-reported    50 \\
+        --num-unknown-barcodes-reported    0 \\
         --bcl-num-parallel-tiles           ${n_tiles} \\
         --bcl-num-conversion-threads       ${n_convert} \\
         --bcl-num-compression-threads      ${n_compress} \\
