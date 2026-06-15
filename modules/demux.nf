@@ -246,6 +246,15 @@ process BCLCONVERT {
     """
     rm -rf fastqs/
 
+    # Detect which lanes have actual cbcl data; pass --bcl-only-lane for each to skip empty lanes
+    lane_flags=""
+    for lane_dir in ${bcl_dir}/Data/Intensities/BaseCalls/L0*/; do
+        lane_num=\$(basename "\$lane_dir" | sed 's/L0*//')
+        if ls "\${lane_dir}"C1.1/*.cbcl 2>/dev/null | grep -q .; then
+            lane_flags="\${lane_flags} --bcl-only-lane \${lane_num}"
+        fi
+    done
+
     bcl-convert \\
         --bcl-input-directory              ${bcl_dir} \\
         --output-directory                 fastqs \\
@@ -258,7 +267,8 @@ process BCLCONVERT {
         --bcl-enable-tile-metrics          false \\
         --bcl-enable-adapter-cycle-metrics false \\
         --bcl-only-matched-reads           true \\
-        --num-unknown-barcodes-reported    50
+        --num-unknown-barcodes-reported    50 \\
+        \${lane_flags}
 
     for f in fastqs/Reports/Top_Unknown_Barcodes.csv fastqs/Reports/Top_Unknown_Barcodes_L*.csv; do
         [ -f "\$f" ] && mv "\$f" "\${f/Top_Unknown_Barcodes/Top_Unknown_Barcodes_${modality}}" || true
