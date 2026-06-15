@@ -235,14 +235,18 @@ process BCLCONVERT {
     }, mode: 'copy', pattern: 'fastqs/Reports/Top_Unknown_Barcodes_*.csv',
         saveAs: { fn -> fn.tokenize('/')[-1] }
     input:
-    tuple val(demux_key), val(metas), path(bcl_dir), path(samplesheet)
+    tuple val(demux_key), val(metas), path(bcl_dir), path(samplesheet), val(lane)
 
     output:
-    tuple val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"), emit: fastqs
-    path "fastqs/Reports/Top_Unknown_Barcodes_*.csv",                optional: true, emit: unknown_barcodes
+    tuple val(demux_key), val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"), emit: fastqs
+    path "fastqs/Reports/Top_Unknown_Barcodes_*.csv",                               optional: true, emit: unknown_barcodes
 
     script:
-    def modality    = metas[0].modality
+    def modality     = metas[0].modality
+    def n_tiles      = Math.max(1, (task.cpus / 8).toInteger())
+    def n_convert    = Math.max(1, (task.cpus / 8).toInteger())
+    def n_compress   = (task.cpus / 2).toInteger()
+    def n_decompress = Math.max(1, (task.cpus / 4).toInteger())
     """
     rm -rf fastqs/
 
@@ -250,15 +254,14 @@ process BCLCONVERT {
         --bcl-input-directory              ${bcl_dir} \\
         --output-directory                 fastqs \\
         --sample-sheet                     ${samplesheet} \\
-        --no-lane-splitting                true \\
-        --bcl-num-parallel-tiles           2 \\
-        --bcl-num-conversion-threads       ${task.cpus / 4} \\
-        --bcl-num-compression-threads      ${task.cpus / 2} \\
-        --bcl-num-decompression-threads    ${task.cpus / 4} \\
+        --bcl-only-lane                    ${lane} \\
+        --bcl-num-parallel-tiles           ${n_tiles} \\
+        --bcl-num-conversion-threads       ${n_convert} \\
+        --bcl-num-compression-threads      ${n_compress} \\
+        --bcl-num-decompression-threads    ${n_decompress} \\
         --bcl-enable-tile-metrics          false \\
         --bcl-enable-adapter-cycle-metrics false \\
-        --bcl-only-matched-reads           true \\
-        --num-unknown-barcodes-reported    50
+        --num-unknown-barcodes-reported    0
 
     for f in fastqs/Reports/Top_Unknown_Barcodes.csv fastqs/Reports/Top_Unknown_Barcodes_L*.csv; do
         [ -f "\$f" ] && mv "\$f" "\${f/Top_Unknown_Barcodes/Top_Unknown_Barcodes_${modality}}" || true
