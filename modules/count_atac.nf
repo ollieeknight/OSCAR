@@ -3,7 +3,6 @@
 // Output dir: {library_id}_ATAC  (mirrors current OSCAR naming)
 process CELLRANGER_ATAC {
     tag "$meta.library_id"
-    label 'process_high'
     container "${params.container_cellranger_atac}"
     publishDir { "${params.outdir}/${meta.run_name}_outs" }, mode: 'copy'
 

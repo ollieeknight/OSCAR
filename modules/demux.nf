@@ -225,20 +225,15 @@ DATAEOF
 process BCLCONVERT {
     tag "${demux_key}_L${lane}"
     container "${params.container_bclconvert}"
-    publishDir {
-        def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
-        "${params.outdir}/${run}_fastq"
-    }, mode: 'copy', pattern: 'fastqs/Reports/Top_Unknown_Barcodes_*.csv',
-        saveAs: { fn -> fn.tokenize('/')[-1] }
+
     input:
     tuple val(demux_key), val(metas), path(bcl_dir), path(samplesheet), val(lane)
 
     output:
-    tuple val(demux_key), val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"), emit: fastqs
-    path "fastqs/Reports/Top_Unknown_Barcodes_*.csv",                               optional: true, emit: unknown_barcodes
+    tuple val(demux_key), val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"),                  emit: fastqs
+    tuple val(demux_key), val(metas), val(bcl_dir.name), path("fastqs/Undetermined_S*_L*_R1_*.fastq.gz"), optional: true, emit: undetermined
 
     script:
-    def modality     = metas[0].modality
     def n_tiles      = Math.max(1, (task.cpus / 8).toInteger())
     def n_convert    = Math.max(1, (task.cpus / 8).toInteger())
     def n_compress   = (task.cpus / 2).toInteger()
@@ -257,10 +252,50 @@ process BCLCONVERT {
         --bcl-num-conversion-threads       ${n_convert} \\
         --bcl-num-compression-threads      ${n_compress} \\
         --bcl-num-decompression-threads    ${n_decompress}
+    """
+}
 
-    for f in fastqs/Reports/Top_Unknown_Barcodes.csv fastqs/Reports/Top_Unknown_Barcodes_L*.csv; do
-        [ -f "\$f" ] && mv "\$f" "\${f/Top_Unknown_Barcodes/Top_Unknown_Barcodes_${modality}}" || true
-    done
+// ─── TOP_UNKNOWN_BARCODES ─────────────────────────────────────────────────────
+// Counts top-50 unknown index sequences from Undetermined R1 FASTQs.
+// Runs independently of cellranger — no downstream process depends on it.
+// Extracts the index field (2nd space-delimited token) from FASTQ headers,
+// samples up to 1M reads, counts and ranks by frequency.
+// Output: Top_Unknown_Barcodes_{modality}.csv with barcode/n_count/percent columns.
+
+process TOP_UNKNOWN_BARCODES {
+    tag "$demux_key"
+    container "${params.container_pigz}"
+    publishDir {
+        def run = bcl_dir_name.replaceAll(/_bcl.*$/, '')
+        "${params.outdir}/${run}_fastq"
+    }, mode: 'copy', saveAs: { fn -> file(fn).name }
+
+    input:
+    tuple val(demux_key), val(metas), val(bcl_dir_name), path(undetermined_r1_files)
+
+    output:
+    path "Top_Unknown_Barcodes_*.csv", emit: report
+
+    script:
+    def modality = metas[0].modality
+    """
+    zcat ${undetermined_r1_files instanceof List ? undetermined_r1_files.join(' ') : undetermined_r1_files} \\
+        | awk 'NR%4==1{print \$2}' \\
+        | head -n 1000000 \\
+        > sampled_barcodes.txt
+
+    total=\$(wc -l < sampled_barcodes.txt | tr -d ' ')
+
+    if [ "\$total" -eq 0 ]; then
+        echo "barcode,n_count,percent_of_all_unknown" > "Top_Unknown_Barcodes_${modality}.csv"
+        exit 0
+    fi
+
+    sort sampled_barcodes.txt | uniq -c | sort -rn | head -50 \\
+        | awk -v total="\$total" \\
+            'BEGIN{print "barcode,n_count,percent_of_all_unknown"} \\
+             {printf "%s,%d,%.4f\\n", \$2, \$1, (\$1/total)*100}' \\
+        > "Top_Unknown_Barcodes_${modality}.csv"
     """
 }
 

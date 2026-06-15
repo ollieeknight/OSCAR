@@ -4,7 +4,6 @@
 // Runs once per pipeline invocation (local executor, no SLURM job).
 process FLEX_PROBE_PREPARE {
     tag "probe_merge"
-    label 'process_low'
     container "${params.container_python}"
 
     input:
@@ -84,7 +83,6 @@ PYEOF
 // pipeline invocation; result is Nextflow-cached across subsequent runs.
 process FLEX_BARCODE_EXTRACT {
     tag "barcode_extract"
-    label 'process_low'
     container "${params.container_cellranger}"
 
     input:
@@ -114,7 +112,6 @@ process FLEX_BARCODE_EXTRACT {
 // Flex v2 (GEM-X): 737K-fixed-rna-profiling.txt.gz.
 process FLEX_WHITELIST_EXTRACT {
     tag "whitelist_extract"
-    label 'process_low'
     container "${params.container_cellranger}"
 
     input:
@@ -144,7 +141,6 @@ process FLEX_WHITELIST_EXTRACT {
 // Runs once per pipeline invocation (local executor, no SLURM job).
 process FLEX_SAMPLE_PREPARE {
     tag "sample_barcodes"
-    label 'process_low'
     container "${params.container_python}"
 
     input:

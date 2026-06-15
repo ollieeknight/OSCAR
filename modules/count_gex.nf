@@ -5,7 +5,6 @@
 //         writes multi_config.csv, then cellranger multi runs.
 process CELLRANGER_MULTI {
     tag "$library_id"
-    label 'process_high'
     container "${params.container_cellranger}"
     publishDir { "${params.outdir}/${metas[0].run_name}_outs" }, mode: 'copy'
 

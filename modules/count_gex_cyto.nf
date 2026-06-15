@@ -4,7 +4,6 @@
 // Does NOT require a reference genome — maps reads directly to probe sequences.
 process CYTO_FLEX {
     tag "$library_id"
-    label 'process_high'
     container "${params.container_cyto}"
     publishDir { "${params.outdir}/${metas[0].run_name}_outs" }, mode: 'copy'
 
@@ -88,7 +87,6 @@ OSCAR_PYEOF
 // No-op when samples_file is NO_FILE (singleplex / uniplexed run).
 process CYTO_RENAME_SAMPLES {
     tag "$library_id"
-    label 'process_low'
 
     input:
     tuple val(library_id), val(metas), path(cyto_out), path(samples_file)

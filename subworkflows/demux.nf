@@ -1,6 +1,7 @@
-include { GENERATE_SAMPLESHEET } from '../modules/demux'
-include { BCLCONVERT }          from '../modules/demux'
-include { FASTQ_QC }            from './fastq_qc'
+include { GENERATE_SAMPLESHEET  } from '../modules/demux'
+include { BCLCONVERT            } from '../modules/demux'
+include { TOP_UNKNOWN_BARCODES  } from '../modules/demux'
+include { FASTQ_QC              } from './fastq_qc'
 
 workflow DEMUX {
     take:
@@ -62,6 +63,15 @@ workflow DEMUX {
             .set { ch_bclconvert_input }
 
         BCLCONVERT(ch_bclconvert_input)
+
+        // Aggregate undetermined R1s across lanes per demux group, count top unknown barcodes.
+        // Runs independently — no downstream process waits on it.
+        BCLCONVERT.out.undetermined
+            .groupTuple(by: [0, 2])
+            .map { demux_key, metas_per_lane, bcl_dir_name, r1_lists ->
+                [demux_key, metas_per_lane[0], bcl_dir_name, r1_lists.flatten()]
+            }
+            | TOP_UNKNOWN_BARCODES
 
         // Merge FASTQs from all lanes of the same demux group, then explode back to individual metas.
         // groupTuple(by: [0,1]) groups by (demux_key, bcl_dir_name) — same group across lanes.

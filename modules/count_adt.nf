@@ -8,7 +8,6 @@
 
 process FEATUREMAP {
     tag "$meta.library_id"
-    label 'process_low'
     container "${params.container_asap}"
 
     input:
@@ -30,7 +29,6 @@ process FEATUREMAP {
 
 process KALLISTO_INDEX {
     tag "$meta.library_id"
-    label 'process_low'
     container "${params.container_kallisto}"
 
     input:
@@ -50,7 +48,6 @@ process KALLISTO_INDEX {
 
 process ASAP_TO_KITE {
     tag "$meta.library_id"
-    label 'process_medium'
     container "${params.container_asap}"
 
     input:
@@ -82,7 +79,6 @@ process ASAP_TO_KITE {
 
 process KALLISTO_BUS {
     tag "$meta.library_id"
-    label 'process_high'   // overridden via withName: 'KALLISTO_BUS'
     container "${params.container_kallisto}"
 
     input:
@@ -108,7 +104,6 @@ process KALLISTO_BUS {
 
 process BUSTOOLS_CORRECT {
     tag "$meta.library_id"
-    label 'process_low'
     container "${params.container_bustools}"
 
     input:
@@ -131,7 +126,6 @@ process BUSTOOLS_CORRECT {
 
 process BUSTOOLS_SORT {
     tag "$meta.library_id"
-    label 'process_medium'
     container "${params.container_bustools}"
 
     input:
@@ -154,7 +148,6 @@ process BUSTOOLS_SORT {
 
 process BUSTOOLS_COUNT {
     tag "$meta.library_id"
-    label 'process_low'
     container "${params.container_bustools}"
     publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}_ATAC/ADT" }, mode: 'copy'
 
