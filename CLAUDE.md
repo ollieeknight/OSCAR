@@ -271,7 +271,7 @@ Falls back to `params.sequencer` (default: `novaseq_x`) if RunInfo.xml absent or
 SI/DI kit codes resolved at startup by `load_si_indexes()` from `assets/indexes/` CSVs:
 
 - `SI-GA-*` / `SI-NA-*` → 4 single-index rows (8 bp each), `is_dual = false`
-- `SI-TT-*` / `SI-TN-*` → 1 dual-index row (i7 + i5), `is_dual = true`
+- `SI-TT-*` / `SI-TN-*` / `SI-TS-*` → 1 dual-index row (i7 + i5), `is_dual = true`
 - Raw 8-mer → 1 single-index row, `is_dual = false`
 
 **SI-on-DI correction**: When `index_type=DI` but the actual index is single-index, `get_override_cycles()` corrects: I1 → `I{len}N*`, I2 → `N*` (fully masked).

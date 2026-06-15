@@ -64,9 +64,9 @@ workflow COUNT_GEX {
             if (has_samples) {
                 FLEX_SAMPLE_PREPARE(
                     Channel.value(file(params.flex_samples_file)),
-                    FLEX_BARCODE_EXTRACT.out.barcodes.first()
+                    FLEX_BARCODE_EXTRACT.out.barcodes
                 )
-                ch_cyto_barcodes = FLEX_SAMPLE_PREPARE.out.cyto_barcodes.first()
+                ch_cyto_barcodes = FLEX_SAMPLE_PREPARE.out.cyto_barcodes
             } else {
                 ch_cyto_barcodes = Channel.value(file('NO_FILE'))
             }
@@ -78,7 +78,7 @@ workflow COUNT_GEX {
                 }
                 .combine(FLEX_PROBE_PREPARE.out.probe_tsv_cyto)
                 .combine(ch_cyto_barcodes)
-                .combine(FLEX_WHITELIST_EXTRACT.out.whitelist.first())
+                .combine(FLEX_WHITELIST_EXTRACT.out.whitelist)
                 .combine(ch_cyto_preset)
                 .map { lid, metas, gex_fqs, probe_tsv, barcodes, whitelist, preset ->
                     [lid, metas, probe_tsv, barcodes, whitelist, preset, gex_fqs]

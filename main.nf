@@ -32,7 +32,7 @@ def load_si_indexes(String projectDir, String sequencer) {
         }
     }
 
-    ['Dual_Index_Kit_TT_Set_A.csv', 'Dual_Index_Kit_TN_Set_A.csv'].each { fname ->
+    ['Dual_Index_Kit_TT_Set_A.csv', 'Dual_Index_Kit_TN_Set_A.csv', 'Dual_Index_Kit_TS_Set_A.csv'].each { fname ->
         def f = new File("${assets}/${fname}")
         if (f.exists()) f.eachLine { line ->
             if (line.trim()) {
