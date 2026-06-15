@@ -245,7 +245,14 @@ process BCLCONVERT {
     path "fastqs/Reports/Top_Unknown_Barcodes_*.csv",                                optional: true, emit: unknown_barcodes
 
     script:
-    def modality = metas[0].modality
+    def modality     = metas[0].modality
+    // Illumina formula: n_tiles × n_convert + n_compress + n_decompress = task.cpus
+    // Scale from Illumina's 32-thread example (2×4+16+8=32) → half for 16 CPUs
+    def n_tiles      = Math.max(1, (int)(task.cpus / 8))
+    def n_convert    = Math.max(1, (int)(task.cpus / 8))
+    def n_compress   = (int)(task.cpus / 2)
+    def n_decompress = Math.max(1, (int)(task.cpus / 4))
+    // total = n_tiles*n_convert + n_compress + n_decompress = 16 for task.cpus=16
     """
     rm -rf fastqs/
 
@@ -256,8 +263,11 @@ process BCLCONVERT {
         --bcl-only-lane                    ${lane} \\
         --bcl-enable-tile-metrics          false \\
         --bcl-enable-adapter-cycle-metrics false \\
-        --bcl-only-matched-reads           true \\
-        --num-unknown-barcodes-reported    50
+        --num-unknown-barcodes-reported    50 \\
+        --bcl-num-parallel-tiles           ${n_tiles} \\
+        --bcl-num-conversion-threads       ${n_convert} \\
+        --bcl-num-compression-threads      ${n_compress} \\
+        --bcl-num-decompression-threads    ${n_decompress}
 
     for f in fastqs/Reports/Top_Unknown_Barcodes.csv fastqs/Reports/Top_Unknown_Barcodes_L*.csv; do
         [ -f "\$f" ] && mv "\$f" "\${f/Top_Unknown_Barcodes/Top_Unknown_Barcodes_${modality}}" || true
