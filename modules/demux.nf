@@ -222,53 +222,42 @@ DATAEOF
 }
 
 // ─── BCLCONVERT ─────────────────────────────────────────────────────────────
-// Runs BCL Convert using a pre-built SampleSheet from GENERATE_SAMPLESHEET.
-// Input channel: [demux_key, metas_list, bcl_dir, samplesheet]
+// Runs BCL Convert for a single lane. One job per lane — avoids --no-lane-splitting
+// memory buffering on high-output flowcells. Lane detection happens upstream in the
+// subworkflow (Groovy), which flatMaps to one channel item per present lane.
+// Input channel: [demux_key, metas_list, bcl_dir, samplesheet, lane]
 
 process BCLCONVERT {
-    tag "$demux_key"
-    label 'process_medium'   // overridden to 16c/32GB/12h via withName: 'BCLCONVERT'
+    tag "${demux_key}_L${lane}"
+    label 'process_medium'   // overridden via withName: 'BCLCONVERT'
     container "${params.container_bclconvert}"
     publishDir {
         def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
         "${params.outdir}/${run}_fastq"
     }, mode: 'copy', pattern: 'fastqs/Reports/Top_Unknown_Barcodes_*.csv',
         saveAs: { fn -> fn.tokenize('/')[-1] }
+
     input:
-    tuple val(demux_key), val(metas), path(bcl_dir), path(samplesheet)
+    tuple val(demux_key), val(metas), path(bcl_dir), path(samplesheet), val(lane)
 
     output:
-    tuple val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"), emit: fastqs
-    path "fastqs/Reports/Top_Unknown_Barcodes_*.csv",                optional: true, emit: unknown_barcodes
+    tuple val(demux_key), val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"), emit: fastqs
+    path "fastqs/Reports/Top_Unknown_Barcodes_*.csv",                                optional: true, emit: unknown_barcodes
 
     script:
-    def modality    = metas[0].modality
+    def modality = metas[0].modality
     """
     rm -rf fastqs/
-
-    # Detect which lanes have actual cbcl data; pass --bcl-only-lane for each to skip empty lanes
-    lane_flags=""
-    for lane_dir in ${bcl_dir}/Data/Intensities/BaseCalls/L0*/; do
-        lane_num=\$(basename "\$lane_dir" | sed 's/L0*//')
-        if ls "\${lane_dir}"C1.1/*.cbcl 2>/dev/null | grep -q .; then
-            lane_flags="\${lane_flags} --bcl-only-lane \${lane_num}"
-        fi
-    done
-    if [ -z "\${lane_flags}" ]; then
-        echo "ERROR: No lanes with cbcl data found in ${bcl_dir}/Data/Intensities/BaseCalls/" >&2
-        exit 1
-    fi
 
     bcl-convert \\
         --bcl-input-directory              ${bcl_dir} \\
         --output-directory                 fastqs \\
         --sample-sheet                     ${samplesheet} \\
-        --no-lane-splitting                true \\
+        --bcl-only-lane                    ${lane} \\
         --bcl-enable-tile-metrics          false \\
         --bcl-enable-adapter-cycle-metrics false \\
         --bcl-only-matched-reads           true \\
-        --num-unknown-barcodes-reported    50 \\
-        \${lane_flags}
+        --num-unknown-barcodes-reported    50
 
     for f in fastqs/Reports/Top_Unknown_Barcodes.csv fastqs/Reports/Top_Unknown_Barcodes_L*.csv; do
         [ -f "\$f" ] && mv "\$f" "\${f/Top_Unknown_Barcodes/Top_Unknown_Barcodes_${modality}}" || true
