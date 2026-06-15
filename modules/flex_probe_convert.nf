@@ -76,6 +76,66 @@ PYEOF
     """
 }
 
+// ─── FLEX_BARCODE_EXTRACT ─────────────────────────────────────────────────────
+// Extracts the probe barcode reference file from the bundled cellranger container.
+// Auto-selects v1 (BC001) or v2 (A-A01) file based on chemistry. Runs once per
+// pipeline invocation; result is Nextflow-cached across subsequent runs.
+process FLEX_BARCODE_EXTRACT {
+    tag "barcode_extract"
+    label 'process_low'
+    container "${params.container_cellranger}"
+
+    input:
+    val(chemistry)
+
+    output:
+    path "probe_barcodes.txt", emit: barcodes
+    path "versions.yml",       emit: versions
+
+    script:
+    def bc_file = chemistry ==~ /Flex-v2.*/
+        ? "flex-v2-384.txt"
+        : "probe-barcodes-fixed-rna-profiling-rna-r1.txt"
+    """
+    cp /opt/cellranger-10.0.0/lib/python/cellranger/barcodes/translation/${bc_file} probe_barcodes.txt
+
+    cat <<-VERSIONS_EOF > versions.yml
+    "${task.process}":
+        cellranger: \$(cellranger --version 2>&1 | grep -oP '(?<=cellranger )[0-9.]+' || echo "unknown")
+    VERSIONS_EOF
+    """
+}
+
+// ─── FLEX_WHITELIST_EXTRACT ───────────────────────────────────────────────────
+// Extracts the cell barcode whitelist from the bundled cellranger container.
+// Flex v1: 737K-flex-v2.txt.gz (confusingly named, but correct for v1 chemistry).
+// Flex v2 (GEM-X): 737K-fixed-rna-profiling.txt.gz.
+process FLEX_WHITELIST_EXTRACT {
+    tag "whitelist_extract"
+    label 'process_low'
+    container "${params.container_cellranger}"
+
+    input:
+    val(chemistry)
+
+    output:
+    path "cb_whitelist.txt.gz", emit: whitelist
+    path "versions.yml",        emit: versions
+
+    script:
+    def wl_file = chemistry ==~ /Flex-v2.*/
+        ? "737K-fixed-rna-profiling.txt.gz"
+        : "737K-flex-v2.txt.gz"
+    """
+    cp /opt/cellranger-10.0.0/lib/python/cellranger/barcodes/${wl_file} cb_whitelist.txt.gz
+
+    cat <<-VERSIONS_EOF > versions.yml
+    "${task.process}":
+        cellranger: \$(cellranger --version 2>&1 | grep -oP '(?<=cellranger )[0-9.]+' || echo "unknown")
+    VERSIONS_EOF
+    """
+}
+
 // ─── FLEX_SAMPLE_PREPARE ──────────────────────────────────────────────────────
 // Expands probe barcode IDs (BC001-BC016) from flex_samples_file to the actual
 // 8bp variant sequences that cyto needs for sample demultiplexing.

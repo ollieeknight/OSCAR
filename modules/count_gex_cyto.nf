@@ -13,6 +13,7 @@ process CYTO_FLEX {
           path(probe_tsv_cyto),
           path(cyto_probe_barcodes),
           path(cb_whitelist),
+          val(cyto_preset),
           path(gex_fastqs, stageAs: "fastqs/gex/run_???/*")
 
     output:
@@ -65,7 +66,7 @@ OSCAR_PYEOF
         -c ${probe_tsv_cyto} \\
         \${PROBES_ARG} \\
         -w ${cb_whitelist} \\
-        --preset gex-v2 \\
+        --preset ${cyto_preset} \\
         -o ${library_id}_cyto \\
         -F mtx \\
         --no-filter \\

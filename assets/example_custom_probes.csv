@@ -1,0 +1,4 @@
+gene_id;probe_seq;probe_id;included;region;gene_name
+test_probe;GTTAGCTGGCCTTGTGGCAGAGGCTCTGGCAGCACCGGCCACAGCACACA;test_probe|probe|8a39b06;TRUE;spliced;test_probe
+test_probe;CAGAAGTCGAGTTTGGGTCCATCATCTTCAGCAAAGATAGCAAAGGTGGC;test_probe|probe|0876554;TRUE;spliced;test_probe
+test_probe;GGATAATGGAGTCAACATCCAGGCTTGGGCACATCTGCTTCAACAGGAGG;test_probe|probe|0c07d22;TRUE;spliced;test_probe

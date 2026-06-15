@@ -115,12 +115,8 @@ def preflight_flex(String ss_path) {
         if (!params.container_cyto || !file(params.container_cyto).exists())
             error "ERROR: cyto container not found at '${params.container_cyto}'. " +
                   "Build it: apptainer build ${params.container_cyto} OSCAR/containers/cyto.def"
-        if (!params.flex_cb_whitelist || !file(params.flex_cb_whitelist).exists())
-            error "ERROR: --flex_cb_whitelist not found: ${params.flex_cb_whitelist}. " +
-                  "Extract from container: see PLAN-flex-backends.md"
-        if (params.flex_samples_file && !params.flex_sample_probes_ref)
-            error "ERROR: --flex_sample_probes_ref required when using cyto with multiplex Flex. " +
-                  "Download probe-barcodes-fixed-rna-profiling-rna.txt from 10x website."
+        // Probe barcode ref and cell barcode whitelist are auto-extracted from the
+        // cellranger container at runtime — no manual file paths required.
     }
 }
 
@@ -521,9 +517,12 @@ workflow {
                     def has_adt    = all_metas.any { it.modality in ['ADT', 'HTO'] }
                     def create_bam = 'true'
 
-                    def lines = ['[gene-expression]',
-                                 "reference,${ref_gex}",
-                                 "create-bam,${create_bam}"]
+                    // Flex v2 (GEM-X) does not use a transcriptome reference — cellranger
+                    // maps directly to probe sequences. v1 still requires reference.
+                    def is_flex_v2 = meta.assay == 'Flex' && meta.chemistry ==~ /Flex-v2.*/
+                    def lines = ['[gene-expression]']
+                    if (!is_flex_v2) lines << "reference,${ref_gex}"
+                    lines << "create-bam,${create_bam}"
                     if (meta.assay in ['DOGMA', 'Multiome'])          lines << 'chemistry,ARC-v1'
                     else if (meta.assay == 'Flex' && meta.chemistry) {
                         lines << "chemistry,${meta.chemistry}"

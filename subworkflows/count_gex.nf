@@ -1,8 +1,10 @@
 include { CELLRANGER_MULTI    } from '../modules/count_gex'
 include { CYTO_FLEX           } from '../modules/count_gex_cyto'
 include { CYTO_RENAME_SAMPLES } from '../modules/count_gex_cyto'
-include { FLEX_PROBE_PREPARE  } from '../modules/flex_probe_convert'
-include { FLEX_SAMPLE_PREPARE } from '../modules/flex_probe_convert'
+include { FLEX_PROBE_PREPARE    } from '../modules/flex_probe_convert'
+include { FLEX_SAMPLE_PREPARE   } from '../modules/flex_probe_convert'
+include { FLEX_BARCODE_EXTRACT  } from '../modules/flex_probe_convert'
+include { FLEX_WHITELIST_EXTRACT } from '../modules/flex_probe_convert'
 
 workflow COUNT_GEX {
     take:
@@ -39,30 +41,47 @@ workflow COUNT_GEX {
 
             FLEX_PROBE_PREPARE(Channel.value([std_probe, cust_probe]))
 
+            // Detect Flex chemistry version from first Flex library to auto-select barcode ref + preset
+            def ch_flex_chem = ch_split.flex
+                .map { lid, metas, _cfg, _adt, _flex, _gex, _adt_fqs, _hto_fqs, _vdj_t, _vdj_b, _crispr ->
+                    def ml = []; metas.each { ml << it }
+                    (ml.find { it.modality == 'GEX' }?.chemistry ?: 'Flex-v2-R1')
+                }
+                .first()
+
+            def ch_cyto_preset = ch_flex_chem.map { chem ->
+                chem ==~ /Flex-v2.*/ ? 'gex-v2' : 'gex-v1'
+            }
+
+            // Auto-extract probe barcode ref + cell barcode whitelist from cellranger container
+            FLEX_BARCODE_EXTRACT(ch_flex_chem)
+            FLEX_WHITELIST_EXTRACT(ch_flex_chem)
+
             // Probe barcode expansion — only needed for multiplexed Flex
-            def has_samples = params.flex_samples_file && params.flex_sample_probes_ref
+            def has_samples = params.flex_samples_file as boolean
             def ch_cyto_barcodes
 
             if (has_samples) {
                 FLEX_SAMPLE_PREPARE(
                     Channel.value(file(params.flex_samples_file)),
-                    Channel.value(file(params.flex_sample_probes_ref))
+                    FLEX_BARCODE_EXTRACT.out.barcodes.first()
                 )
                 ch_cyto_barcodes = FLEX_SAMPLE_PREPARE.out.cyto_barcodes.first()
             } else {
                 ch_cyto_barcodes = Channel.value(file('NO_FILE'))
             }
 
-            // Build cyto input: [lid, metas, probe_tsv, barcodes, whitelist, gex_fastqs]
+            // Build cyto input: [lid, metas, probe_tsv, barcodes, whitelist, cyto_preset, gex_fastqs]
             ch_split.flex
                 .map { lid, metas, _cfg, _adt, _flex, gex_fqs, _adt_fqs, _hto_fqs, _vdj_t, _vdj_b, _crispr ->
                     [lid, metas, gex_fqs]
                 }
                 .combine(FLEX_PROBE_PREPARE.out.probe_tsv_cyto)
                 .combine(ch_cyto_barcodes)
-                .combine(Channel.value(file(params.flex_cb_whitelist)))
-                .map { lid, metas, gex_fqs, probe_tsv, barcodes, whitelist ->
-                    [lid, metas, probe_tsv, barcodes, whitelist, gex_fqs]
+                .combine(FLEX_WHITELIST_EXTRACT.out.whitelist.first())
+                .combine(ch_cyto_preset)
+                .map { lid, metas, gex_fqs, probe_tsv, barcodes, whitelist, preset ->
+                    [lid, metas, probe_tsv, barcodes, whitelist, preset, gex_fqs]
                 }
                 .set { ch_cyto_input }
 
