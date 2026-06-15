@@ -228,31 +228,22 @@ DATAEOF
 // Input channel: [demux_key, metas_list, bcl_dir, samplesheet, lane]
 
 process BCLCONVERT {
-    tag "${demux_key}_L${lane}"
-    label 'process_medium'   // overridden via withName: 'BCLCONVERT'
+    tag "$demux_key"
     container "${params.container_bclconvert}"
     publishDir {
         def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
         "${params.outdir}/${run}_fastq"
     }, mode: 'copy', pattern: 'fastqs/Reports/Top_Unknown_Barcodes_*.csv',
         saveAs: { fn -> fn.tokenize('/')[-1] }
-
     input:
-    tuple val(demux_key), val(metas), path(bcl_dir), path(samplesheet), val(lane)
+    tuple val(demux_key), val(metas), path(bcl_dir), path(samplesheet)
 
     output:
-    tuple val(demux_key), val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"), emit: fastqs
-    path "fastqs/Reports/Top_Unknown_Barcodes_*.csv",                                optional: true, emit: unknown_barcodes
+    tuple val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"), emit: fastqs
+    path "fastqs/Reports/Top_Unknown_Barcodes_*.csv",                optional: true, emit: unknown_barcodes
 
     script:
-    def modality     = metas[0].modality
-    // Illumina formula: n_tiles × n_convert + n_compress + n_decompress = task.cpus
-    // Scale from Illumina's 32-thread example (2×4+16+8=32) → half for 16 CPUs
-    def n_tiles      = Math.max(1, (task.cpus / 8).toInteger())
-    def n_convert    = Math.max(1, (task.cpus / 8).toInteger())
-    def n_compress   = (task.cpus / 2).toInteger()
-    def n_decompress = Math.max(1, (task.cpus / 4).toInteger())
-    // total = n_tiles*n_convert + n_compress + n_decompress = 16 for task.cpus=16
+    def modality    = metas[0].modality
     """
     rm -rf fastqs/
 
@@ -260,14 +251,15 @@ process BCLCONVERT {
         --bcl-input-directory              ${bcl_dir} \\
         --output-directory                 fastqs \\
         --sample-sheet                     ${samplesheet} \\
-        --bcl-only-lane                    ${lane} \\
+        --no-lane-splitting                true \\
+        --bcl-num-parallel-tiles           2 \\
+        --bcl-num-conversion-threads       ${task.cpus / 4} \\
+        --bcl-num-compression-threads      ${task.cpus / 2} \\
+        --bcl-num-decompression-threads    ${task.cpus / 4} \\
         --bcl-enable-tile-metrics          false \\
         --bcl-enable-adapter-cycle-metrics false \\
-        --num-unknown-barcodes-reported    0 \\
-        --bcl-num-parallel-tiles           ${n_tiles} \\
-        --bcl-num-conversion-threads       ${n_convert} \\
-        --bcl-num-compression-threads      ${n_compress} \\
-        --bcl-num-decompression-threads    ${n_decompress}
+        --bcl-only-matched-reads           true \\
+        --num-unknown-barcodes-reported    50
 
     for f in fastqs/Reports/Top_Unknown_Barcodes.csv fastqs/Reports/Top_Unknown_Barcodes_L*.csv; do
         [ -f "\$f" ] && mv "\$f" "\${f/Top_Unknown_Barcodes/Top_Unknown_Barcodes_${modality}}" || true
