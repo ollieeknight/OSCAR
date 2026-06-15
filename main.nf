@@ -258,7 +258,7 @@ def get_velocity_chemistry(chemistry) {
 // Instrument ID prefixes:
 //   VH  → NovaSeq X / X Plus   → i5 forward  → 'novaseq_x'
 //   A   → NovaSeq 6000          → i5 RC        → 'novaseq6000'
-//   LH  → NovaSeq 6000          → i5 RC        → 'novaseq6000'
+//   LH  → NovaSeq X LEAP         → i5 forward   → 'novaseq_x'
 //   MN  → MiniSeq               → i5 RC        → 'novaseq6000' (fallback)
 //   NB  → NextSeq 550           → i5 RC        → 'novaseq6000'
 //   NS  → NextSeq 500           → i5 RC        → 'novaseq6000'
@@ -282,7 +282,7 @@ def detect_sequencer(String bcl_path) {
     if      (instrument_id.startsWith('VH'))  sequencer = 'novaseq_x'   // NovaSeq X / X Plus
     else if (instrument_id.startsWith('NDX')) sequencer = 'novaseq_x'   // NextSeq 2000/1000
     else if (instrument_id.startsWith('A'))   sequencer = 'novaseq6000' // NovaSeq 6000
-    else if (instrument_id.startsWith('LH'))  sequencer = 'novaseq6000' // NovaSeq 6000 (XLEAP)
+    else if (instrument_id.startsWith('LH'))  sequencer = 'novaseq_x'   // NovaSeq X LEAP (i5 forward; BCL Convert auto-RCs via IsReverseComplement)
     else if (instrument_id.startsWith('NB'))  sequencer = 'novaseq6000' // NextSeq 550
     else if (instrument_id.startsWith('NS'))  sequencer = 'novaseq6000' // NextSeq 500
     else if (instrument_id.startsWith('MN'))  sequencer = 'novaseq6000' // MiniSeq
