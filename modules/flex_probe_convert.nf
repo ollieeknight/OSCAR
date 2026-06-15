@@ -5,6 +5,7 @@
 process FLEX_PROBE_PREPARE {
     tag "probe_merge"
     label 'process_low'
+    container "${params.container_python}"
 
     input:
     tuple path(standard_probe_csv), path(custom_probe_csv)
@@ -24,7 +25,8 @@ standard_rows = []
 std_path = Path("${standard_probe_csv}")
 if std_path.name != "NO_FILE":
     with open(std_path) as f:
-        reader = csv.DictReader(f)
+        lines = [l for l in f if not l.startswith('#')]
+        reader = csv.DictReader(lines)
         for row in reader:
             standard_rows.append(row)
 
@@ -143,6 +145,7 @@ process FLEX_WHITELIST_EXTRACT {
 process FLEX_SAMPLE_PREPARE {
     tag "sample_barcodes"
     label 'process_low'
+    container "${params.container_python}"
 
     input:
     path samples_file
