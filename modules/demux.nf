@@ -221,13 +221,9 @@ DATAEOF
 }
 
 // ─── BCLCONVERT ─────────────────────────────────────────────────────────────
-// Runs BCL Convert for a single lane. One job per lane — avoids --no-lane-splitting
-// memory buffering on high-output flowcells. Lane detection happens upstream in the
-// subworkflow (Groovy), which flatMaps to one channel item per present lane.
-// Input channel: [demux_key, metas_list, bcl_dir, samplesheet, lane]
 
 process BCLCONVERT {
-    tag "$demux_key"
+    tag "${demux_key}_L${lane}"
     container "${params.container_bclconvert}"
     publishDir {
         def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
@@ -255,13 +251,12 @@ process BCLCONVERT {
         --output-directory                 fastqs \\
         --sample-sheet                     ${samplesheet} \\
         --bcl-only-lane                    ${lane} \\
+        --bcl-enable-tile-metrics          false \\
+        --bcl-enable-adapter-cycle-metrics false \\
         --bcl-num-parallel-tiles           ${n_tiles} \\
         --bcl-num-conversion-threads       ${n_convert} \\
         --bcl-num-compression-threads      ${n_compress} \\
-        --bcl-num-decompression-threads    ${n_decompress} \\
-        --bcl-enable-tile-metrics          false \\
-        --bcl-enable-adapter-cycle-metrics false \\
-        --num-unknown-barcodes-reported    0
+        --bcl-num-decompression-threads    ${n_decompress}
 
     for f in fastqs/Reports/Top_Unknown_Barcodes.csv fastqs/Reports/Top_Unknown_Barcodes_L*.csv; do
         [ -f "\$f" ] && mv "\$f" "\${f/Top_Unknown_Barcodes/Top_Unknown_Barcodes_${modality}}" || true
