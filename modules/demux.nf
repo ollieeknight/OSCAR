@@ -248,10 +248,10 @@ process BCLCONVERT {
     def modality     = metas[0].modality
     // Illumina formula: n_tiles × n_convert + n_compress + n_decompress = task.cpus
     // Scale from Illumina's 32-thread example (2×4+16+8=32) → half for 16 CPUs
-    def n_tiles      = Math.max(1, (int)(task.cpus / 8))
-    def n_convert    = Math.max(1, (int)(task.cpus / 8))
-    def n_compress   = (int)(task.cpus / 2)
-    def n_decompress = Math.max(1, (int)(task.cpus / 4))
+    def n_tiles      = Math.max(1, (task.cpus / 8).toInteger())
+    def n_convert    = Math.max(1, (task.cpus / 8).toInteger())
+    def n_compress   = (task.cpus / 2).toInteger()
+    def n_decompress = Math.max(1, (task.cpus / 4).toInteger())
     // total = n_tiles*n_convert + n_compress + n_decompress = 16 for task.cpus=16
     """
     rm -rf fastqs/
