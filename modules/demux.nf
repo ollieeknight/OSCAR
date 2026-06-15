@@ -140,7 +140,6 @@ def apply_si_on_di_correction(String oc, Integer seq_len) {
 
 process GENERATE_SAMPLESHEET {
     tag "$demux_key"
-    label 'process_low'
     container "${params.container_bclconvert}"
 
     input:
@@ -272,7 +271,6 @@ process BCLCONVERT {
 
 process FALCO {
     tag "$fastq_name"
-    label 'process_low'
     container "${params.container_falco}"
     publishDir { "${params.outdir}/${run_name}_fastq/falco" }, mode: 'copy'
 
@@ -292,7 +290,6 @@ process FALCO {
 // ─── MULTIQC ──────────────────────────────────────────────────────────────────
 
 process MULTIQC {
-    label 'process_low'
     container "${params.container_multiqc}"
     publishDir { "${params.outdir}/${run_name}_fastq/multiqc" }, mode: 'copy'
 
@@ -316,7 +313,6 @@ process MULTIQC {
 
 process VALIDATE_FASTQ {
     tag "$meta.id"
-    label 'process_low'
     container "${params.container_pigz}"
     publishDir { "${params.outdir}/${meta.run_name}_fastq" }, mode: 'copy',
         saveAs: { fn -> file(fn).name }
