@@ -254,6 +254,10 @@ process BCLCONVERT {
             lane_flags="\${lane_flags} --bcl-only-lane \${lane_num}"
         fi
     done
+    if [ -z "\${lane_flags}" ]; then
+        echo "ERROR: No lanes with cbcl data found in ${bcl_dir}/Data/Intensities/BaseCalls/" >&2
+        exit 1
+    fi
 
     bcl-convert \\
         --bcl-input-directory              ${bcl_dir} \\
@@ -262,7 +266,7 @@ process BCLCONVERT {
         --no-lane-splitting                true \\
         --bcl-num-parallel-tiles           2 \\
         --bcl-num-conversion-threads       ${task.cpus / 4} \\
-        --bcl-num-compression-threads      ${task.cpus / 2} \\
+        --bcl-num-compression-threads      ${task.cpus / 4} \\
         --bcl-num-decompression-threads    ${task.cpus / 4} \\
         --bcl-enable-tile-metrics          false \\
         --bcl-enable-adapter-cycle-metrics false \\
