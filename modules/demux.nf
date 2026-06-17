@@ -53,8 +53,8 @@ def get_override_cycles(assay, chemistry, index_type, modality, num_reads, index
         'DI_ASAP_ADT':          [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
         'DI_ASAP_HTO':          [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
         'DI_ASAP_GENO':         [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
-        // GEM-X Flex v2 (Fixed RNA Profiling): always DI, same cycle structure as SC3Pv4 GEX
-        'DI_Flex-v2_GEX':       [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        // GEM-X Flex v2 (Fixed RNA Profiling): full cycles — N-masking causes bcl-convert cbcl stall
+        'DI_Flex-v2_GEX':       [4: 'Y*;I10;I10;Y*'],
     ]
 
     // Resolve key from assay/chemistry/index_type/modality
@@ -225,13 +225,16 @@ DATAEOF
 process BCLCONVERT {
     tag "${demux_key}_L${lane}"
     container "${params.container_bclconvert}"
+    publishDir {
+        def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
+        "${params.outdir}/${run}_fastq"
+    }, mode: 'copy', pattern: "fastqs/*.fastq.gz", saveAs: { fn -> file(fn).name }
 
     input:
     tuple val(demux_key), val(metas), path(bcl_dir), path(samplesheet), val(lane)
 
     output:
-    tuple val(demux_key), val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"),                  emit: fastqs
-    tuple val(demux_key), val(metas), val(bcl_dir.name), path("fastqs/Undetermined_S*_L*_R1_*.fastq.gz"), optional: true, emit: undetermined
+    tuple val(demux_key), val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"), emit: fastqs
 
     script:
     def n_tiles      = Math.max(1, (task.cpus / 8).toInteger())
@@ -245,57 +248,7 @@ process BCLCONVERT {
         --bcl-input-directory              ${bcl_dir} \\
         --output-directory                 fastqs \\
         --sample-sheet                     ${samplesheet} \\
-        --bcl-only-lane                    ${lane} \\
-        --bcl-enable-tile-metrics          false \\
-        --bcl-enable-adapter-cycle-metrics false \\
-        --bcl-num-parallel-tiles           ${n_tiles} \\
-        --bcl-num-conversion-threads       ${n_convert} \\
-        --bcl-num-compression-threads      ${n_compress} \\
-        --bcl-num-decompression-threads    ${n_decompress}
-    """
-}
-
-// ─── TOP_UNKNOWN_BARCODES ─────────────────────────────────────────────────────
-// Counts top-50 unknown index sequences from Undetermined R1 FASTQs.
-// Runs independently of cellranger — no downstream process depends on it.
-// Extracts the index field (2nd space-delimited token) from FASTQ headers,
-// samples up to 1M reads, counts and ranks by frequency.
-// Output: Top_Unknown_Barcodes_{modality}.csv with barcode/n_count/percent columns.
-
-process TOP_UNKNOWN_BARCODES {
-    tag "$demux_key"
-    container "${params.container_pigz}"
-    publishDir {
-        def run = bcl_dir_name.replaceAll(/_bcl.*$/, '')
-        "${params.outdir}/${run}_fastq"
-    }, mode: 'copy', saveAs: { fn -> file(fn).name }
-
-    input:
-    tuple val(demux_key), val(metas), val(bcl_dir_name), path(undetermined_r1_files)
-
-    output:
-    path "Top_Unknown_Barcodes_*.csv", emit: report
-
-    script:
-    def modality = metas[0].modality
-    """
-    zcat ${undetermined_r1_files instanceof List ? undetermined_r1_files.join(' ') : undetermined_r1_files} \\
-        | awk 'NR%4==1{print \$2}' \\
-        | head -n 1000000 \\
-        > sampled_barcodes.txt
-
-    total=\$(wc -l < sampled_barcodes.txt | tr -d ' ')
-
-    if [ "\$total" -eq 0 ]; then
-        echo "barcode,n_count,percent_of_all_unknown" > "Top_Unknown_Barcodes_${modality}.csv"
-        exit 0
-    fi
-
-    sort sampled_barcodes.txt | uniq -c | sort -rn | head -50 \\
-        | awk -v total="\$total" \\
-            'BEGIN{print "barcode,n_count,percent_of_all_unknown"} \\
-             {printf "%s,%d,%.4f\\n", \$2, \$1, (\$1/total)*100}' \\
-        > "Top_Unknown_Barcodes_${modality}.csv"
+        --bcl-only-lane                    ${lane}
     """
 }
 
@@ -347,8 +300,6 @@ process MULTIQC {
 process VALIDATE_FASTQ {
     tag "$meta.id"
     container "${params.container_pigz}"
-    publishDir { "${params.outdir}/${meta.run_name}_fastq" }, mode: 'copy',
-        saveAs: { fn -> file(fn).name }
 
     input:
     tuple val(meta), val(fastq_dir), path(fastq), val(fastq_name)
