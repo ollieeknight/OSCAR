@@ -37,8 +37,7 @@ From: ubuntu:22.04
     # target-cpu=native optimises for the build node's CPU microarchitecture.
     # Build and execute nodes should be the same CPU family on BIH HPC (AVX2+).
     # Remove the flag if building on a different machine than where jobs run.
-    RUSTFLAGS="-C target-cpu=native" \
-        cargo install --path crates/cyto --root /usr/local --locked
+    cargo install --path crates/cyto --root /usr/local --locked
 
     # ── Clean build artefacts to reduce image size ────────────────────────────
     cd /
