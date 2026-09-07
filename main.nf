@@ -4,89 +4,48 @@ nextflow.enable.dsl = 2
 
 // ─── Imports ──────────────────────────────────────────────────────────────────
 include { DEMUX }          from './subworkflows/demux'
-include { REPORT }         from './subworkflows/report'
 include { COUNT_GEX }      from './subworkflows/count_gex'
-include { COUNT_ATAC }     from './subworkflows/count_atac'
 include { COUNT_ADT }      from './subworkflows/count_adt'
 include { QC_GEX }         from './subworkflows/qc_gex'
 include { QC_ATAC }        from './subworkflows/qc_atac'
-include { VIRAL_DETECT; SIMPLEAF_VELOCITY } from './modules/qc'
+include { CELLRANGER_ATAC } from './modules/count_atac'
+include { MULTIQC }         from './modules/demux'
+include { VIRAL_DETECT; SIMPLEAF_VELOCITY } from './modules/quant_extra'
 
-// ─── Helper functions ─────────────────────────────────────────────────────────
+include { load_si_indexes; detect_sequencer } from './lib/indexes'
+include { preflight_samplesheet; parse_samplesheet } from './lib/samplesheet'
+include { get_viral_whitelist; get_simpleaf_chemistry; get_velocity_chemistry } from './lib/chemistry'
 
-// Load 10x Genomics SI/DI index kit sequences from assets/indexes/ CSVs.
-// Returns [single: {code: [seq1..4]}, dual: {code: {i7, i5}}]
-// i5 column: NS6000 uses col3 (RC), NovaSeq X uses col4 (fwd)
-def load_si_indexes(String projectDir, String sequencer) {
-    def assets = "${projectDir}/assets/indexes"
-    def si     = [single: [:], dual: [:]]
-    def i5_col = (sequencer == 'novaseq_x') ? 2 : 3   // 1-indexed after name col
+// ─── Preflight ────────────────────────────────────────────────────────────────
 
-    ['Single_Index_Kit_GA_Set_A.csv', 'Single_Index_Kit_NA_Set_A.csv'].each { fname ->
-        def f = new File("${assets}/${fname}")
-        if (f.exists()) f.eachLine { line ->
-            if (line.trim()) {
-                def p = line.trim().split(',')
-                si.single[p[0]] = p[1..-1]   // [seq1, seq2, seq3, seq4]
-            }
-        }
-    }
-
-    ['Dual_Index_Kit_TT_Set_A.csv', 'Dual_Index_Kit_TN_Set_A.csv', 'Dual_Index_Kit_TS_Set_A.csv'].each { fname ->
-        def f = new File("${assets}/${fname}")
-        if (f.exists()) f.eachLine { line ->
-            if (line.trim()) {
-                def p = line.trim().split(',')
-                si.dual[p[0]] = [i7: p[1], i5: p[i5_col]]
-            }
-        }
-    }
-    si
-}
-
-// Resolve a raw index value to BCL Convert rows.
-// Returns [is_dual: bool, rows: [[i7: seq] or [i7: seq, i5: seq]]]
-def resolve_index(String index, Map si_indexes) {
-    if (index == null || index.toUpperCase() == 'NA' || index == '') {
-        return [is_dual: false, rows: []]
-    }
-    if (si_indexes.single.containsKey(index))
-        return [is_dual: false, rows: si_indexes.single[index].collect { [i7: it] }]
-    if (si_indexes.dual.containsKey(index)) {
-        def d = si_indexes.dual[index]
-        return [is_dual: true, rows: [[i7: d.i7, i5: d.i5]]]
-    }
-    // Direct sequence (raw 8-mer or longer): single-index, i7 only
-    return [is_dual: false, rows: [[i7: index]]]
-}
-
-def preflight_check() {
-    if (!params.samplesheet) error "ERROR: --samplesheet is required"
-    if (!file(params.samplesheet).exists()) error "ERROR: samplesheet not found: ${params.samplesheet}"
+def preflight_check(Map paths) {
+    if (!paths.samplesheet) error "ERROR: --samplesheet is required"
+    if (!file(paths.samplesheet).exists()) error "ERROR: samplesheet not found: ${paths.samplesheet}"
 
     if (params.from_fastq && params.from_cellranger)
-        error "ERROR: --from-fastq and --from-cellranger are mutually exclusive"
+        error "ERROR: --from_fastq and --from_cellranger are mutually exclusive"
 
     if (!params.from_fastq && !params.from_cellranger) {
-        if (!params.bcl_dir) error "ERROR: --bcl_dir is required (or use --from-fastq / --from-cellranger)"
-        if (!file(params.bcl_dir).exists()) error "ERROR: bcl_dir not found: ${params.bcl_dir}"
+        if (!paths.bcl_dir) error "ERROR: --bcl_dir is required (or use --from_fastq / --from_cellranger)"
+        if (!file(paths.bcl_dir).exists()) error "ERROR: bcl_dir not found: ${paths.bcl_dir}"
     }
-    if (params.from_fastq && !params.fastq_dir)
-        error "ERROR: --fastq_dir is required when --from-fastq is set"
-    if (params.from_cellranger && !params.outs_dir)
-        error "ERROR: --outs_dir is required when --from-cellranger is set"
+    if (params.from_fastq && !paths.fastq_dir)
+        error "ERROR: --fastq_dir is required when --from_fastq is set"
+    if (params.from_cellranger && !paths.outs_dir)
+        error "ERROR: --outs_dir is required when --from_cellranger is set"
 
     if (params.run_until && !['FASTQ', 'cellranger'].contains(params.run_until))
-        error "ERROR: --run-until must be 'FASTQ' or 'cellranger' (got: '${params.run_until}')"
+        error "ERROR: --run_until must be 'FASTQ' or 'cellranger' (got: '${params.run_until}')"
     if (params.from_fastq && params.run_until == 'FASTQ')
-        error "ERROR: --run-until FASTQ has no effect when starting from FASTQs (--from-fastq)"
+        error "ERROR: --run_until FASTQ has no effect when starting from FASTQs (--from_fastq)"
     if (params.from_cellranger && params.run_until)
-        log.warn "WARNING: --run-until ignored — --from-cellranger starts at QC"
+        log.warn "WARNING: --run_until ignored — --from_cellranger starts at QC"
 }
 
+// Flex-specific preflight: only runs when a samplesheet actually contains Flex.
 def preflight_flex(String ss_path) {
-    def lines = new File(ss_path).readLines().findAll { !it.trim().isEmpty() }
-    def headers = lines[0].split(',').collect { it.trim() }
+    def lines = new File(ss_path).readLines().findAll { line -> !line.trim().isEmpty() }
+    def headers = lines[0].split(',').collect { h -> h.trim() }
     def has_flex = lines.tail().any { line ->
         def vals = line.split(',', -1)
         def row = [headers, vals].transpose().collectEntries()
@@ -120,229 +79,66 @@ def preflight_flex(String ss_path) {
     }
 }
 
-def preflight_samplesheet(String path) {
-    def required = ['assay', 'experiment_id', 'historical_number', 'replicate',
-                    'modality', 'chemistry', 'index_type', 'index',
-                    'species', 'n_donors', 'adt_file']
-    def valid_assays      = ['GEX', 'CITE', 'DOGMA', 'ATAC', 'Multiome', 'ASAP', 'Flex']
-    def valid_modalities  = ['GEX', 'ATAC', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR', 'GENO']
-    def valid_index_types = ['SI', 'DI', 'NA']
-    def valid_chemistry   = ['SC3Pv2', 'SC3Pv3', 'SC3Pv4', 'SC5P', 'SC5Pv3', 'ARCv1', 'ATAC',
-                             'Flex-v2-R1', 'Flex-v2-RNA-R2', 'NA']
-
-    def lines = new File(path).readLines()
-    if (lines.isEmpty()) error "ERROR: samplesheet is empty: ${path}"
-
-    def headers = lines[0].split(',').collect { it.trim() }
-    def missing = required - headers
-    if (missing) error "ERROR: samplesheet missing columns: ${missing.join(', ')}"
-
-    lines.tail().eachWithIndex { line, i ->
-        if (line.trim().isEmpty()) return
-        def vals = line.split(',', -1).collect { it.trim() }
-        if (vals.size() != headers.size())
-            error "ERROR: samplesheet row ${i + 2}: expected ${headers.size()} fields, got ${vals.size()}"
-        def row = [headers, vals].transpose().collectEntries()
-
-        if (!valid_assays.any { it.equalsIgnoreCase(row.assay) })
-            error "ERROR: row ${i + 2}: unknown assay '${row.assay}'. Valid: ${valid_assays.join(', ')}"
-        if (!valid_modalities.contains(row.modality))
-            error "ERROR: row ${i + 2}: unknown modality '${row.modality}'. Valid: ${valid_modalities.join(', ')}"
-        if (!['human', 'mouse'].any { it.equalsIgnoreCase(row.species) })
-            error "ERROR: row ${i + 2}: unknown species '${row.species}'. Valid: human, mouse"
-        if (!valid_index_types.contains(row.index_type?.trim()))
-            error "ERROR: row ${i + 2}: unknown index_type '${row.index_type}'. Valid: SI, DI, NA"
-        def chem = row.chemistry?.trim() ?: ''
-        if (chem != 'NA' && !valid_chemistry.any { chem.startsWith(it) })
-            error "ERROR: row ${i + 2}: unrecognised chemistry '${row.chemistry}'. Valid: ${valid_chemistry.join(', ')}"
-    }
-}
-
-def parse_row(row, Map si_indexes, String ss_path) {
-    def n_donors = (row.n_donors == null || row.n_donors.trim() in ['NA', '', 'na']) \
-        ? 1 : row.n_donors.trim().toInteger()
-    def index    = row.index.trim()
-    def raw_adt  = row.adt_file?.trim()
-    def adt_file = (raw_adt == null || raw_adt.toUpperCase() == 'NA' || raw_adt == '') ? null : raw_adt
-
-    // ADT CSV resolution (local-first, centralized fallback):
-    //   1. {samplesheet_dir}/adt_files/{adt_file}.csv  (co-located with the run, preferred)
-    //   2. {params.adt_files_dir}/{adt_file}.csv        (shared centralized ref, optional)
-    def adt_csv_path = null
-    if (adt_file) {
-        def ss_dir      = new File(ss_path).parentFile
-        def local_csv   = new File("${ss_dir}/adt_files/${adt_file}.csv")
-        def parent_csv  = new File("${ss_dir.parentFile}/adt_files/${adt_file}.csv")
-        if (local_csv.exists()) {
-            adt_csv_path = local_csv.canonicalPath
-        } else if (parent_csv.exists()) {
-            adt_csv_path = parent_csv.canonicalPath
-        } else if (params.adt_files_dir) {
-            adt_csv_path = file("${params.adt_files_dir}/${adt_file}.csv").toAbsolutePath().toString()
-        } else {
-            log.warn "WARNING: ADT file '${adt_file}.csv' not found at '${ss_dir}/adt_files/' and --adt_files_dir is not set. " +
-                     "This library will FAIL at cellranger multi (missing [feature] reference). " +
-                     "Pass --adt_files_dir or place the CSV at '${ss_dir}/adt_files/${adt_file}.csv'."
-        }
-    }
-
+// Reference genome / VDJ reference pair for a library.
+def refs_for(meta) {
+    def is_human = meta.species == 'human'
     [
-        id:               "${row.assay}_${row.experiment_id}_exp${row.historical_number}_lib${row.replicate}_${row.modality}",
-        library_id:       "${row.assay}_${row.experiment_id}_exp${row.historical_number}_lib${row.replicate}",
-        assay:            row.assay.trim(),
-        experiment_id:    row.experiment_id.trim(),
-        historical_number: row.historical_number.trim(),
-        replicate:        row.replicate.trim(),
-        modality:         row.modality.trim(),
-        chemistry:        row.chemistry.trim(),
-        index_type:       row.index_type.trim(),
-        index:            index,
-        index_seqs:       resolve_index(index, si_indexes),
-        species:          row.species.trim().toLowerCase(),
-        n_donors:         n_donors,
-        adt_file:         adt_file,
-        adt_csv_path:     adt_csv_path
+        gex: is_human ? params.ref_human     : params.ref_mouse,
+        vdj: is_human ? params.ref_vdj_human : params.ref_vdj_mouse
     ]
 }
 
-// ─── Viral detection helpers ─────────────────────────────────────────────────
-
-def get_viral_whitelist(chemistry, barcodes_dir) {
-    def wl = [
-        'SC3Pv2':       '737K-august-2016.txt',
-        'SC3Pv3':       '3M-february-2018_TRU.txt.gz',
-        'SC3Pv4':       '3M-3pgex-may-2023_TRU.txt.gz',
-        'SC5P':         '3M-5pgex-jan-2023.txt.gz',
-        'SC5Pv3':       '3M-5pgex-jan-2023.txt.gz',
-        'ARCv1':        '737K-arc-v1.txt.gz',
-        'Flex-v2-R1':   '737K-flex-v2.txt.gz',
-    ]
-    def fn = wl[chemistry]
-    if (!fn) error "VIRAL_DETECT: no whitelist registered for chemistry '${chemistry}'"
-    return "${barcodes_dir}/${fn}"
+// Resolve every input path parameter to an absolute path.
+// Returns plain values and lists; comma-separated params become Lists so
+// callers never re-split them.
+def to_abs_path(pth) {
+    pth ? file(pth).toAbsolutePath().toString() : null
 }
 
-def get_simpleaf_chemistry(chemistry) {
-    def chem = [
-        'SC3Pv2':       '10xv2',
-        'SC3Pv3':       '10xv3',
-        'SC3Pv4':       '10xv4-3p',
-        'SC5P':         '10xv2-5p',
-        'SC5Pv3':       '10xv3-5p',
-        'ARCv1':        '10xv3',
-        'Flex-v2-R1':   '10x-flexv2-gex-3p',
-    ]
-    def s = chem[chemistry]
-    if (!s) error "VIRAL_DETECT: no simpleaf chemistry registered for '${chemistry}'"
-    return s
+def to_abs_list(csv) {
+    csv ? csv.split(',').collect { pth -> file(pth.trim()).toAbsolutePath().toString() } : []
 }
 
-// Maps OSCAR chemistry to simpleaf chemistry string for velocity quantification.
-// Returns null for unsupported chemistries (Flex) — caller skips velocity for those libraries.
-def get_velocity_chemistry(chemistry) {
-    def chem = [
-        'SC3Pv2':  '10xv2',
-        'SC3Pv3':  '10xv3',
-        'SC3Pv4':  '10xv4-3p',
-        'SC5P':    '10xv2-5p',
-        'SC5Pv3':  '10xv3-5p',
-        'ARCv1':   '10xv3',
+def resolve_input_paths() {
+    [
+        samplesheet:        to_abs_path(params.samplesheet),
+        bcl_dir:            to_abs_path(params.bcl_dir),
+        fastq_dir:          to_abs_path(params.fastq_dir),
+        outs_dir:           to_abs_path(params.outs_dir),
+        adt_files_dir:      to_abs_path(params.adt_files_dir),
+        extra_samplesheets: to_abs_list(params.extra_samplesheets),
+        extra_bcl_dirs:     to_abs_list(params.extra_bcl_dirs),
     ]
-    return chem[chemistry]   // null for Flex, NA, or unknown → caller skips
-}
-
-// ─── Sequencer auto-detection ────────────────────────────────────────────────
-// Reads <Instrument> from RunInfo.xml and maps the prefix to the i5 orientation
-// used by load_si_indexes().
-//
-// Instrument ID prefixes:
-//   VH  → NovaSeq X / X Plus   → i5 forward  → 'novaseq_x'
-//   A   → NovaSeq 6000          → i5 RC        → 'novaseq6000'
-//   LH  → NovaSeq X LEAP         → i5 forward   → 'novaseq_x'
-//   MN  → MiniSeq               → i5 RC        → 'novaseq6000' (fallback)
-//   NB  → NextSeq 550           → i5 RC        → 'novaseq6000'
-//   NS  → NextSeq 500           → i5 RC        → 'novaseq6000'
-//   NDX → NextSeq 2000/1000     → i5 forward   → 'novaseq_x'
-// If RunInfo.xml is absent or unparseable, warns and uses params.sequencer.
-
-def detect_sequencer(String bcl_path) {
-    def runinfo = new File("${bcl_path}/RunInfo.xml")
-    if (!runinfo.exists()) {
-        log.warn "WARNING: RunInfo.xml not found in ${bcl_path}; falling back to params.sequencer='${params.sequencer}'"
-        return params.sequencer
-    }
-    def text = runinfo.text
-    def m    = text =~ /<Instrument>([^<]+)<\/Instrument>/
-    if (!m) {
-        log.warn "WARNING: <Instrument> tag not found in ${bcl_path}/RunInfo.xml; falling back to params.sequencer='${params.sequencer}'"
-        return params.sequencer
-    }
-    def instrument_id = m[0][1].trim()
-    def sequencer
-    if      (instrument_id.startsWith('VH'))  sequencer = 'novaseq_x'   // NovaSeq X / X Plus
-    else if (instrument_id.startsWith('NDX')) sequencer = 'novaseq_x'   // NextSeq 2000/1000
-    else if (instrument_id.startsWith('A'))   sequencer = 'novaseq6000' // NovaSeq 6000
-    else if (instrument_id.startsWith('LH'))  sequencer = 'novaseq_x'   // NovaSeq X LEAP (i5 forward; BCL Convert auto-RCs via IsReverseComplement)
-    else if (instrument_id.startsWith('NB'))  sequencer = 'novaseq6000' // NextSeq 550
-    else if (instrument_id.startsWith('NS'))  sequencer = 'novaseq6000' // NextSeq 500
-    else if (instrument_id.startsWith('MN'))  sequencer = 'novaseq6000' // MiniSeq
-    else if (instrument_id.startsWith('FS'))  sequencer = 'novaseq_x'   // iSeq 100
-    else {
-        log.warn "WARNING: Unrecognised instrument ID '${instrument_id}' in ${bcl_path}/RunInfo.xml; falling back to params.sequencer='${params.sequencer}'"
-        sequencer = params.sequencer
-    }
-    log.info "INFO: Detected instrument '${instrument_id}' → sequencer mode '${sequencer}' (i5 ${sequencer == 'novaseq_x' ? 'forward' : 'reverse-complement'})"
-    return sequencer
 }
 
 // ─── Workflow ─────────────────────────────────────────────────────────────────
 
 workflow {
-    // Force absolute paths for all primary and extra input directory/file parameters
-    if (params.samplesheet) {
-        params.samplesheet = file(params.samplesheet).toAbsolutePath().toString()
-    }
-    if (params.extra_samplesheets) {
-        params.extra_samplesheets = params.extra_samplesheets.split(',').collect { file(it.trim()).toAbsolutePath().toString() }.join(',')
-    }
-    if (params.bcl_dir) {
-        params.bcl_dir = file(params.bcl_dir).toAbsolutePath().toString()
-    }
-    if (params.extra_bcl_dirs) {
-        params.extra_bcl_dirs = params.extra_bcl_dirs.split(',').collect { file(it.trim()).toAbsolutePath().toString() }.join(',')
-    }
-    if (params.fastq_dir) {
-        params.fastq_dir = file(params.fastq_dir).toAbsolutePath().toString()
-    }
-    if (params.outs_dir) {
-        params.outs_dir = file(params.outs_dir).toAbsolutePath().toString()
-    }
-    if (params.adt_files_dir) {
-        params.adt_files_dir = file(params.adt_files_dir).toAbsolutePath().toString()
-    }
+    // Resolve every input path to an absolute path once, up front.
+    //
+    // These are locals rather than writes back into params: params is read-only
+    // under the strict parser (NXF_SYNTAX_PARSER=v2), and assigning to it makes
+    // a module's view of a path depend on whether the workflow body has run yet.
+    def paths = resolve_input_paths()
 
     def primary_run_name = params.run_name
     if (!primary_run_name || primary_run_name == 'null') {
-        if (params.bcl_dir) {
-            primary_run_name = file(params.bcl_dir).name.replaceAll(/_bcl$/, '')
-        } else {
-            primary_run_name = 'run'
-        }
+        primary_run_name = paths.bcl_dir
+            ? file(paths.bcl_dir).name.replaceAll(/_bcl$/, '')
+            : 'run'
     }
     log.info "INFO: run_name = '${primary_run_name}'"
 
-    preflight_check()
+    preflight_check(paths)
 
-    def all_ss_paths = [params.samplesheet]
-    if (params.extra_samplesheets)
-        all_ss_paths += params.extra_samplesheets.split(',').collect { it.trim() }
-    all_ss_paths.each { preflight_samplesheet(it) }
-    all_ss_paths.each { preflight_flex(it) }
+    def all_ss_paths = [paths.samplesheet] + paths.extra_samplesheets
+    all_ss_paths.each { ss -> preflight_samplesheet(ss) }
+    all_ss_paths.each { ss -> preflight_flex(ss) }
 
     // ── Resolve sequencer / i5 orientation (non-BCL fallback) ────────────────
     // In BCL mode, sequencer is auto-detected per BCL dir inside the BCL branch
-    // below (each flowcell may come from a different instrument). For --from-fastq
-    // and --from-cellranger there is no BCL dir, so we fall back to params.sequencer.
+    // below (each flowcell may come from a different instrument). For --from_fastq
+    // and --from_cellranger there is no BCL dir, so we fall back to params.sequencer.
     def si_indexes_fallback = load_si_indexes(projectDir.toString(), params.sequencer)
     if (params.from_fastq || params.from_cellranger)
         log.info "INFO: No BCL dir available — using params.sequencer='${params.sequencer}' for i5 orientation"
@@ -351,24 +147,12 @@ workflow {
     // For from_fastq / from_cellranger, ch_meta is set here and used downstream.
     // For BCL mode, the BCL branch below rebuilds ch_meta with per-instrument
     // index sequences — this initial set is overridden there.
-    def _all_rows = []
-    all_ss_paths.each { ss_path ->
-        def lines = new File(ss_path).readLines()
-        if (!lines.isEmpty()) {
-            def hdrs = lines[0].split(',').collect { it.trim() }
-            lines.tail().each { line ->
-                if (!line.trim().isEmpty()) {
-                    def vals = line.split(',', -1).collect { it.trim() }
-                    def meta = parse_row([hdrs, vals].transpose().collectEntries(), si_indexes_fallback, ss_path)
-                    meta.run_name = primary_run_name
-                    _all_rows << meta
-                }
-            }
-        }
+    def _all_rows = all_ss_paths.collectMany { ss_path ->
+        parse_samplesheet(ss_path, si_indexes_fallback, primary_run_name, paths.adt_files_dir)
     }
     Channel.fromList(_all_rows).set { ch_meta }
 
-    // ── Entry point: --from-cellranger (QC only, run_until ignored) ───────────
+    // ── Entry point: --from_cellranger (QC only, run_until ignored) ──────────
 
     if (params.from_cellranger) {
         ch_meta
@@ -378,13 +162,13 @@ workflow {
             }
             .map { meta -> [meta.library_id, meta] }
             .groupTuple(by: 0)
-            .map { lid, metas -> [lid, metas, file("${params.outs_dir}/${lid}/outs")] }
+            .map { lid, metas -> [lid, metas, file("${paths.outs_dir}/${lid}/outs")] }
             .filter { lid, metas, outs -> outs.exists() }
             .set { ch_gex_outs }
 
         ch_meta
             .filter { meta -> meta.modality == 'ATAC' }
-            .map { meta -> [meta, file("${params.outs_dir}/${meta.library_id}_ATAC/outs")] }
+            .map { meta -> [meta, file("${paths.outs_dir}/${meta.library_id}_ATAC/outs")] }
             .filter { meta, outs -> outs.exists() }
             .set { ch_atac_outs }
 
@@ -396,56 +180,46 @@ workflow {
         if (params.from_fastq) {
             ch_meta
                 .map { meta ->
-                    def baseDir = new File(params.fastq_dir)
+                    def baseDir = new File(paths.fastq_dir)
                     def fqs = (baseDir.listFiles() ?: [])
                         .findAll { f -> f.isFile() && f.name.startsWith(meta.id) && f.name.endsWith('.fastq.gz') }
-                        .collect { it.toPath() }
-                    [meta, params.fastq_dir, fqs]
+                        .collect { f -> f.toPath() }
+                    [meta, paths.fastq_dir, fqs]
                 }
                 .filter { meta, fastq_dir, fqs -> !fqs.isEmpty() }
                 .set { ch_fastqs }
         } else {
-            def bcl_paths = [params.bcl_dir]
-            def bcl_ss    = [params.samplesheet]
-            if (params.extra_bcl_dirs) {
-                def extra_bcls = params.extra_bcl_dirs.split(',').collect { it.trim() }
-                bcl_paths += extra_bcls
-                if (params.extra_samplesheets) {
-                    def extra_sss = params.extra_samplesheets.split(',').collect { it.trim() }
-                    if (extra_sss.size() != extra_bcls.size())
-                        error "ERROR: --extra_samplesheets count (${extra_sss.size()}) must match --extra_bcl_dirs (${extra_bcls.size()})"
-                    bcl_ss += extra_sss
+            def bcl_paths = [paths.bcl_dir]
+            def bcl_ss    = [paths.samplesheet]
+            if (paths.extra_bcl_dirs) {
+                bcl_paths += paths.extra_bcl_dirs
+                if (paths.extra_samplesheets) {
+                    if (paths.extra_samplesheets.size() != paths.extra_bcl_dirs.size())
+                        error "ERROR: --extra_samplesheets count (${paths.extra_samplesheets.size()}) must match --extra_bcl_dirs (${paths.extra_bcl_dirs.size()})"
+                    bcl_ss += paths.extra_samplesheets
                 } else {
-                    bcl_ss += extra_bcls.collect { params.samplesheet }
+                    bcl_ss += paths.extra_bcl_dirs.collect { _b -> paths.samplesheet }
                 }
             }
 
             def _meta_bcl_pairs = []
             def _bcl_rows       = []   // used to rebuild ch_meta with correctly-resolved index_seqs
             [bcl_paths, bcl_ss].transpose().each { bcl_path, ss_path ->
-                def bcl_dir       = file(bcl_path)
+                def flowcell_dir = file(bcl_path)
                 // Detect sequencer per BCL dir — each flowcell may originate from a
                 // different instrument (e.g. mixing NovaSeq X and NovaSeq 6000 runs).
-                def bcl_si        = load_si_indexes(projectDir.toString(), detect_sequencer(bcl_path))
-                def lines         = new File(ss_path).readLines()
-                if (!lines.isEmpty()) {
-                    def hdrs = lines[0].split(',').collect { it.trim() }
-                    lines.tail().each { line ->
-                        if (!line.trim().isEmpty()) {
-                            def vals = line.split(',', -1).collect { it.trim() }
-                            def meta = parse_row([hdrs, vals].transpose().collectEntries(), bcl_si, ss_path)
-                            meta.run_name = bcl_dir.name.replaceAll(/_bcl$/, '')
-                            _meta_bcl_pairs << [meta, bcl_dir]
-                            _bcl_rows       << meta
-                        }
-                    }
+                def bcl_si  = load_si_indexes(projectDir.toString(), detect_sequencer(bcl_path, params.sequencer))
+                def run_nm  = flowcell_dir.name.replaceAll(/_bcl$/, '')
+                parse_samplesheet(ss_path, bcl_si, run_nm, paths.adt_files_dir).each { meta ->
+                    _meta_bcl_pairs << [meta, flowcell_dir]
+                    _bcl_rows       << meta
                 }
             }
             // Override ch_meta with the correctly-detected index sequences from each
             // BCL dir. Deduplicate by meta.id (same sample listed in multiple flowcell
             // samplesheets) while preserving insertion order.
             def seen_ids    = [] as Set
-            def unique_rows = _bcl_rows.findAll { seen_ids.add(it.id) }
+            def unique_rows = _bcl_rows.findAll { m -> seen_ids.add(m.id) }
             Channel.fromList(unique_rows).set { ch_meta }
             Channel.fromList(_meta_bcl_pairs).set { ch_meta_bcl }
 
@@ -453,12 +227,12 @@ workflow {
             ch_fastqs = DEMUX.out.fastqs
         }
 
-        // REPORT (MultiQC) runs on FALCO reports from demux (BCL mode only)
+        // MultiQC runs on FALCO reports from demux (BCL mode only)
         if (!params.from_fastq) {
-            REPORT(DEMUX.out.falco_reports)
+            MULTIQC(DEMUX.out.falco_reports)
         }
 
-        // ── --run-until FASTQ: stop after demux ───────────────────────────────
+        // ── --run_until FASTQ: stop after demux ──────────────────────────────
         if (params.run_until == 'FASTQ') {
             // nothing extra; MultiQC already launched above
 
@@ -480,14 +254,14 @@ workflow {
             ch_routed.gex
                 .tap { ch_gex_for_velocity }
                 .map { meta, _fastq_dir, fqs ->
-                    def files = (fqs instanceof List ? fqs : [fqs]).sort { it.name }
+                    def files = (fqs instanceof List ? fqs : [fqs]).sort { f -> f.name }
                     [meta.library_id, [modality: meta.modality, meta: meta, files: files]]
                 }
                 .groupTuple(by: 0)
                 .map { lid, entries ->
                     // Materialise ArrayBag → ArrayList
                     def el = []
-                    entries.each { el << it }
+                    entries.each { e -> el << e }
 
                     // Collect entries per modality. Sort entries by first-file URI for
                     // deterministic flowcell ordering, then flatten. Files within each
@@ -499,61 +273,23 @@ workflow {
                         mod_data[e.modality].entries << e
                     }
                     mod_data.each { _mod, d ->
-                        d.entries = d.entries.sort { it.files[0].toUriString() }
-                        d.files   = d.entries.collectMany { it.files }
+                        d.entries = d.entries.sort { e -> e.files[0].toUriString() }
+                        d.files   = d.entries.collectMany { e -> e.files }
                     }
 
                     // Canonical meta list — sorted by id for deterministic stageAs ordering
                     def all_metas = []
                     mod_data.each { _mod, d -> all_metas << d.meta }
-                    all_metas = all_metas.sort { it.id }
+                    all_metas = all_metas.sort { m -> m.id }
                     all_metas.each { m -> m.run_name = primary_run_name }
 
-                    def meta       = all_metas.find { it.modality == 'GEX' } ?: all_metas[0]
-                    def is_human   = meta.species == 'human'
-                    def ref_gex    = is_human ? params.ref_human : params.ref_mouse
-                    def ref_vdj    = is_human ? params.ref_vdj_human : params.ref_vdj_mouse
-                    def has_vdj    = all_metas.any { it.modality in ['VDJ-T', 'VDJ-B'] }
-                    def has_adt    = all_metas.any { it.modality in ['ADT', 'HTO'] }
-                    def create_bam = 'true'
-
-                    // Flex v2 (GEM-X) does not use a transcriptome reference — cellranger
-                    // maps directly to probe sequences. v1 still requires reference.
-                    def is_flex_v2 = meta.assay == 'Flex' && meta.chemistry ==~ /Flex-v2.*/
-                    def lines = ['[gene-expression]']
-                    if (!is_flex_v2) lines << "reference,${ref_gex}"
-                    lines << "create-bam,${create_bam}"
-                    if (meta.assay in ['DOGMA', 'Multiome'])          lines << 'chemistry,ARC-v1'
-                    else if (meta.assay == 'Flex' && meta.chemistry) {
-                        lines << "chemistry,${meta.chemistry}"
-                        lines << "probe-set,${params.flex_probe_set}"
-                    }
-                    if (has_vdj) lines += ['', '[vdj]', "reference,${ref_vdj}"]
-
-                    def adt_csv_path = all_metas.collect { it.adt_csv_path }.find { it }
+                    def meta         = all_metas.find { m -> m.modality == 'GEX' } ?: all_metas[0]
+                    def adt_csv_path = all_metas.collect { m -> m.adt_csv_path }.find { p -> p }
                     def adt_csv      = adt_csv_path ? file(adt_csv_path) : file('NO_FILE')
-                    def has_adt_csv  = adt_csv.name != 'NO_FILE'
-                    if (has_adt && !has_adt_csv)
-                        error "Library '${lid}' has ADT/HTO modalities but no feature barcode CSV was resolved. " +
-                            "Check that 'adt_file' is set in the samplesheet and either place " +
-                            "{samplesheet_dir}/adt_files/{adt_file}.csv or pass --adt_files_dir."
-                    if (has_adt && has_adt_csv)
-                        lines += ['', '[feature]', "reference,${adt_csv.toAbsolutePath()}"]
 
-                    // [libraries] section omitted — Python template in CELLRANGER_MULTI generates it
-                    // [samples] section content passed as val; appended after [libraries] by CELLRANGER_MULTI
-                    def flex_samples_content = ''
-                    if (meta.assay == 'Flex' && params.flex_samples_file) {
-                        def sf = file(params.flex_samples_file)
-                        if (sf.exists()) {
-                            flex_samples_content = '\n\n[samples]\n' + sf.text.trim()
-                        } else {
-                            log.warn "WARNING: --flex_samples_file not found: ${params.flex_samples_file} — [samples] section will be omitted (singleplex only)"
-                        }
-                    }
-                    def config_header = lines.join('\n')
-
-                    [lid, all_metas, config_header, adt_csv, flex_samples_content,
+                    // Config header is built in COUNT_GEX, where the merged
+                    // probe CSV from FLEX_PROBE_PREPARE is reachable.
+                    [lid, all_metas, refs_for(meta), adt_csv,
                      (mod_data['GEX']?.files)    ?: [file('NO_FILE')],
                      (mod_data['ADT']?.files)    ?: [file('NO_FILE')],
                      (mod_data['HTO']?.files)    ?: [file('NO_FILE')],
@@ -575,38 +311,38 @@ workflow {
                 }
                 .groupTuple(by: 0)
                 .map { library_id, metas, fastq_dirs, chems ->
-                    def ml = []; metas.each { ml << it }
-                    def dl = []; fastq_dirs.each { dl << it }
+                    def ml = []; metas.each { m -> ml << m }
+                    def dl = []; fastq_dirs.each { d -> dl << d }
                     def meta = ml[0] + [library_id: library_id, run_name: primary_run_name]
-                    [ library_id, meta, dl.join(','), chems[0] ]
+                    [ library_id, meta, dl.unique().join(','), chems[0] ]
                 }
                 .set { ch_velocity_fastqs }   // [library_id, meta, fastq_dirs_csv, simpleaf_chemistry]
 
             // ATAC: group by library_id; keep actual FASTQ files for path-based caching
             ch_routed.atac
                 .map { meta, _fastq_dir, fqs ->
-                    def files = (fqs instanceof List ? fqs : [fqs]).sort { it.name }
+                    def files = (fqs instanceof List ? fqs : [fqs]).sort { f -> f.name }
                     [meta.library_id, [meta: meta, files: files]]
                 }
                 .groupTuple(by: 0)
                 .map { lid, entries ->
                     def el = []
-                    entries.each { el << it }
+                    entries.each { e -> el << e }
 
                     def meta = el[0].meta
                     meta.run_name = primary_run_name
 
                     // Sort entries by first-file URI (deterministic flowcell order),
                     // then flatten. Files within each entry are already name-sorted.
-                    def all_files = el.sort { it.files[0].toUriString() }.collectMany { it.files }
+                    def all_files = el.sort { e -> e.files[0].toUriString() }.collectMany { e -> e.files }
                     [meta, all_files]
                 }
                 .set { ch_atac_libraries }
 
             COUNT_GEX(ch_gex_libraries)
-            COUNT_ATAC(ch_atac_libraries)
+            CELLRANGER_ATAC(ch_atac_libraries)
 
-            ch_asap_atac_outs = COUNT_ATAC.out.outs
+            ch_asap_atac_outs = CELLRANGER_ATAC.out.outs
                 .filter { meta, outs -> meta.assay == 'ASAP' }
                 .map    { meta, outs -> [meta.library_id, meta, outs] }
 
@@ -623,11 +359,11 @@ workflow {
                     }
             )
 
-            // ── --run-until cellranger: stop after counting ───────────────────
+            // ── --run_until cellranger: stop after counting ──────────────────
             if (params.run_until != 'cellranger') {
                 // ── Full run: QC ──────────────────────────────────────────────
                 QC_GEX(COUNT_GEX.out.outs)
-                QC_ATAC(COUNT_ATAC.out.outs)
+                QC_ATAC(CELLRANGER_ATAC.out.outs)
 
                 // ── Viral detection — optional, gated on params.viral_piscem_index ──
                 if (params.viral_piscem_index) {
