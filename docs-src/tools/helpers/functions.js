@@ -62,90 +62,7 @@ function pagesIncludeTopBar() {
         });
 }
 
-// Functions for metadata_generator.html
-
-// Function to fetch the row template from an external HTML file
-async function metadataFetchRowTemplate() {
-    try {
-        const response = await fetch('../helpers/row_template.html');
-        if (!response.ok) throw new Error('Failed to load row template');
-        const template = await response.text();
-        return template;
-    } catch (error) {
-        console.error('Error fetching row template:', error);
-        return '';
-    }
-}
-
-// Function to add a new row to the table
-async function metadataAddRow() {
-    const container = document.getElementById('rowsContainer');
-    const template = await metadataFetchRowTemplate();
-    if (template) {
-        const newRow = document.createElement('tr');
-        newRow.innerHTML = template;
-        container.appendChild(newRow);
-    } else {
-        alert('Could not add row: template not loaded.');
-    }
-}
-
-// Function to validate a row and collect its values
-function metadataValidateRow(row) {
-    const inputs = row.querySelectorAll('input, select');
-    const values = Array.from(inputs).map(input => input.value || 'NA');
-    let rowValid = true;
-
-    inputs.forEach(input => {
-        if (input.value === '') {
-            input.classList.add('error'); // Add error class if input is empty
-            rowValid = false;
-        } else {
-            input.classList.remove('error'); // Remove error class if input is not empty
-        }
-    });
-
-    return { rowValid, values }; // Return validation status and values
-}
-
-// Function to download the generated CSV content
-function metadataDownloadCSV(csvContent) {
-    // Add UTF-8 BOM for Excel compatibility
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'metadata.csv'; // Output file name
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url); // Clean up the URL object
-}
-
-// Function to generate the CSV content from the table rows
-function metadataGenerateCSV() {
-    const rows = document.querySelectorAll('#rowsContainer tr');
-    let csvContent = 'assay,experiment_id,historical_number,replicate,modality,chemistry,index_type,index,species,n_donors,adt_file\n';
-    let allValid = true;
-
-    rows.forEach(row => {
-        const { rowValid, values } = metadataValidateRow(row);
-        if (!rowValid) {
-            allValid = false;
-        } else {
-            // Escape each value properly for CSV
-            const escapedValues = values.map(v => escapeCSV(v));
-            csvContent += escapedValues.join(',') + '\n';
-        }
-    });
-
-    if (allValid) {
-        metadataDownloadCSV(csvContent); // Download the CSV if all rows are valid
-    } else {
-        alert('Please complete all fields before generating the CSV.'); // Alert if any row is invalid
-    }
-}
+// Metadata generator logic lives in helpers/metadata.js.
 
 // Functions for adt_generator.html
 
@@ -205,29 +122,6 @@ async function adtFilterMarkers() {
         searchInput.disabled = false;
         searchInput.placeholder = 'Marker, clone, or TotalSeq ID';
     }
-}
-
-function adtAddRow(name, totalseq_id, catalogueNumber, clone, reactivity, barcode) {
-    const container = document.getElementById('rowsContainer');
-    const correctedName = adtSubstituteCharacters(name);
-    const newRow = document.createElement('tr');
-    newRow.innerHTML = `
-        <td>${totalseq_id}</td>
-        <td>${name}</td>
-        <td>
-            <div class="corrected-name-container">
-                <span class="corrected-name">${correctedName}</span>
-                <input type="text" class="edit-input" value="${correctedName}" style="display:none;">
-                <button class="edit-button" onclick="adtEditRow(event, this)">Edit</button>
-                <button class="save-btn" onclick="adtSaveRow(event, this)" style="display:none;">Save</button>
-            </div>
-        </td>
-        <td>${catalogueNumber}</td>
-        <td>${clone}</td>
-        <td>${reactivity}</td>
-        <td>${barcode}</td>
-        <td><span class="remove-button" onclick="adtRemoveRow(this)">Remove</span></td>`;
-    container.appendChild(newRow);
 }
 
 function adtRemoveRow(element) {
@@ -445,7 +339,7 @@ function adtAddRow(marker, totalseq_id, catalogue_number, clone, reactivity, bar
         <td>${marker}</td>
         <td>
             <div class="edit-container">
-                <span class="corrected-name">${marker}</span>
+                <span class="corrected-name">${adtSubstituteCharacters(marker)}</span>
                 <input type="text" class="edit-input" style="display:none;">
                 <button class="edit-button" onclick="adtEditRow(event, this)">Edit</button>
                 <button class="save-button" style="display:none;" onclick="adtSaveRow(event, this)">Save</button>
