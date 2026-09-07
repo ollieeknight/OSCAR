@@ -3,9 +3,8 @@
 One CSV, one row per library-modality pair. A DOGMA library sequenced for GEX,
 ATAC, and ADT takes three rows.
 
-Generate one at
-[ollieeknight.github.io/OSCAR](https://ollieeknight.github.io/OSCAR/), or copy
-`assets/example_metadata.csv`.
+Build one with the [metadata generator](../tools/metadata_generator.html), or
+copy `assets/example_metadata.csv`.
 
 ## Columns
 
@@ -101,7 +100,8 @@ id,name,read,pattern,sequence,feature_type
 CD3,CD3,R2,5PNNNNNNNNNN(BC),CTCATTGTAACTCCT,Antibody Capture
 ```
 
-`assets/example_adt_totalseq_{a,b,c,d}.csv` cover the TotalSeq panels.
+`assets/example_adt_totalseq_{a,b,c,d}.csv` cover the TotalSeq panels, or build
+one with the [feature barcode generator](../tools/adt_generator.html).
 
 ## Donor demultiplexing
 

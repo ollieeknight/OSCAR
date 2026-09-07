@@ -52,9 +52,9 @@ Merge libraries sequenced across several flowcells with `--extra_bcl_dirs` and
 `--run_until cellranger`. Skip demultiplexing with `--from_fastq`, or run QC
 alone with `--from_cellranger`.
 
-Generate a samplesheet at
-[ollieeknight.github.io/OSCAR](https://ollieeknight.github.io/OSCAR/), or copy
-`assets/example_metadata.csv`.
+Build a samplesheet with the
+[metadata generator](https://ollieeknight.github.io/OSCAR/tools/metadata_generator.html),
+or copy `assets/example_metadata.csv`.
 
 ## Checking your setup
 

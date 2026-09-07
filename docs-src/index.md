@@ -37,4 +37,11 @@ velocity quantification with simpleaf.
 - [Parameters](reference/parameters.md) lists every parameter with its default.
 - [Troubleshooting](guide/troubleshooting.md) covers the failures you are most likely to hit.
 
+## Tools
+
+Two browser generators, no install needed:
+
+- [Metadata file generator](tools/metadata_generator.html) builds a samplesheet row by row.
+- [Feature barcode generator](tools/adt_generator.html) builds ADT and HTO reference CSVs from the TotalSeq panels.
+
 Questions go to `oliver.knight@charite.de`.
