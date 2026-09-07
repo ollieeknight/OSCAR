@@ -1,4 +1,4 @@
-include { CELLBENDER; SCRUBLET } from '../modules/qc'
+include { CELLBENDER; SCRUBLET } from '../modules/qc_gex'
 include { GENOTYPE             } from './genotype'
 
 workflow QC_GEX {
