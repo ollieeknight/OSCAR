@@ -114,5 +114,17 @@ workflow {
     assert to_abs_list('a,b').size() == 2
     assert to_abs_list('a, b').every { pth -> pth.startsWith('/') }
 
+    // The browser tool's dropdowns are generated from these same definitions
+    // (assets/generate_tool_schema.py). Assert the generated schema is present
+    // and in step, so a chemistry added to the registry without regenerating
+    // the schema fails here rather than on someone's samplesheet.
+    def schema_js = file("${repo}/docs-src/tools/helpers/schema.js")
+    if (schema_js.exists()) {
+        def txt = schema_js.text
+        valid_chemistries().each { c ->
+            assert txt.contains("\"${c}\"") : "schema.js is stale: missing chemistry '${c}'. Run: python3 assets/generate_tool_schema.py"
+        }
+    }
+
     println "OK: all lib/ self-checks passed (${valid_chemistries().size()} chemistries, ${si.dual.size()} dual indexes)"
 }
