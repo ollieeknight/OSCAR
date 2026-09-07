@@ -682,3 +682,136 @@ hr {
 
   table { font-size: 0.9em; }
 }
+
+/* ── Dark mode ──────────────────────────────────────────────────────────────
+   Token overrides only. Every rule below :root reads these, so nothing else
+   needs a dark variant. Matches the Material docs site's own toggle. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg:            oklch(21% 0.012 250);
+    --color-surface:       oklch(25% 0.014 250);
+    --color-surface-2:     oklch(29% 0.016 250);
+    --color-border:        oklch(38% 0.018 250);
+    --color-text:          oklch(94% 0.008 250);
+    --color-text-muted:    oklch(72% 0.014 250);
+
+    --color-primary:       oklch(72% 0.13 262);
+    --color-primary-hover: oklch(80% 0.12 262);
+    --color-primary-light: oklch(66% 0.12 262);
+    --color-primary-tint:  oklch(32% 0.030 262);
+
+    --color-success:       oklch(72% 0.14 148);
+    --color-success-hover: oklch(80% 0.13 148);
+    --color-error:         oklch(70% 0.17 25);
+    --color-error-hover:   oklch(78% 0.16 25);
+    --color-accent:        oklch(74% 0.11 215);
+    --color-accent-hover:  oklch(82% 0.10 215);
+
+    --shadow-sm:  0 1px 3px oklch(0% 0 0 / 0.36);
+    --shadow-md:  0 4px 12px oklch(0% 0 0 / 0.44);
+    --shadow-lg:  0 8px 24px oklch(0% 0 0 / 0.52);
+  }
+
+  /* Keep the GitHub mark legible on a dark surface. */
+  .github-link img { filter: invert(1) opacity(0.85); }
+}
+
+/* ── Row actions ────────────────────────────────────────────────────────── */
+.row-actions {
+  display: flex;
+  gap: 0.25rem;
+  justify-content: center;
+}
+
+.row-duplicate,
+.row-delete {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.row-duplicate:hover {
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.row-delete:hover {
+  background: var(--color-surface-2);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.row-duplicate:focus-visible,
+.row-delete:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Validation messages ────────────────────────────────────────────────── */
+.message {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  border-left: 3px solid;
+}
+
+.message-error {
+  background: var(--color-surface-2);
+  border-left-color: var(--color-error);
+  color: var(--color-error);
+}
+
+/* Relative colour syntax gives a properly tinted background where supported. */
+@supports (background: oklch(from red l c h / 0.1)) {
+  .message-error {
+    background: oklch(from var(--color-error) l c h / 0.10);
+  }
+
+  .row-delete:hover {
+    background: oklch(from var(--color-error) l c h / 0.12);
+  }
+}
+
+/* ── Column hints ───────────────────────────────────────────────────────── */
+.th-hint {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-text-muted);
+}
+
+/* Visible to screen readers, not on screen. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
