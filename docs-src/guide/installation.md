@@ -1,68 +1,43 @@
 # Installation
 
+Do this once per cluster. Lab users normally only need a working OSCAR directory and `slurm` profile.
+
 ## Requirements
 
-You need Nextflow 24.04 or newer, Apptainer on every compute node, and a SLURM
-scheduler. OSCAR pulls its own container images, so you do not install
-cellranger, kallisto, or the rest yourself.
-
-!!! note "Two containers you build yourself"
-
-    OSCAR pulls everything else, but `cyto` and `cellbender` are local `.sif`
-    files. Build them once and point the config at them.
+OSCAR needs Nextflow, SLURM, and Apptainer on compute nodes. OSCAR downloads other software automatically.
 
 ```bash
-apptainer build /path/to/cache/cyto.sif OSCAR/containers/cyto.def
+nextflow -version
+apptainer --version
 ```
 
-Set `container_cyto` and `container_cellbender` to those paths in
-`nextflow.config`, or override them on the command line.
-
-## Get the pipeline
+## Get OSCAR
 
 ```bash
 git clone https://github.com/ollieeknight/OSCAR
 cd OSCAR
 ```
 
-## Build references
+## Configure your cluster
 
-`assets/references/` holds build scripts for human and mouse:
+Set these values in `nextflow.config` before the first run:
+
+- `workDir`: fast scratch space.
+- `apptainer.cacheDir`: image cache.
+- `apptainer.runOptions`: folders OSCAR can read and write.
+- `process.queue`: SLURM queues, including the GPU queue for CellBender.
+- `ref_*`, `snp_vcf`, `atac_whitelist`: reference locations.
+
+Build the two local containers once. Set `container_cyto` and `container_cellbender` to the resulting files.
 
 ```bash
-bash assets/references/human.sh          # GRCh38, cellranger + ARC
-bash assets/references/mouse.sh          # GRCm38
-bash assets/references/human_flex.sh     # Flex probe set
-bash assets/references/human_kallisto.sh # ASAP ADT counting
+apptainer build /path/to/cache/cyto.sif containers/cyto.def
 ```
 
-Each script writes to the paths in `nextflow.config`. Change the `ref_*`
-parameters if you put them elsewhere.
-
-## Point the config at your cluster
-
-`nextflow.config` ships with absolute paths for the Romagnani Lab cluster.
-Change these before your first run:
-
-| Setting | What it is |
-|---------|-----------|
-| `workDir` | Nextflow scratch space, needs to be fast and large |
-| `apptainer.cacheDir` | Where pulled images live |
-| `apptainer.runOptions` | Bind mounts for every filesystem you read or write |
-| `process.queue` | Your SLURM partition, and the `gpu` queue for cellbender |
-| `ref_*`, `snp_vcf`, `atac_whitelist` | Reference locations |
-
-Cellbender needs a GPU. The `slurm` profile requests one through
-`clusterOptions = '--gres=gpu:1'` on the `gpu` queue. Change both if your
-scheduler names them differently.
-
-## Check the install
-
-Run the library self-checks. They need no cluster and no data:
+## Check setup
 
 ```bash
 nextflow run tests/test_lib.nf
 ```
 
-You should see `OK: all lib/ self-checks passed`. That confirms index kit
-loading, chemistry lookup, and cellranger config generation all work.
+Expected result: `OK: all lib/ self-checks passed`.

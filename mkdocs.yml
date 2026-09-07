@@ -35,11 +35,14 @@ theme:
 
 nav:
   - Home: index.md
+  - Prepare your run:
+      - Metadata generator: tools/metadata_generator.html
+      - Feature barcode generator: tools/adt_generator.html
+      - Metadata and feature barcodes: guide/samplesheet.md
   - Guide:
-      - Installation: guide/installation.md
       - Quickstart: guide/quickstart.md
-      - Samplesheet: guide/samplesheet.md
       - Troubleshooting: guide/troubleshooting.md
+      - Installation: guide/installation.md
   - Reference:
       - Parameters: reference/parameters.md
       - Architecture: reference/architecture.md

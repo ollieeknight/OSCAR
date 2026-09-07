@@ -5,87 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Generate feature barcode reference files for Cell Ranger, Kallisto, and Tapestri workflows.">
     <title>Feature barcode reference generator - OSCAR</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="helpers/styles.css">
 </head>
 <body>
     <div id="topbar-placeholder"></div>
-    <div class="github-link">
-        <a href="https://github.com/ollieeknight/OSCAR" target="_blank">
-            <span>github.com/ollieeknight/OSCAR</span>
-            <img src="files/github.png" alt="GitHub Repository">
-        </a>
-    </div>
-    <div class="container">
-        <h1>Feature barcode reference generator</h1>
-        <div class="pagescontent">
+    <main class="tool-shell container">
+        <header class="tool-header">
+            <div>
+                <p class="eyebrow">Step 2 of 2</p>
+                <h1>Feature barcode generator</h1>
+                <p class="lead">For ADT or HTO, select a panel, add markers, then download the reference CSV.</p>
+            </div>
+        </header>
 
-        <section>
-            <p>
-                Supported formats include:
-            </p>
+        <section class="tool-card guidance" aria-labelledby="feature-help">
+            <h2 id="feature-help">Choose the right output</h2>
+            <p>Use <strong>Cell Ranger</strong> for CITE and DOGMA. Use <strong>Kallisto</strong> for ASAP.</p>
             <ul>
-                <li>
-                    <a href="https://www.10xgenomics.com/support/software/cell-ranger/latest" target="_blank">Cell Ranger</a> (for 10x Genomics scRNA-seq experiments such as 3' and 5' assays, and DOGMA-seq).
-                </li>
-                <li>
-                    <a href="https://github.com/pachterlab/kite" target="_blank">Kallisto Indexing and Tag Extractor (KITE)</a> (for ASAP-seq experiments).
-                </li>
-                <li>
-                    Tapestri (for DNA and protein sequencing experiments).
-                </li>
+                <li>Search by marker, clone, or TotalSeq ID.</li>
+                <li>Name the downloaded file exactly as entered in metadata, without adding `.csv` there.</li>
+                <li>Save it in `adt_files/` beside the metadata CSV.</li>
             </ul>
-            <p>
-                Antibody lists are sourced directly from the 
-                <a href="https://www.biolegend.com/en-gb/totalseq/barcode-lookup" target="_blank">BioLegend barcode lookup</a> website and are slightly reformatted to facilitate accurate searches. In some cases, markers have been renamed to their CD numbers for consistency:
-            </p>
-            <ul>
-                <li><a href="https://www.thefcn.org/mouse-cd-list" target="_blank">Mouse CD List</a></li>
-                <li><a href="https://en.wikipedia.org/wiki/List_of_human_clusters_of_differentiation" target="_blank">Human CD List</a></li>
-            </ul>
-            <p>
-                You can search for the antibody clone and catalogue number on the 
-                <a href="https://www.biolegend.com/en-gb/search-results?Applications=PG" target="_blank">BioLegend website</a>.
-            </p>
+            <p>Need placement details? Read the <a href="../guide/samplesheet/#adt-and-hto-references">metadata guide</a>.</p>
         </section>
-    </div>
-    <br>
-        <hr> <!-- Horizontal line to separate sections -->
-        <br>
-
-        <form id="csvForm">
-            <div class="form-group">
-                <label for="species">Species</label>
-                <select id="species" class="dynamic-width-dropdown" onchange="adtConfirmReset('species')" aria-label="Select species for antibody panel">
+        <div id="messageContainer" role="alert" aria-live="polite" class="message" hidden></div>
+        <form id="csvForm" class="tool-card">
+            <fieldset class="selection-grid">
+                <legend>Panel settings</legend>
+                <div class="form-group">
+                    <label for="species">Species</label>
+                    <select id="species" onchange="adtConfirmReset('species')">
                     <option value="" selected disabled>Unselected</option>
                     <option value="Human">Human (hs)</option>
                     <option value="Mouse">Mouse (mm)</option>
                 </select>
-            </div>
-            <br>
-            <div class="form-group">
-                <label for="format">TotalSeq format</label>
-                <select id="format" class="dynamic-width-dropdown" onchange="adtConfirmReset('format')" aria-label="Select TotalSeq format">
+                </div>
+                <div class="form-group">
+                    <label for="format">TotalSeq panel</label>
+                    <select id="format" onchange="adtConfirmReset('format')">
                     <option value="" selected disabled>Unselected</option>
                     <option value="totalseq_a.csv">TotalSeq-A</option>
                     <option value="totalseq_b.csv">TotalSeq-B</option>
                     <option value="totalseq_c.csv">TotalSeq-C</option>
                     <option value="totalseq_d.csv">TotalSeq-D</option>
                 </select>
-            </div>
-            <br>
-            <div class="form-group">
-                <label for="output-format">CSV output format</label>
-                <select id="output-format" class="dynamic-width-dropdown" aria-label="Select CSV output format">
+                </div>
+                <div class="form-group">
+                    <label for="output-format">Output format</label>
+                    <select id="output-format" onchange="adtConfirmReset('output-format')">
                     <option value="" selected disabled>Unselected</option>
                     <option value="cellranger">Cell Ranger (for CITE-, DOGMA-seq)</option>
                     <option value="kallisto">Kallisto (for ASAP-seq)</option>
                     <option value="tapestri">Tapestri (DNA + protein)</option>
                 </select>
-            </div>
-            <br>
-            <label for="search">Search</label>
-            <div class="dropdown">
+                </div>
+            </fieldset>
+            <div class="search-group">
+                <label for="search">Find a marker</label>
+                <p id="search-instructions" class="field-help">Select species and panel first. Then search by marker, clone, or TotalSeq ID.</p>
+                <div class="dropdown">
                 <input 
                     type="text" 
                     id="search" 
@@ -95,54 +74,46 @@
                     autocorrect="off" 
                     autocapitalize="off" 
                     spellcheck="false" 
-                    style="width: auto;"
-                    aria-label="Search for markers by name, clone, or TotalSeq ID"
                     aria-describedby="search-instructions">
-                <div id="dropdown-content" class="dropdown-content" role="listbox" aria-label="Marker search results"></div>
+                <div id="dropdown-content" class="dropdown-content" aria-label="Marker search results"></div>
+                </div>
             </div>
-            <br><br>
+            <div class="table-region" tabindex="0" aria-label="Selected feature barcodes. Scroll horizontally to see all fields.">
             <table id="csvTable">
+                <caption>Selected feature barcodes</caption>
                 <thead>
                     <tr>
-                        <th>TotalSeq ID</th>
-                        <th>Marker</th>
-                        <th>Export name</th>
-                        <th>BioLegend catalogue number</th>
-                        <th>Clone</th>
-                        <th>Reactivity</th>
-                        <th>Barcode sequence</th>
-                        <th>Actions</th>
+                        <th scope="col">TotalSeq ID</th>
+                        <th scope="col">Marker</th>
+                        <th scope="col">Export name</th>
+                        <th scope="col">BioLegend catalogue number</th>
+                        <th scope="col">Clone</th>
+                        <th scope="col">Reactivity</th>
+                        <th scope="col">Barcode sequence</th>
+                        <th scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="rowsContainer">
                     <!-- Rows will be added here dynamically -->
                 </tbody>
             </table>
+            </div>
+            <div class="export-panel">
+                <div>
+                    <label for="csv-name-input">File name</label>
+                    <input type="text" id="csv-name-input" placeholder="e.g. my_panel">
+                </div>
+                <button type="button" class="generate-csv-button">Download CSV</button>
+            </div>
         </form>
-
-        <div class="separator"></div>
-    </div>
-    <div class="adt-file-generate-container">
-        <label for="csv-name-input" style="font-weight: 500; margin-bottom: 5px; display: block;">File name</label>
-        <input type="text" id="csv-name-input" class="csv-name-input" placeholder="File name" aria-label="Enter CSV file name">
-        <button type="button" class="generate-csv-button" onclick="adtGenerateCSV()" aria-label="Download CSV file">Download CSV</button>
-    </div>
+    </main>
     <script src="helpers/functions.js"></script>
     <script>
-        let markersData = [];
-        let speciesSelected = false;
-        let formatSelected = false;
-        let outputFormatSelected = false;
-
         document.addEventListener('DOMContentLoaded', async () => {
             pagesIncludeTopBar();
             document.querySelector('.generate-csv-button').addEventListener('click', adtGenerateCSV);
         });
 
-        function adtRemoveRow(button) {
-            const row = button.closest('tr');
-            row.remove();
-        }
     </script>
 
 </body>
