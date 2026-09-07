@@ -1,6 +1,4 @@
-include { AMULET      } from '../modules/qc'
-include { MGATK2      } from '../modules/qc'
-include { MACS3       } from '../modules/qc'
+include { AMULET; MGATK2; MACS3 } from '../modules/qc_atac'
 include { GENOTYPE    } from './genotype'
 
 workflow QC_ATAC {

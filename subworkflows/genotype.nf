@@ -1,5 +1,4 @@
-include { CELLSNP_LITE } from '../modules/qc'
-include { VIREO        } from '../modules/qc'
+include { CELLSNP_LITE; VIREO } from '../modules/genotype'
 
 workflow GENOTYPE {
     take:

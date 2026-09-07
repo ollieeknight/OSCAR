@@ -1,3 +1,5 @@
+include { get_chemistry_family } from '../lib/chemistry'
+
 // ─── Override Cycles Helpers ──────────────────────────────────────────────────
 // BCL Convert OverrideCycles for each assay/chemistry/index/modality combination.
 // Format: Y=data read, I=index, N=masked cycle. Semicolons separate read segments.
@@ -57,18 +59,17 @@ def get_override_cycles(assay, chemistry, index_type, modality, num_reads, index
         'DI_Flex-v2_GEX':       [4: 'Y*;I10;I10;Y*'],
     ]
 
-    // Resolve key from assay/chemistry/index_type/modality
-    def chem    = chemistry.replaceAll(/[-_ ]/, '')
+    // Resolve key from assay/chemistry/index_type/modality.
+    // Chemistry family comes from the registry in lib/chemistry.nf so that
+    // adding a chemistry there is enough to make it resolvable here.
     // Normalise modality: VDJ-T/VDJ-B → VDJ (same read structure), CRISPR → GEX (same read structure)
     def mod_key = modality.replaceAll(/^VDJ-[TB]$/, 'VDJ').replaceAll(/^CRISPR$/, 'GEX')
     def key
     if (assay in ['CITE', 'GEX']) {
-        if      (chem.startsWith('SC3Pv2'))                      key = "${index_type}_SC3Pv2_${mod_key}"
-        else if (chem.startsWith('SC3Pv3'))                      key = "${index_type}_SC3Pv3_${mod_key}"
-        else if (chem.startsWith('SC3Pv4'))                      key = "${index_type}_SC3Pv4_${mod_key}"
-        else if (chem.startsWith('SC5P') && chem.contains('v3')) key = "${index_type}_SC5Pv3_${mod_key}"
-        else if (chem.startsWith('SC5P'))                        key = "${index_type}_SC5P_${mod_key}"
-        else key = null
+        def family = get_chemistry_family(chemistry)
+        key = (family in ['SC3Pv2', 'SC3Pv3', 'SC3Pv4', 'SC5P', 'SC5Pv3'])
+            ? "${index_type}_${family}_${mod_key}"
+            : null
     } else if (assay == 'Flex') {
         key = "DI_Flex-v2_GEX"
     } else if (assay == 'Multiome') {
@@ -239,7 +240,7 @@ process BCLCONVERT {
     script:
     def n_tiles      = Math.max(1, (task.cpus / 8).toInteger())
     def n_convert    = Math.max(1, (task.cpus / 8).toInteger())
-    def n_compress   = (task.cpus / 2).toInteger()
+    def n_compress   = Math.max(1, (task.cpus / 2).toInteger())
     def n_decompress = Math.max(1, (task.cpus / 4).toInteger())
     """
     rm -rf fastqs/
@@ -248,7 +249,11 @@ process BCLCONVERT {
         --bcl-input-directory              ${bcl_dir} \\
         --output-directory                 fastqs \\
         --sample-sheet                     ${samplesheet} \\
-        --bcl-only-lane                    ${lane}
+        --bcl-only-lane                    ${lane} \\
+        --bcl-num-parallel-tiles           ${n_tiles} \\
+        --bcl-num-conversion-threads       ${n_convert} \\
+        --bcl-num-compression-threads      ${n_compress} \\
+        --bcl-num-decompression-threads    ${n_decompress}
     """
 }
 

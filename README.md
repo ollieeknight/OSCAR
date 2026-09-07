@@ -2,37 +2,99 @@
 
 **Ollie's Single Cell Analysis for the Romagnani Lab**
 
-OSCAR is a comprehensive pipeline designed for processing single-cell RNA, ATAC, and multiome sequencing data.
+OSCAR takes a raw BCL folder and a samplesheet, and gives you demultiplexed
+FASTQs, count matrices, and QC output. It runs on SLURM through Nextflow DSL2,
+with every tool in an Apptainer container.
 
-## Features
-- **Comprehensive metadata tracking**: Generate your metadata file [here](https://ollieeknight.github.io/OSCAR/) and keep track of sequencing runs.
-- **FASTQ demultiplexing and QC**: Takes a raw bcl folder and demultiplexes FASTQ files, performs `falco` and `multiqc`.
-- **scRNA pipeline**: Utilises `cellranger` for counting (with and without ADT/HTO), performs ambient-RNA correction with `CellBender`, and donor genotyping demultiplexing with `cellsnp-lite` and `vireo`.
-- **scATAC pipeiline**: Utilises `cellranger` for counting, AMULET for doublet prediction, donor genotyping demultiplexing with `cellsnp-lite` and `vireo`, and for ASAP-seq performs ADT/HTO counting with `kallisto`.
-- **Multiome pipeline**: All of the above
-- **Multiple sequencing run integration**: Integrate sequenced libraries from several runs into one output folder.
+Full documentation: [ollieeknight.github.io/OSCAR](https://ollieeknight.github.io/OSCAR/)
 
-## Getting Started
+## Supported assays
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/ollieeknight/OSCAR
-   cd OSCAR
-   ```
+| Assay | Modalities | Counted with |
+|-------|-----------|--------------|
+| GEX | GEX, VDJ-T, VDJ-B, CRISPR | cellranger multi |
+| CITE | GEX, ADT, HTO | cellranger multi |
+| Flex | GEX | cellranger multi, cyto, or both |
+| ATAC | ATAC | cellranger-atac |
+| Multiome | GEX, ATAC | cellranger multi, cellranger-atac |
+| DOGMA | GEX, ATAC, ADT, HTO | cellranger multi, cellranger-atac |
+| ASAP | ATAC, ADT, HTO | cellranger-atac, kallisto/bustools |
 
-2. Build reference genomes (see `reference/` for human and mouse build scripts).
+Beyond counting, OSCAR runs falco and MultiQC on reads, cellbender and scrublet
+on GEX, AMULET and mgatk2 and MACS3 on ATAC, and cellsnp-lite with vireo when a
+library has more than one donor. Viral detection and RNA velocity are available
+and off by default.
 
-3. Run the pipeline (BCL → FASTQ → count → QC):
-   ```bash
-   nextflow run main.nf -profile slurm \
-       --samplesheet /path/to/metadata.csv \
-       --bcl_dir     /path/to/BCL_folder \
-       --outdir      results \
-       --adt_files_dir /path/to/adt_csvs/
-   ```
+## Getting started
 
-See `CLAUDE.md` for full parameter reference, samplesheet format, and invocation examples.
+```bash
+git clone https://github.com/ollieeknight/OSCAR
+cd OSCAR
+```
 
-For any questions, please e-mail `oliver.knight@charite.de`.
+Build references with the scripts in `assets/references/`, then point
+`nextflow.config` at your cluster paths and SLURM partitions. See
+[Installation](https://ollieeknight.github.io/OSCAR/guide/installation/).
 
-> **Note:** Legacy bash scripts are archived in `old/bash/` for reference only.
+Run one flowcell:
+
+```bash
+nextflow run main.nf -profile slurm \
+    --samplesheet   /path/to/metadata.csv \
+    --bcl_dir       /path/to/R463_bcl \
+    --adt_files_dir /path/to/adt_files \
+    --outdir        /path/to/results \
+    --run_name      R463
+```
+
+Merge libraries sequenced across several flowcells with `--extra_bcl_dirs` and
+`--extra_samplesheets`. Stop early with `--run_until FASTQ` or
+`--run_until cellranger`. Skip demultiplexing with `--from_fastq`, or run QC
+alone with `--from_cellranger`.
+
+Generate a samplesheet at
+[ollieeknight.github.io/OSCAR](https://ollieeknight.github.io/OSCAR/), or copy
+`assets/example_metadata.csv`.
+
+## Checking your setup
+
+```bash
+nextflow lint main.nf lib modules subworkflows nextflow.config
+nextflow run tests/test_lib.nf
+```
+
+The first parses every file. The second exercises index kit loading, chemistry
+lookup, samplesheet parsing, and cellranger config generation against the
+shipped example. Neither needs a cluster.
+
+## Repository layout
+
+| Path | Contents |
+|------|----------|
+| `main.nf` | Routing and channel logic |
+| `nextflow.config` | Parameters, profiles, per-process resources |
+| `lib/` | Pure functions: chemistry registry, index kits, samplesheet parsing |
+| `modules/` | One process per tool |
+| `subworkflows/` | Process chains |
+| `tests/` | Self-checks that run without a cluster |
+| `assets/` | Index kit CSVs, reference build scripts, example samplesheets |
+| `docs-src/` | Documentation source |
+| `docs/` | Built site (generated, see below) |
+| `original/` | Legacy bash implementation, reference only |
+
+## Building the docs
+
+GitHub Actions builds and deploys the site on every push to `main` that touches
+`docs-src/`. Pull requests build without deploying, so a broken link fails the
+check rather than the live site.
+
+Preview locally:
+
+```bash
+pip install -r docs-src/requirements.txt
+mkdocs serve                 # localhost:8000
+```
+
+## Contact
+
+`oliver.knight@charite.de`

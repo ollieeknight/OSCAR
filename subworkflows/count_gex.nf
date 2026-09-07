@@ -1,51 +1,102 @@
 include { CELLRANGER_MULTI    } from '../modules/count_gex'
 include { CYTO_FLEX           } from '../modules/count_gex_cyto'
 include { CYTO_RENAME_SAMPLES } from '../modules/count_gex_cyto'
-include { FLEX_PROBE_PREPARE    } from '../modules/flex_probe_convert'
-include { FLEX_SAMPLE_PREPARE   } from '../modules/flex_probe_convert'
-include { FLEX_BARCODE_EXTRACT  } from '../modules/flex_probe_convert'
+include { FLEX_PROBE_PREPARE     } from '../modules/flex_probe_convert'
+include { FLEX_SAMPLE_PREPARE    } from '../modules/flex_probe_convert'
+include { FLEX_BARCODE_EXTRACT   } from '../modules/flex_probe_convert'
 include { FLEX_WHITELIST_EXTRACT } from '../modules/flex_probe_convert'
+include { build_multi_config_header; build_flex_samples_section } from '../lib/multi_config'
 
 workflow COUNT_GEX {
     take:
-        ch_libraries   // [library_id, metas, config_header, adt_csv, flex_samples_content,
+        ch_libraries   // [library_id, metas, refs, adt_csv,
                        //  gex_fastqs, adt_fastqs, hto_fastqs,
                        //  vdj_t_fastqs, vdj_b_fastqs, crispr_fastqs]
 
     main:
         // ── Split Flex from regular libraries ─────────────────────────────────
-        ch_libraries.branch {
-            flex:    it[1].any { m -> m.assay == 'Flex' }
+        ch_libraries.branch { entry ->
+            flex:    entry[1].any { m -> m.assay == 'Flex' }
             regular: true
         }.set { ch_split }
 
+        def needs_cr   = params.flex_backend in ['cellranger', 'both']
+        def needs_cyto = params.flex_backend in ['cyto', 'both']
+
+        // ── Probe set preparation ─────────────────────────────────────────────
+        // Runs whenever a custom probe set is supplied, regardless of backend:
+        // cellranger needs the merged CSV too, otherwise custom probes are
+        // silently absent from its output.
+        def has_custom_probes = params.flex_probe_set_custom as boolean
+
+        def ch_probe_csv_cr
+        if (has_custom_probes) {
+            def std_probe  = params.flex_probe_set
+                ? file(params.flex_probe_set)        : file('NO_FILE')
+            def cust_probe = file(params.flex_probe_set_custom)
+
+            FLEX_PROBE_PREPARE(Channel.value([std_probe, cust_probe]))
+            ch_probe_csv_cr = FLEX_PROBE_PREPARE.out.probe_csv_cr
+        }
+        else {
+            // No custom probes — cellranger uses the standard 10x CSV directly.
+            ch_probe_csv_cr = params.flex_probe_set
+                ? Channel.value(file(params.flex_probe_set))
+                : Channel.value(file('NO_FILE'))
+        }
+
         // ── cellranger path ───────────────────────────────────────────────────
-        // Non-Flex always runs cellranger.
-        // Flex runs cellranger when backend is 'cellranger' or 'both'.
-        def ch_for_cr = (params.flex_backend in ['cellranger', 'both'])
+        // Non-Flex always runs cellranger. Flex runs it for backend
+        // 'cellranger' or 'both'.
+        def ch_for_cr = needs_cr
             ? ch_split.regular.mix(ch_split.flex)
             : ch_split.regular
 
-        CELLRANGER_MULTI(ch_for_cr)
+        // Attach the resolved probe set, then build the config header here —
+        // inside the subworkflow, where the merged probe CSV is reachable.
+        ch_for_cr
+            .combine(ch_probe_csv_cr)
+            .map { lid, metas, refs, adt_csv,
+                   gex_fqs, adt_fqs, hto_fqs, vdj_t, vdj_b, crispr, probe_csv ->
+                def probe_set = probe_csv.name == 'NO_FILE'
+                    ? null
+                    : probe_csv.toAbsolutePath().toString()
+                def header = build_multi_config_header(
+                    library_id: lid,
+                    metas:      metas,
+                    refs:       refs,
+                    probe_set:  probe_set,
+                    adt_csv:    adt_csv
+                )
+                def meta            = metas.find { m -> m.modality == 'GEX' } ?: metas[0]
+                def samples_section = build_flex_samples_section(meta, params.flex_samples_file)
+
+                [lid, metas, header, adt_csv, samples_section,
+                 gex_fqs, adt_fqs, hto_fqs, vdj_t, vdj_b, crispr]
+            }
+            .set { ch_cr_input }
+
+        CELLRANGER_MULTI(ch_cr_input)
 
         // ── cyto path ─────────────────────────────────────────────────────────
         // Only when flex_backend == 'cyto' or 'both'. Runs in parallel with
         // cellranger (when 'both'); results used for probe-level QC only.
-        if (params.flex_backend in ['cyto', 'both']) {
+        if (needs_cyto) {
 
-            // Probe format conversion — runs once regardless of library count
-            def std_probe  = params.flex_probe_set
-                ? file(params.flex_probe_set)        : file('NO_FILE')
-            def cust_probe = params.flex_probe_set_custom
-                ? file(params.flex_probe_set_custom) : file('NO_FILE')
+            // cyto needs the TSV-format probe file, which only
+            // FLEX_PROBE_PREPARE produces — run it if it has not run already.
+            if (!has_custom_probes) {
+                def std_only = params.flex_probe_set
+                    ? file(params.flex_probe_set) : file('NO_FILE')
+                FLEX_PROBE_PREPARE(Channel.value([std_only, file('NO_FILE')]))
+            }
 
-            FLEX_PROBE_PREPARE(Channel.value([std_probe, cust_probe]))
-
-            // Detect Flex chemistry version from first Flex library to auto-select barcode ref + preset
+            // Detect Flex chemistry from the first Flex library to auto-select
+            // barcode ref + preset.
             def ch_flex_chem = ch_split.flex
-                .map { lid, metas, _cfg, _adt, _flex, _gex, _adt_fqs, _hto_fqs, _vdj_t, _vdj_b, _crispr ->
-                    def ml = []; metas.each { ml << it }
-                    (ml.find { it.modality == 'GEX' }?.chemistry ?: 'Flex-v2-R1')
+                .map { lid, metas, _refs, _adt, _gex, _adt_fqs, _hto_fqs, _vdj_t, _vdj_b, _crispr ->
+                    def ml = []; metas.each { m -> ml << m }
+                    (ml.find { m -> m.modality == 'GEX' }?.chemistry ?: 'Flex-v2-R1')
                 }
                 .first()
 
@@ -53,7 +104,8 @@ workflow COUNT_GEX {
                 chem ==~ /Flex-v2.*/ ? 'gex-v2' : 'gex-v1'
             }
 
-            // Auto-extract probe barcode ref + cell barcode whitelist from cellranger container
+            // Auto-extract probe barcode ref + cell barcode whitelist from the
+            // cellranger container.
             FLEX_BARCODE_EXTRACT(ch_flex_chem)
             FLEX_WHITELIST_EXTRACT(ch_flex_chem)
 
@@ -71,9 +123,9 @@ workflow COUNT_GEX {
                 ch_cyto_barcodes = Channel.value(file('NO_FILE'))
             }
 
-            // Build cyto input: [lid, metas, probe_tsv, barcodes, whitelist, cyto_preset, gex_fastqs]
+            // Build cyto input: [lid, metas, probe_tsv, barcodes, whitelist, preset, gex_fastqs]
             ch_split.flex
-                .map { lid, metas, _cfg, _adt, _flex, gex_fqs, _adt_fqs, _hto_fqs, _vdj_t, _vdj_b, _crispr ->
+                .map { lid, metas, _refs, _adt, gex_fqs, _adt_fqs, _hto_fqs, _vdj_t, _vdj_b, _crispr ->
                     [lid, metas, gex_fqs]
                 }
                 .combine(FLEX_PROBE_PREPARE.out.probe_tsv_cyto)
@@ -97,10 +149,8 @@ workflow COUNT_GEX {
         }
 
     emit:
-        // QC runs only on cellranger output — cyto output is probe-level comparison only.
-        // When flex_backend == 'cyto', CELLRANGER_MULTI never runs; emit empty channel
-        // so downstream QC_GEX is simply a no-op rather than a channel resolution error.
-        outs = (params.flex_backend in ['cellranger', 'both'])
-            ? CELLRANGER_MULTI.out.outs
-            : Channel.empty()
+        // QC runs only on cellranger output — cyto output is probe-level
+        // comparison only. When flex_backend == 'cyto', CELLRANGER_MULTI may
+        // still run for non-Flex libraries, so its output is always emitted.
+        outs = CELLRANGER_MULTI.out.outs
 }
