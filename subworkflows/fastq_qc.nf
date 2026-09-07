@@ -19,7 +19,9 @@ workflow FASTQ_QC {
             .map { meta, fq_dir, fastq -> [meta.id, meta, fq_dir, fastq] }
             .groupTuple(by: 0)
             .map { id, metas, fq_dirs, fastqs ->
-                [metas[0], fq_dirs.unique(false), fastqs]
+                // fq_dirs is one entry per validated file, all identical for a given
+                // meta.id — collapse to the single dir string downstream expects.
+                [metas[0], fq_dirs.unique(false).first(), fastqs]
             }
             .set { ch_validated_fastqs }
 
@@ -40,6 +42,6 @@ workflow FASTQ_QC {
             .set { ch_falco_reports }
 
     emit:
-        fastqs        = ch_validated_fastqs   // [meta, [fastq_dir_strings], [fastq_files]]
+        fastqs        = ch_validated_fastqs   // [meta, fastq_dir_string, [fastq_files]]
         falco_reports = ch_falco_reports      // [run_name, [report_dirs]]
 }
