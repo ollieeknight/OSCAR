@@ -1,0 +1,63 @@
+site_name: OSCAR
+site_description: Single-cell sequencing pipeline for the Romagnani Lab
+site_url: https://ollieeknight.github.io/OSCAR/
+repo_url: https://github.com/ollieeknight/OSCAR
+repo_name: ollieeknight/OSCAR
+
+docs_dir: docs-src
+site_dir: docs
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+    - search.suggest
+
+nav:
+  - Home: index.md
+  - Guide:
+      - Installation: guide/installation.md
+      - Quickstart: guide/quickstart.md
+      - Samplesheet: guide/samplesheet.md
+      - Troubleshooting: guide/troubleshooting.md
+  - Reference:
+      - Parameters: reference/parameters.md
+      - Architecture: reference/architecture.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search

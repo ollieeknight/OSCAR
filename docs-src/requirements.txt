@@ -1,0 +1,7 @@
+# Docs build dependencies.
+#
+# Pinned to a 9.x range on purpose. MkDocs 2.0 removes the plugin system and
+# rewrites theming with no migration path, so an unpinned install would break
+# this site without warning.
+#   https://squidfunk.github.io/mkdocs-material/blog/2026/02/18/mkdocs-2.0/
+mkdocs-material>=9.7,<10
