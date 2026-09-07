@@ -43,7 +43,7 @@
     <hr> <!-- Horizontal line to separate sections -->
     <br>
 
-        <div id="messageContainer" style="color: red; display: none;"></div> <!-- Container for error messages -->
+        <div id="messageContainer" role="alert" aria-live="polite" style="display: none;"></div>
         <form id="csvForm">
             <table role="table" aria-label="Metadata input table">
                 <thead>
@@ -55,10 +55,11 @@
                         <th scope="col">Modality</th>
                         <th scope="col">Chemistry</th>
                         <th scope="col">Index type</th>
-                        <th scope="col">Index</th>
+                        <th scope="col">Index<span class="th-hint">kit code or sequence</span></th>
                         <th scope="col">Species</th>
                         <th scope="col">Number of donors</th>
                         <th scope="col">ADT CSV name</th>
+                        <th scope="col"><span class="visually-hidden">Row actions</span></th>
                     </tr>
                 </thead>
                 <tbody id="rowsContainer">
@@ -69,24 +70,11 @@
         </form>
     </div>
 
+    <script src="../helpers/schema.js"></script>
     <script src="../helpers/functions.js"></script>
+    <script src="../helpers/metadata.js"></script>
     <script>
-        // Wait for the DOM to load before executing setup functions
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Include the top bar
-            pagesIncludeTopBar();
-
-            // Set up event listeners for add row and generate CSV buttons
-            document.querySelector('.add-row-button').addEventListener('click', metadataAddRow); 
-            document.querySelector('.generate-csv-button').addEventListener('click', metadataGenerateCSV);
-
-            // Add the first row to the table on page load
-            const container = document.getElementById('rowsContainer');
-            const template = await metadataFetchRowTemplate();
-            const firstRow = document.createElement('tr');
-            firstRow.innerHTML = template;
-            container.appendChild(firstRow);
-        });
+        document.addEventListener('DOMContentLoaded', () => pagesIncludeTopBar());
     </script>
 </body>
 </html>
