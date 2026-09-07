@@ -9,28 +9,38 @@ function escapeCSV(value) {
     return stringValue;
 }
 
-// Top bar for index page (index.html)
-function indexIncludeTopBar() {
-    console.log('indexIncludeTopBar called');
-    fetch('./helpers/topbar.html')
-        .then(response => {
-            console.log('Fetch response:', response);
-            return response.text();
-        })
-        .then(data => {
-            console.log('Topbar data loaded:', data);
-            document.getElementById('topbar-placeholder').innerHTML = data;
-            document.getElementById('home-link').href = '../';
-            document.getElementById('metadata-link').href = 'metadata_generator.html';
-            document.getElementById('adt-link').href = 'adt_generator.html';
-            document.getElementById('functions-link').href = '../reference/architecture/';
-            document.getElementById('references-link').href = '../reference/parameters/';
-            console.log('Topbar loaded successfully');
-        })
-        .catch(error => {
-            console.error('Error fetching topbar:', error);
-        });
+// Navigation bar.
+//
+// Built in place rather than fetched. The markup is six static links, and a
+// failed fetch left the page with no navigation at all.
+const NAV_LINKS = [
+    { href: '../',                      text: 'Home' },
+    { href: 'metadata_generator.html',  text: 'Metadata file generator' },
+    { href: 'adt_generator.html',       text: 'Feature barcode generator' },
+    { href: '../guide/samplesheet/',    text: 'Samplesheet guide' },
+    { href: '../reference/parameters/', text: 'Parameters' },
+];
+
+function includeTopBar() {
+    const target = document.getElementById('topbar-placeholder');
+    if (!target) return;
+    const nav = document.createElement('nav');
+    nav.className = 'top-bar';
+    nav.setAttribute('aria-label', 'Tools navigation');
+    const here = window.location.pathname.split('/').pop();
+    NAV_LINKS.forEach(({ href, text }) => {
+        const a = document.createElement('a');
+        a.href = href;
+        a.textContent = text;
+        if (href === here) a.setAttribute('aria-current', 'page');
+        nav.appendChild(a);
+    });
+    target.replaceChildren(nav);
 }
+
+// Retained for the old entry points.
+const indexIncludeTopBar = includeTopBar;
+const pagesIncludeTopBar = includeTopBar;
 
 function fetchLastCommitDate(owner, repo) {
     const url = `https://api.github.com/repos/${owner}/${repo}/commits`;
@@ -45,26 +55,13 @@ function fetchLastCommitDate(owner, repo) {
         });
 }
 
-// Top bar for pages within pages folder 
-function pagesIncludeTopBar() {
-    fetch('../helpers/topbar.html')
-        .then(response => response.text())
-        .then(data => {
-            document.getElementById('topbar-placeholder').innerHTML = data;
-            document.getElementById('home-link').href = '../';
-            document.getElementById('metadata-link').href = 'metadata_generator.html';
-            document.getElementById('adt-link').href = 'adt_generator.html';
-            document.getElementById('functions-link').href = '../reference/architecture/';
-            document.getElementById('references-link').href = '../reference/parameters/';
-        })
-        .catch(error => {
-            console.error('Error fetching topbar:', error);
-        });
-}
-
 // Metadata generator logic lives in helpers/metadata.js.
 
 // Functions for adt_generator.html
+
+// Markers loaded from the selected TotalSeq CSV. Declared explicitly: it was
+// an implicit global created by assignment, which breaks under strict mode.
+let markersData = [];
 
 async function adtFetchCSV(file) {
     try {
@@ -130,6 +127,11 @@ function adtRemoveRow(element) {
 }
 
 function adtShowDropdown(format) {
+    // Derive the TotalSeq letter once. Falls back to the select's own value so
+    // a bare call still works, and to '' rather than throwing on no match.
+    const source = format || document.getElementById('format').value || '';
+    const formatLetter = (source.match(/totalseq_(\w)/i) || [, ''])[1].toUpperCase();
+
     const search = document.getElementById('search').value.toLowerCase();
     const dropdown = document.getElementById('dropdown-content');
     dropdown.innerHTML = '';
@@ -144,7 +146,6 @@ function adtShowDropdown(format) {
         let maxWidth = 0;
         filteredMarkers.forEach(marker => {
             const div = document.createElement('div');
-            const formatLetter = format.match(/totalseq_(\w)/i)[1].toUpperCase();
             const text = `TotalSeq-${formatLetter}${marker.totalseq_id}, ${marker.marker}, ${marker.clone}`;
             const highlightedText = text.replace(new RegExp(search, 'gi'), match => `<strong>${match}</strong>`);
             div.innerHTML = highlightedText;
