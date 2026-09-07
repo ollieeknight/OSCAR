@@ -1,3 +1,5 @@
+include { get_flex_barcode_file; get_flex_whitelist_file } from '../lib/chemistry'
+
 // ─── FLEX_PROBE_PREPARE ────────────────────────────────────────────────────────
 // Merges standard 10x probe CSV (comma-delimited) with custom probe CSV
 // (semicolon-delimited, OSCAR format) and emits both cellranger and cyto formats.
@@ -93,9 +95,7 @@ process FLEX_BARCODE_EXTRACT {
     path "versions.yml",       emit: versions
 
     script:
-    def bc_file = chemistry ==~ /Flex-v2.*/
-        ? "flex-v2-384.txt"
-        : "probe-barcodes-fixed-rna-profiling-rna-r1.txt"
+    def bc_file = get_flex_barcode_file(chemistry)
     """
     cp /opt/cellranger-10.0.0/lib/python/cellranger/barcodes/translation/${bc_file} probe_barcodes.txt
 
@@ -122,9 +122,7 @@ process FLEX_WHITELIST_EXTRACT {
     path "versions.yml",        emit: versions
 
     script:
-    def wl_file = chemistry ==~ /Flex-v2.*/
-        ? "737K-fixed-rna-profiling.txt.gz"
-        : "737K-flex-v2.txt.gz"
+    def wl_file = get_flex_whitelist_file(chemistry)
     """
     cp /opt/cellranger-10.0.0/lib/python/cellranger/barcodes/${wl_file} cb_whitelist.txt.gz
 
