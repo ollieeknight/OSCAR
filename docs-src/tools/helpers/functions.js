@@ -62,7 +62,6 @@ function fetchLastCommitDate(owner, repo) {
 // Markers loaded from the selected TotalSeq CSV. Declared explicitly: it was
 // an implicit global created by assignment, which breaks under strict mode.
 let markersData = [];
-const selectedPanelValues = { species: '', format: '', 'output-format': '' };
 
 async function adtFetchCSV(file) {
     try {
@@ -74,17 +73,9 @@ async function adtFetchCSV(file) {
         return data;
     } catch (error) {
         console.error('Error fetching CSV:', error);
-        adtShowMessage('Could not load marker data. Refresh and try again.');
+        alert('Failed to load marker data. Please refresh the page and try again.');
         return '';
     }
-}
-
-function adtShowMessage(text, kind = 'error') {
-    const box = document.getElementById('messageContainer');
-    if (!box) return;
-    box.textContent = text;
-    box.className = `message message-${kind}`;
-    box.hidden = !text;
 }
 
 function adtParseCSV(data) {
@@ -99,8 +90,6 @@ async function adtFilterMarkers() {
     const format = document.getElementById('format').value;
     const species = document.getElementById('species').value;
     const searchInput = document.getElementById('search');
-
-    if (!format || !species) return;
     
     // Show loading state
     searchInput.disabled = true;
@@ -154,21 +143,31 @@ function adtShowDropdown(format) {
             marker.clone.toLowerCase().includes(search) ||
             marker.totalseq_id.toLowerCase().includes(search)
         );
+        let maxWidth = 0;
         filteredMarkers.forEach(marker => {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'dropdown-item';
+            const div = document.createElement('div');
             const text = `TotalSeq-${formatLetter}${marker.totalseq_id}, ${marker.marker}, ${marker.clone}`;
-            button.textContent = text;
-            button.addEventListener('click', () => {
+            const highlightedText = text.replace(new RegExp(search, 'gi'), match => `<strong>${match}</strong>`);
+            div.innerHTML = highlightedText;
+            div.onclick = () => {
                 adtAddRow(marker.marker, marker.totalseq_id, marker.catalogue_number, marker.clone, marker.reactivity, marker.barcode_sequence);
                 document.getElementById('search').value = `${formatLetter}${marker.totalseq_id}`;
                 dropdown.innerHTML = '';
-                dropdown.style.display = 'none';
-            });
-            dropdown.appendChild(button);
+            };
+            dropdown.appendChild(div);
+            const tempSpan = document.createElement('span');
+            tempSpan.style.visibility = 'hidden';
+            tempSpan.style.position = 'absolute';
+            tempSpan.innerHTML = highlightedText;
+            document.body.appendChild(tempSpan);
+            const width = tempSpan.offsetWidth;
+            document.body.removeChild(tempSpan);
+            if (width > maxWidth) {
+                maxWidth = width;
+            }
         });
-        dropdown.style.display = filteredMarkers.length ? 'block' : 'none';
+        dropdown.style.display = 'block';
+        dropdown.style.width = `${maxWidth}px`;
     } else {
         dropdown.style.display = 'none';
     }
@@ -178,28 +177,69 @@ function adtConfirmReset(type) {
     const speciesElement = document.getElementById('species');
     const formatElement = document.getElementById('format');
     const outputFormatElement = document.getElementById('output-format');
-    const elements = {
-        species: speciesElement,
-        format: formatElement,
-        'output-format': outputFormatElement,
-    };
-    const element = elements[type];
-    const nextValue = element.value;
-    const hasEntries = document.getElementById('rowsContainer').children.length > 0;
+    const table = document.getElementById('csvTable'); // Updated ID
 
-    if (hasEntries && nextValue !== selectedPanelValues[type] && !confirm('Changing this clears selected markers. Continue?')) {
-        element.value = selectedPanelValues[type];
-        return;
+    let currentValue;
+    if (type === 'species') {
+        currentValue = speciesElement.value;
+        if (!speciesSelected) {
+            speciesSelected = true;
+            adtFilterMarkers();
+            return;
+        }
+    } else if (type === 'format') {
+        currentValue = formatElement.value;
+        if (!formatSelected) {
+            formatSelected = true;
+            adtFilterMarkers();
+            return;
+        }
+    } else if (type === 'output-format') {
+        currentValue = outputFormatElement.value;
+        if (!outputFormatSelected) {
+            outputFormatSelected = true;
+            return;
+        }
     }
 
-    if (hasEntries && nextValue !== selectedPanelValues[type]) {
-        document.getElementById('rowsContainer').replaceChildren();
-        markersData = [];
-        document.getElementById('search').value = '';
-    }
+    const hasEntries = table.getElementsByTagName('tr').length > 1;
 
-    selectedPanelValues[type] = nextValue;
-    if (type === 'species' || type === 'format') adtFilterMarkers();
+    if (currentValue !== '' && hasEntries) {
+        const confirmed = confirm('Changing this will reset all choices. Is this alright?');
+        if (!confirmed) {
+            // Revert the selection to the previous value
+            if (type === 'species') {
+                speciesElement.value = '';
+                speciesSelected = false;
+            } else if (type === 'format') {
+                formatElement.value = '';
+                formatSelected = false;
+            } else if (type === 'output-format') {
+                outputFormatElement.value = '';
+                outputFormatSelected = false;
+            }
+            return;
+        } else {
+            // Reset the form or perform necessary actions
+            resetForm();
+        }
+    }
+}
+
+function resetForm() {
+    // Clear all selections
+    document.getElementById('species').value = '';
+    document.getElementById('format').value = '';
+    document.getElementById('output-format').value = '';
+    
+    // Clear the table rows
+    const rowsContainer = document.getElementById('rowsContainer');
+    rowsContainer.innerHTML = '';
+    
+    // Reset flags
+    speciesSelected = false;
+    formatSelected = false;
+    outputFormatSelected = false;
 }
 
 function adtSubstituteCharacters(text) {
@@ -302,15 +342,15 @@ function adtAddRow(marker, totalseq_id, catalogue_number, clone, reactivity, bar
             <div class="edit-container">
                 <span class="corrected-name">${adtSubstituteCharacters(marker)}</span>
                 <input type="text" class="edit-input" style="display:none;">
-                <button type="button" class="edit-button" onclick="adtEditRow(event, this)">Edit</button>
-                <button type="button" class="save-button" style="display:none;" onclick="adtSaveRow(event, this)">Save</button>
+                <button class="edit-button" onclick="adtEditRow(event, this)">Edit</button>
+                <button class="save-button" style="display:none;" onclick="adtSaveRow(event, this)">Save</button>
             </div>
         </td>
         <td>${catalogue_number}</td>
         <td>${clone}</td>
         <td>${reactivity}</td>
         <td>${barcode}</td>
-        <td><button type="button" class="remove-button" onclick="adtRemoveRow(this)">Remove</button></td>
+        <td><button class="remove-button" onclick="adtRemoveRow(this)">Remove</button></td>
     `;
 
     tableBody.appendChild(row);
@@ -319,23 +359,19 @@ function adtAddRow(marker, totalseq_id, catalogue_number, clone, reactivity, bar
 function adtGenerateCSV() {
     const outputFormat = document.getElementById('output-format').value;
     const format = document.getElementById('format').value;
-    const csvNameInput = document.getElementById('csv-name-input').value.trim();
+    const csvNameInput = document.querySelector('.csv-name-input').value.trim();
     
     // Validate all required fields
     if (!outputFormat) {
-        adtShowMessage('Select a CSV output format.');
+        alert('Please select a CSV output format.');
         return;
     }
     if (!format) {
-        adtShowMessage('Select a TotalSeq panel.');
+        alert('Please select a TotalSeq format.');
         return;
     }
     if (!csvNameInput) {
-        adtShowMessage('Enter a file name.');
-        return;
-    }
-    if (outputFormat === 'tapestri' && !format.includes('totalseq_d')) {
-        adtShowMessage('Tapestri output requires TotalSeq-D.');
+        alert('Please enter a file name.');
         return;
     }
     
@@ -343,10 +379,6 @@ function adtGenerateCSV() {
     const csvName = csvNameInput.replace(/[^a-zA-Z0-9_-]/g, '_');
 
     const rows = Array.from(document.querySelectorAll('#rowsContainer tr'));
-    if (rows.length === 0) {
-        adtShowMessage('Add at least one marker before downloading.');
-        return;
-    }
     let csvContent = '';
 
     const hashtagRows = rows.filter(row => row.querySelector('td').textContent.includes('Hashtag'));
@@ -410,5 +442,4 @@ function adtGenerateCSV() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    adtShowMessage(`${csvName}.csv downloaded.`, 'success');
 }

@@ -5,35 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Generate metadata files for single-cell sequencing experiments.">
     <title>Metadata file generator - OSCAR</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="helpers/styles.css">
 </head>
 <body>
     <div id="topbar-placeholder"></div>
-    <main class="tool-shell container">
-        <header class="tool-header">
-            <div>
-                <p class="eyebrow">Step 1 of 2</p>
-                <h1>Metadata generator</h1>
-                <p class="lead">Create one CSV for this sequencing run. Add one row for each library type.</p>
-            </div>
-            <button class="generate-csv-button" type="button">Download metadata.csv</button>
-        </header>
+    <div class="github-link">
+        <a href="https://github.com/ollieeknight/OSCAR" target="_blank">
+            <span>github.com/ollieeknight/OSCAR</span>
+            <img src="files/github.png" alt="GitHub Repository">
+        </a>
+    </div>
+    <div class="container">
+        <h1>Metadata file generator</h1>   
+        <div class="download-metadata-container">
+            <button class="generate-csv-button" aria-label="Download metadata CSV file">Download metadata.csv</button>
+        </div> 
+        <div class="pagescontent">
 
-        <section class="tool-card guidance" aria-labelledby="metadata-help">
-            <h2 id="metadata-help">Before you add rows</h2>
+        <section>
+            <p>Several input variables are required to make the metadata file. These are detailed below:</p>
             <ul>
-                <li>Keep assay, experiment ID, historical number, and replicate identical within one library.</li>
-                <li>Use values offered in menus. Enter `NA` only when a field does not apply.</li>
-                <li>For ADT or HTO, make the reference first with the <a href="adt_generator.html">feature barcode generator</a>.</li>
+                <li>Assay type: The type of assay used (e.g., CITE, DOGMA, etc.)</li>
+                <li>Experiment ID: A unique identifier for the experiment</li>
+                <li>Historical number: A unique identifier, likely for the pool of cells loaded onto the 10x chip. For example, if you have two pools and load the first onto two GEMs and the second onto one, the first experiment would have a historical number of 1 and replicate names of A and B, and the second pool would have a historical number of 2 and a replicate name of A.</li>
+                <li>Replicate: The replicate number for the experiment: see above.</li>
+                <li>Modality: The modality of the experiment (e.g., Gene expression, ATAC, ADT, etc.)</li>
+                <li>Chemistry: The chemistry used for the experiment (e.g., 3' v2, 3' v3, etc.). For more information see <a href="https://kb.10xgenomics.com/hc/en-us/articles/115003764132-How-does-Cell-Ranger-auto-detect-chemistry" target="_blank">here</a>.</li>
+                <li>Index type: The type of index used (Single index or dual index). Refer to the assay used, and the plate or primers used to index your library.</li>
+                <li>Index: The index used for the experiment. This is the barcode used to identify the sample.</li>
+                <li>Species: The species of the sample (Human or mouse)</li>
+                <li>Number of donors: The number of donors in this GEM well, used for donor deconvolution. Human only, write NA for mouse.</li>
+                <li>ADT file name: The name of the ADT file used for the experiment. Exclude .csv suffix. This is the name of the file that contains ADT barcodes. The format must match the format for your experiment, detailed <a href="https://github.com/ollieeknight/OSCAR/tree/main/templates" target="_blank">here</a>.</li>
             </ul>
-            <p><a href="../guide/samplesheet/">Read metadata field guidance</a></p>
-        </section>
+            <p>Please make one metadata file <strong>per sequencing run</strong>.</p>        </section>        
+    </div>
+    <hr> <!-- Horizontal line to separate sections -->
+    <br>
+
         <div id="messageContainer" role="alert" aria-live="polite" style="display: none;"></div>
-        <form id="csvForm" class="tool-card">
-            <div class="table-region" tabindex="0" aria-label="Metadata rows. Scroll horizontally to see all fields.">
-            <table>
-                <caption>Metadata rows</caption>
+        <form id="csvForm">
+            <table role="table" aria-label="Metadata input table">
                 <thead>
                     <tr>
                         <th scope="col">Assay type</th>
@@ -54,13 +66,9 @@
                     <!-- Rows will be dynamically added here -->
                 </tbody>
             </table>
-            </div>
-            <div class="form-actions">
-                <button type="button" class="add-row-button">Add row</button>
-                <button type="button" class="generate-csv-button generate-csv-button--secondary">Download metadata.csv</button>
-            </div>
+            <button type="button" class="add-row-button" aria-label="Add new row to metadata table">Add row</button>
         </form>
-    </main>
+    </div>
 
     <script src="helpers/schema.js"></script>
     <script src="helpers/functions.js"></script>

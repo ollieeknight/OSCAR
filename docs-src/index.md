@@ -1,32 +1,47 @@
 # OSCAR
 
-OSCAR processes a sequencing run into FASTQs, count matrices, and quality-control results.
+Ollie's Single Cell Analysis for the Romagnani Lab.
 
-## Prepare these before you run
-
-1. **Sequencing data:** a completed BCL folder.
-2. **Metadata:** make one CSV for the run with the [metadata generator](tools/metadata_generator.html).
-3. **Feature barcodes:** for ADT or HTO libraries, make a reference CSV with the [feature barcode generator](tools/adt_generator.html). Put it in `adt_files/` beside the metadata CSV.
-
-Then copy the command from [Quickstart](guide/quickstart.md).
+OSCAR takes a raw BCL folder and a samplesheet, and gives you demultiplexed
+FASTQs, count matrices, and QC output. It runs on SLURM through Nextflow DSL2,
+with every tool in an Apptainer container.
 
 ## Supported assays
 
-| Assay | Library types |
-|---|---|
-| GEX | GEX, VDJ-T, VDJ-B, CRISPR |
-| CITE | GEX, ADT, HTO |
-| Flex | GEX |
-| ATAC | ATAC |
-| Multiome | GEX, ATAC |
-| DOGMA | GEX, ATAC, ADT, HTO |
-| ASAP | ATAC, ADT, HTO |
+| Assay | Modalities | Counted with |
+|-------|-----------|--------------|
+| GEX | GEX, VDJ-T, VDJ-B, CRISPR | cellranger multi |
+| CITE | GEX, ADT, HTO | cellranger multi |
+| Flex | GEX | cellranger multi, cyto, or both |
+| ATAC | ATAC | cellranger-atac |
+| Multiome | GEX, ATAC | cellranger multi, cellranger-atac |
+| DOGMA | GEX, ATAC, ADT, HTO | cellranger multi, cellranger-atac |
+| ASAP | ATAC, ADT, HTO | cellranger-atac, kallisto/bustools |
 
-## Help
+## What runs
 
-- [Quickstart](guide/quickstart.md): run one flowcell.
-- [Samplesheet](guide/samplesheet.md): metadata fields and feature references.
-- [Installation](guide/installation.md): set up OSCAR once.
-- [Troubleshooting](guide/troubleshooting.md): fix common failures.
+BCL Convert demultiplexes each lane, then falco and MultiQC report on read
+quality. Counting depends on the assay. QC then runs cellbender for ambient RNA
+removal and scrublet for doublet detection on GEX, AMULET and mgatk2 and MACS3
+on ATAC. When a library has more than one donor, cellsnp-lite and vireo assign
+cells to donors.
 
-Questions: `oliver.knight@charite.de`.
+Two optional steps stay off by default: viral transcript detection, and RNA
+velocity quantification with simpleaf.
+
+## Start here
+
+- [Installation](guide/installation.md) covers what you need before the first run.
+- [Quickstart](guide/quickstart.md) walks through one BCL folder end to end.
+- [Samplesheet](guide/samplesheet.md) documents every column and its accepted values.
+- [Parameters](reference/parameters.md) lists every parameter with its default.
+- [Troubleshooting](guide/troubleshooting.md) covers the failures you are most likely to hit.
+
+## Tools
+
+Two browser generators, no install needed:
+
+- [Metadata file generator](tools/metadata_generator.html) builds a samplesheet row by row.
+- [Feature barcode generator](tools/adt_generator.html) builds ADT and HTO reference CSVs from the TotalSeq panels.
+
+Questions go to `oliver.knight@charite.de`.
