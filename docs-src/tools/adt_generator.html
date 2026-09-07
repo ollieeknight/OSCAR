@@ -6,14 +6,14 @@
     <meta name="description" content="Generate feature barcode reference files for Cell Ranger, Kallisto, and Tapestri workflows.">
     <title>Feature barcode reference generator - OSCAR</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../helpers/styles.css">
+    <link rel="stylesheet" href="helpers/styles.css">
 </head>
 <body>
     <div id="topbar-placeholder"></div>
     <div class="github-link">
         <a href="https://github.com/ollieeknight/OSCAR" target="_blank">
             <span>github.com/ollieeknight/OSCAR</span>
-            <img src="../files/github.png" alt="GitHub Repository">
+            <img src="files/github.png" alt="GitHub Repository">
         </a>
     </div>
     <div class="container">
@@ -67,10 +67,10 @@
                 <label for="format">TotalSeq format</label>
                 <select id="format" class="dynamic-width-dropdown" onchange="adtConfirmReset('format')" aria-label="Select TotalSeq format">
                     <option value="" selected disabled>Unselected</option>
-                    <option value="../files/totalseq_a.csv">TotalSeq-A</option>
-                    <option value="../files/totalseq_b.csv">TotalSeq-B</option>
-                    <option value="../files/totalseq_c.csv">TotalSeq-C</option>
-                    <option value="../files/totalseq_d.csv">TotalSeq-D</option>
+                    <option value="totalseq_a.csv">TotalSeq-A</option>
+                    <option value="totalseq_b.csv">TotalSeq-B</option>
+                    <option value="totalseq_c.csv">TotalSeq-C</option>
+                    <option value="totalseq_d.csv">TotalSeq-D</option>
                 </select>
             </div>
             <br>
@@ -127,7 +127,7 @@
         <input type="text" id="csv-name-input" class="csv-name-input" placeholder="File name" aria-label="Enter CSV file name">
         <button type="button" class="generate-csv-button" onclick="adtGenerateCSV()" aria-label="Download CSV file">Download CSV</button>
     </div>
-    <script src="../helpers/functions.js"></script>
+    <script src="helpers/functions.js"></script>
     <script>
         let markersData = [];
         let speciesSelected = false;
