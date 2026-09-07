@@ -183,7 +183,9 @@ document.addEventListener('DOMContentLoaded', () => {
   addRow();
 
   document.querySelector('.add-row-button').addEventListener('click', () => addRow());
-  document.querySelector('.generate-csv-button').addEventListener('click', generateCSV);
+  document.querySelectorAll('.generate-csv-button').forEach((button) => {
+    button.addEventListener('click', generateCSV);
+  });
 
   // Delegated so it covers rows added later.
   document.getElementById('rowsContainer').addEventListener('click', (event) => {
