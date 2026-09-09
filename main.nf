@@ -255,6 +255,7 @@ workflow {
                 .tap { ch_gex_for_velocity }
                 .map { meta, _fastq_dir, fqs ->
                     def files = (fqs instanceof List ? fqs : [fqs]).sort { f -> f.name }
+                    log.warn "OSCAR_DEBUG entry lib=${meta.library_id} mod=${meta.modality} id=${meta.id} n=${files.size()} files=" + files.collect{ it.toUriString() }.join(' ')
                     [meta.library_id, [modality: meta.modality, meta: meta, files: files]]
                 }
                 .groupTuple(by: 0)
