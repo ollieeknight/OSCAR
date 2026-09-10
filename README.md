@@ -22,8 +22,8 @@ Full documentation: [ollieeknight.github.io/OSCAR](https://ollieeknight.github.i
 
 Beyond counting, OSCAR runs falco and MultiQC on reads, cellbender and scrublet
 on GEX, AMULET and mgatk2 and MACS3 on ATAC, and cellsnp-lite with vireo when a
-library has more than one donor. Viral detection and RNA velocity are available
-and off by default.
+library has more than one donor. Viral detection and RNA velocity are off by
+default; enable them with `--extras viral,velocity`.
 
 ## Getting started
 
@@ -48,9 +48,9 @@ nextflow run main.nf -profile slurm \
 ```
 
 Merge libraries sequenced across several flowcells with `--extra_bcl_dirs` and
-`--extra_samplesheets`. Stop early with `--run_until FASTQ` or
-`--run_until cellranger`. Skip demultiplexing with `--from_fastq`, or run QC
-alone with `--from_cellranger`.
+`--extra_samplesheets`; each flowcell's FASTQs are written beside its own BCL
+folder. Skip demultiplexing with `--run_from fastq`, or run QC alone with
+`--run_from cellranger`.
 
 Build a samplesheet with the
 [metadata generator](https://ollieeknight.github.io/OSCAR/tools/metadata_generator.html),

@@ -1,6 +1,6 @@
 # Parameters
 
-Use `--name value`. Always use underscores: `--run_until`, not `--run-until`.
+Use `--name value`. Always use underscores: `--run_from`, not `--run-from`.
 
 ## Most-used parameters
 
@@ -11,11 +11,10 @@ Use `--name value`. Always use underscores: `--run_until`, not `--run-until`.
 | `outdir` | Results folder. Default: `results`. |
 | `run_name` | Results prefix. Default: BCL folder name. |
 | `adt_files_dir` | ADT/HTO reference folder when not beside metadata. |
-| `run_until` | Stop after `FASTQ` or `cellranger`. |
-| `from_fastq`, `fastq_dir` | Start counting from existing FASTQs. |
-| `from_cellranger`, `outs_dir` | Run QC on existing Cell Ranger output. |
-
-`from_fastq` and `from_cellranger` cannot be combined.
+| `run_from` | Entry point: `bcl` (default), `fastq`, or `cellranger`. |
+| `fastq_dir` | Existing FASTQs. Required for `--run_from fastq`. |
+| `outs_dir` | Existing Cell Ranger output. Required for `--run_from cellranger`. |
+| `extras` | Optional analyses, comma-separated: `velocity`, `viral`. |
 
 ## Several flowcells
 
@@ -30,8 +29,9 @@ Omit `extra_samplesheets` when all flowcells share primary metadata CSV.
 
 | Parameter | Use |
 |---|---|
-| `run_velocity` | Set `true` for RNA velocity. Not available for Flex. |
-| `viral_piscem_index` | Enables viral transcript detection for human libraries. |
+| `extras` | `velocity` for RNA velocity (not available for Flex), `viral` for viral transcript detection (human libraries). Combine as `--extras velocity,viral`. |
+| `viral_piscem_index`, `viral_t2g`, `bamtofastq_bin` | Reference paths for `--extras viral`. |
+| `spliceu_index_human`, `spliceu_index_mouse` | Reference paths for `--extras velocity`. |
 | `flex_backend` | `cellranger`, `cyto`, or `both`; default `cellranger`. |
 | `flex_probe_set_custom` | Semicolon-delimited custom Flex probes. |
 

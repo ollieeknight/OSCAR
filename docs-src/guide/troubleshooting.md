@@ -28,7 +28,7 @@ apptainer.enabled = true
 
 ### A parameter did nothing
 
-Use underscores: `--run_until`, `--from_fastq`, and `--from_cellranger`. Hyphenated forms do not set OSCAR parameters.
+Use underscores: `--run_from` and `--extras`. Hyphenated forms do not set OSCAR parameters.
 
 ### `unrecognised chemistry`
 

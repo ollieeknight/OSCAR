@@ -36,7 +36,7 @@ workflow DEMUX {
                     }
                 }.join('\n')
 
-                [key, ml, bcl_dir, is_dual, data_header, data_rows]
+                [key, ml, bcl_dir, bcl_dir.parent.toString(), is_dual, data_header, data_rows]
             }
             .set { ch_demux_input }
 
@@ -46,7 +46,7 @@ workflow DEMUX {
         // flatMap emits one channel item per present lane → one BCLCONVERT job per lane.
         // This avoids --no-lane-splitting memory buffering on high-output flowcells.
         GENERATE_SAMPLESHEET.out.samplesheet
-            .flatMap { demux_key, metas, bcl_dir, samplesheet ->
+            .flatMap { demux_key, metas, bcl_dir, bcl_parent, samplesheet ->
                 def base_calls = new File("${bcl_dir}/Data/Intensities/BaseCalls")
                 def present_lanes = base_calls.listFiles()
                     ?.findAll { it.isDirectory() && it.name =~ /^L\d+$/ }
@@ -57,7 +57,7 @@ workflow DEMUX {
                     ?.sort()
                 if (!present_lanes)
                     error "No lanes with cbcl data found in ${bcl_dir}/Data/Intensities/BaseCalls/"
-                present_lanes.collect { lane -> [demux_key, metas, bcl_dir, samplesheet, lane] }
+                present_lanes.collect { lane -> [demux_key, metas, bcl_dir, bcl_parent, samplesheet, lane] }
             }
             .set { ch_bclconvert_input }
 

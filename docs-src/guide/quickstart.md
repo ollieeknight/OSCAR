@@ -43,17 +43,17 @@ Open MultiQC first. Each library folder has counts and relevant QC output.
 
 Keep both lists in the same order. Omit `--extra_samplesheets` when every flowcell uses the same metadata CSV.
 
-**Start from FASTQs**
+**Start from a later stage**
 
 ```bash
---from_fastq --fastq_dir /path/to/fastqs
+--run_from fastq      --fastq_dir /path/to/fastqs
+--run_from cellranger --outs_dir  /path/to/results
 ```
 
-**Stop after a stage**
+**Add optional analyses**
 
 ```bash
---run_until FASTQ
---run_until cellranger
+--extras velocity,viral
 ```
 
 Use underscores in parameter names. See [Parameters](../reference/parameters.md) for uncommon options.

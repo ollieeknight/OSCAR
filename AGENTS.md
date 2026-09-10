@@ -53,13 +53,14 @@ nextflow run main.nf -profile slurm \
     --run_name R463
 ```
 - Many flowcell: use `--extra_bcl_dirs /path/to/R464` (plus `--extra_samplesheets` if sheets differ).
+- FASTQ publish beside source flowcell: `{bcl_dir.parent}/{run}_fastq`, not under `--outdir`.
 - FASTQ merge by `meta.library_id`, downstream, before count.
 
 ### 2. FASTQ Mode
 ```bash
 nextflow run main.nf -profile slurm \
     --samplesheet /path/to/metadata.csv \
-    --from_fastq true \
+    --run_from fastq \
     --fastq_dir /path/to/fastqs \
     --outdir results
 ```
@@ -68,14 +69,14 @@ nextflow run main.nf -profile slurm \
 ```bash
 nextflow run main.nf -profile slurm \
     --samplesheet /path/to/metadata.csv \
-    --from_cellranger true \
+    --run_from cellranger \
     --outs_dir /path/to/results \
     --outdir results
 ```
 
 ### Execution Limits
-- `--run_until FASTQ`: demux + fastq QC only.
-- `--run_until cellranger`: count only, skip QC.
+- `--run_from bcl` (default) | `fastq` | `cellranger`: pipeline entry point.
+- `--extras velocity,viral`: opt-in supplementary quantification.
 
 ---
 
@@ -111,8 +112,8 @@ nextflow run main.nf -profile slurm \
 - **Chemistry Registry**: `lib/chemistry.nf` = one truth source for chemistry, family, barcode whitelist, simpleaf chemistry.
 - **ADT CSV Resolution**: Look for `{samplesheet_dir}/adt_files/{adt_file}.csv`, then `{samplesheet_dir}/../adt_files/`, then `--adt_files_dir`.
 - **Optional Analyses**:
-  - `VIRAL_DETECT`: simpleaf viral quant, on unassigned BAM read (gate on `params.viral_piscem_index`).
-  - `SIMPLEAF_VELOCITY`: simpleaf spliced/unspliced quant on GEX, use CellBender filtered barcode (gate on `params.run_velocity`, skip for Flex).
+  - `VIRAL_DETECT`: simpleaf viral quant, on unassigned BAM read (gate on `--extras viral`). `bamtofastq_bin` may be an https URL, Nextflow stage and cache it.
+  - `SIMPLEAF_VELOCITY`: simpleaf spliced/unspliced quant on GEX, use CellBender filtered barcode (gate on `--extras velocity`, skip for Flex).
 
 ---
 

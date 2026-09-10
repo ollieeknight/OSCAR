@@ -144,10 +144,10 @@ process GENERATE_SAMPLESHEET {
     container "${params.container_bclconvert}"
 
     input:
-    tuple val(demux_key), val(metas), path(bcl_dir), val(is_dual), val(data_header), val(data_rows)
+    tuple val(demux_key), val(metas), path(bcl_dir), val(bcl_parent), val(is_dual), val(data_header), val(data_rows)
 
     output:
-    tuple val(demux_key), val(metas), path(bcl_dir), path("SampleSheet.csv"), emit: samplesheet
+    tuple val(demux_key), val(metas), path(bcl_dir), val(bcl_parent), path("SampleSheet.csv"), emit: samplesheet
 
     script:
     // metas is a plain ArrayList (materialised in subworkflow map) — safe to index
@@ -226,13 +226,16 @@ DATAEOF
 process BCLCONVERT {
     tag "${demux_key}_L${lane}"
     container "${params.container_bclconvert}"
+    // FASTQs are published beside their source flowcell (bcl_parent), not under
+    // params.outdir — so each run's reads land in its own directory when several
+    // flowcells are merged via --extra_bcl_dirs.
     publishDir {
         def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
-        "${params.outdir}/${run}_fastq"
+        "${bcl_parent}/${run}_fastq"
     }, mode: 'copy', pattern: "fastqs/*.fastq.gz", saveAs: { fn -> file(fn).name }
 
     input:
-    tuple val(demux_key), val(metas), path(bcl_dir), path(samplesheet), val(lane)
+    tuple val(demux_key), val(metas), path(bcl_dir), val(bcl_parent), path(samplesheet), val(lane)
 
     output:
     tuple val(demux_key), val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"), emit: fastqs
