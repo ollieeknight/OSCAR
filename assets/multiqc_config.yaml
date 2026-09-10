@@ -5,20 +5,15 @@ skip_generalstats: false
 
 # Collect whatever is present; no hard requirement on any module
 run_modules:
-  - fastqc        # Falco produces FastQC-compatible output
+  - fastp
   - cellranger
   - custom_content
 
 # Module-specific settings
 module_order:
-  - fastqc:
-      name: "Read QC (Falco)"
+  - fastp:
+      name: "Read QC (fastp)"
   - cellranger
-
-fastqc:
-  # Falco uses FastQC format; suppress per-base warnings that are
-  # expected for 10x barcode reads (R1 always has low base diversity)
-  status_checks: false
 
 extra_fn_clean_s_name:
   - "_S[0-9]+_L[0-9]+_R[12]_001$": ""

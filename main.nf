@@ -268,9 +268,9 @@ workflow {
             ch_fastqs = DEMUX.out.fastqs
         }
 
-        // MultiQC runs on FALCO reports from demux (BCL mode only)
+        // MultiQC runs on fastp reports from demux (BCL mode only)
         if (run_from == 'bcl') {
-            MULTIQC(DEMUX.out.falco_reports)
+            MULTIQC(DEMUX.out.fastp_reports)
         }
 
         // ── Count ─────────────────────────────────────────────────────────

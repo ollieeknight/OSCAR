@@ -89,5 +89,5 @@ workflow DEMUX {
 
     emit:
         fastqs        = FASTQ_QC.out.fastqs        // [meta, fastq_dir_string, [validated_fastq_files]]
-        falco_reports = FASTQ_QC.out.falco_reports // [run_name, [report_dirs]] (passed to REPORT in main.nf)
+        fastp_reports = FASTQ_QC.out.fastp_reports // [run_name, fastq_dir, [report_files]] (passed to MULTIQC in main.nf)
 }

@@ -260,24 +260,34 @@ process BCLCONVERT {
     """
 }
 
-// ─── FALCO ────────────────────────────────────────────────────────────────────
-// Per-file QC. One job per R-read FASTQ (R1/R2/R3); index reads (I1/I2) skipped.
+// ─── FASTP ────────────────────────────────────────────────────────────────────
+// Per-file QC, report only. One job per R-read FASTQ (R1/R2/R3); index reads
+// (I1/I2) skipped. No -o/--out1, so fastp writes reports and no filtered reads.
 
-process FALCO {
+process FASTP {
     tag "$fastq_name"
-    container "${params.container_falco}"
-    publishDir { "${params.outdir}/${run_name}_fastq/falco" }, mode: 'copy'
+    container "${params.container_fastp}"
+    // Published beside the source flowcell's FASTQs (fastq_dir), not under
+    // params.outdir — otherwise every --extra_bcl_dirs run drops a stray
+    // {run}_fastq/fastp tree into the primary run's directory.
+    publishDir { "${fastq_dir}/fastp" }, mode: 'copy'
 
     input:
-    tuple val(run_name), val(fastq_name), path(fastq)
+    tuple val(run_name), val(fastq_dir), val(fastq_name), path(fastq)
 
     output:
-    tuple val(run_name), path("${run_name}_${fastq_name}/"), emit: report
+    tuple val(run_name), val(fastq_dir), path("${run_name}_${fastq_name}.{json,html}"), emit: report
 
     script:
     """
-    mkdir -p ${run_name}_${fastq_name}
-    falco -t ${task.cpus} ${fastq} -o ${run_name}_${fastq_name}
+    fastp \\
+        --in1                       ${fastq} \\
+        --disable_adapter_trimming \\
+        --disable_quality_filtering \\
+        --disable_length_filtering \\
+        --thread                    ${task.cpus} \\
+        --json                      ${run_name}_${fastq_name}.json \\
+        --html                      ${run_name}_${fastq_name}.html
     """
 }
 
@@ -285,10 +295,11 @@ process FALCO {
 
 process MULTIQC {
     container "${params.container_multiqc}"
-    publishDir { "${params.outdir}/${run_name}_fastq/multiqc" }, mode: 'copy'
+    // Beside the source flowcell's FASTQs, matching FASTP.
+    publishDir { "${fastq_dir}/multiqc" }, mode: 'copy'
 
     input:
-    tuple val(run_name), path(reports)
+    tuple val(run_name), val(fastq_dir), path(reports)
 
     output:
     path "multiqc_report.html",      emit: report

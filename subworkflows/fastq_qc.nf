@@ -1,5 +1,5 @@
 include { VALIDATE_FASTQ } from '../modules/demux'
-include { FALCO          } from '../modules/demux'
+include { FASTP          } from '../modules/demux'
 
 workflow FASTQ_QC {
     take:
@@ -25,23 +25,23 @@ workflow FASTQ_QC {
             }
             .set { ch_validated_fastqs }
 
-        // FALCO QC on R-reads only (R1/R2/R3; I1/I2 skipped)
+        // fastp QC on R-reads only (R1/R2/R3; I1/I2 skipped)
         ch_fastqs
             .flatMap { meta, fq_dir, fq_files ->
                 def files = fq_files instanceof List ? fq_files : [fq_files]
                 files
                     .findAll { f -> f.name =~ /_R[0-9]+_/ && f.size() > 1024 * 1024 }
-                    .collect { f -> [meta.run_name, f.name.replaceAll(/\.fastq\.gz$/, ''), f] }
+                    .collect { f -> [meta.run_name, fq_dir, f.name.replaceAll(/\.fastq\.gz$/, ''), f] }
             }
-            .set { ch_falco_input }
+            .set { ch_fastp_input }
 
-        FALCO(ch_falco_input)
+        FASTP(ch_fastp_input)
 
-        FALCO.out.report
-            .groupTuple(by: 0)
-            .set { ch_falco_reports }
+        FASTP.out.report
+            .groupTuple(by: [0, 1])
+            .set { ch_fastp_reports }
 
     emit:
         fastqs        = ch_validated_fastqs   // [meta, fastq_dir_string, [fastq_files]]
-        falco_reports = ch_falco_reports      // [run_name, [report_dirs]]
+        fastp_reports = ch_fastp_reports      // [run_name, fastq_dir, [report_files]]
 }

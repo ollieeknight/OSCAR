@@ -43,13 +43,17 @@ nextflow run main.nf -profile slurm \
     --samplesheet   /path/to/metadata.csv \
     --bcl_dir       /path/to/R463_bcl \
     --adt_files_dir /path/to/adt_files \
-    --outdir        /path/to/results \
     --run_name      R463
 ```
 
+Output lands beside the input flowcell: FASTQs and read-level QC in
+`{run}_fastq`, results in `{run}_outs`, both siblings of `{run}_bcl`. Pass
+`--outdir` to put results somewhere else.
+
 Merge libraries sequenced across several flowcells with `--extra_bcl_dirs` and
 `--extra_samplesheets`; each flowcell's FASTQs are written beside its own BCL
-folder. Skip demultiplexing with `--run_from fastq`, or run QC alone with
+folder, and only the run named by `--run_name` gets an `{run}_outs`. Skip
+demultiplexing with `--run_from fastq`, or run QC alone with
 `--run_from cellranger`.
 
 Build a samplesheet with the
