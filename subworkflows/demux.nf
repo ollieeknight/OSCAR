@@ -19,16 +19,19 @@ workflow DEMUX {
 
         CLEAN_FASTQ_DIR(ch_unique_bcl_dirs)
 
-        // Group by (assay_chemistry, bcl_dir) → one samplesheet per group.
-        // Deliberately NOT split by modality or index_type: bcl-convert supports
-        // mixed SI(8bp)/DI(10bp) rows in one [BCLConvert_Data] table (SI rows
-        // just leave Index2 blank — see is_dual/data_rows below), and the
-        // OverrideCycles mask table in lib/indexes.nf never actually varies by
-        // modality for a given chemistry+index_type. Merging GEX+ADT+HTO into
-        // one bcl-convert pass per lane cuts flowcell-tile reads 3x → 1x.
+        // Group by (assay_indextype_chemistry_modality, bcl_dir) → one samplesheet per group.
+        // REVERTED merge-into-one-bcl-convert-call attempt: bcl-convert 4.5.4
+        // rejects an Index value whose length doesn't exactly match the cycle
+        // count declared by OverrideCycles — it does NOT match on a shorter
+        // prefix under a longer global mask the way 10x/cellranger mkfastq
+        // samplesheets imply. Confirmed on a real run (R462 L1, sample
+        // 'ATTCAGAA', 8bp index under I10;I10). A correct merge would need a
+        // per-row OverrideCycles column in [BCLConvert_Data] — not implemented
+        // here, needs verifying against the actual bcl-convert version in use
+        // before trying again. Back to one group per (index_type, modality).
         ch_meta_bcl
             .map { meta, bcl_dir ->
-                def key = "${meta.assay}_${meta.chemistry}_${bcl_dir.name}"
+                def key = "${meta.assay}_${meta.index_type}_${meta.chemistry}_${meta.modality}_${bcl_dir.name}"
                 [key, meta, bcl_dir]
             }
             .groupTuple(by: 0)
@@ -38,19 +41,11 @@ workflow DEMUX {
                 metas.each { m -> ml << m }
                 def bcl_dir = bcl_dirs[0]
 
-                // Defensive: index length must agree within each index kind (SI vs
-                // DI). Mixing SI and DI *between* kinds in one group is expected
-                // (that's the whole point); two different kit lengths within the
-                // same kind would be a real samplesheet error.
-                [false, true].each { is_dual_flag ->
-                    def subset = ml.findAll { m -> (m.index_seqs?.is_dual ?: false) == is_dual_flag }
-                    if (subset.size() > 1) {
-                        def len0 = subset[0].index_seqs?.rows[0]?.i7?.length() ?: 0
-                        if (subset.any { m -> (m.index_seqs?.rows[0]?.i7?.length() ?: 0) != len0 })
-                            error "Demux group ${key} has mixed ${is_dual_flag ? 'DI' : 'SI'} index lengths: " +
-                                  subset.collect { m -> "${m.id}=${m.index_seqs?.rows[0]?.i7?.length() ?: 0}" }.join(', ')
-                    }
-                }
+                // Validate index-length homogeneity (guaranteed by key, but defensive)
+                def index_len = ml[0].index_seqs?.rows[0]?.i7?.length() ?: 10
+                if (ml.any { m -> (m.index_seqs?.rows[0]?.i7?.length() ?: 10) != index_len })
+                    error "Demux group ${key} has mixed index lengths: " +
+                          ml.collect { m -> "${m.id}=${m.index_seqs?.rows[0]?.i7?.length() ?: 10}" }.join(', ')
 
                 // Pre-build samplesheet data section — avoids ArrayBag ops inside process script
                 def is_dual     = ml.any { m -> m.index_seqs.is_dual }

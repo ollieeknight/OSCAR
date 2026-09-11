@@ -150,16 +150,8 @@ process GENERATE_SAMPLESHEET {
     tuple val(demux_key), val(metas), path(bcl_dir), val(bcl_parent), path("SampleSheet.csv"), emit: samplesheet
 
     script:
-    // metas is a plain ArrayList (materialised in subworkflow map) — safe to index.
-    // A demux group can now mix SI(8bp) and DI(10bp) members (e.g. CITE-seq
-    // GEX+ADT+HTO on one flowcell). OverrideCycles is one global setting per
-    // bcl-convert run, so a mixed group must use the DI (longer) mask — SI rows
-    // simply carry an empty Index2 column (see is_dual/data_rows upstream),
-    // which bcl-convert treats as single-indexed for that row regardless of the
-    // Index2 cycle count. A pure-SI group (no DI member) keeps the original
-    // SI mask + SI-on-DI correction, unchanged.
-    def dual_meta = metas.find { it.index_seqs?.is_dual }
-    def meta      = dual_meta ?: metas[0]
+    // metas is a plain ArrayList (materialised in subworkflow map) — safe to index
+    def meta      = metas[0]
     def index_len = meta.index_seqs?.rows[0]?.i7?.length() ?: 10
     def oc_4      = get_override_cycles(meta.assay, meta.chemistry, meta.index_type, meta.modality, 4, meta.index_seqs, index_len)
     def oc_3      = get_override_cycles(meta.assay, meta.chemistry, meta.index_type, meta.modality, 3, meta.index_seqs, index_len) ?: oc_4
