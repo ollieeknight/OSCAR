@@ -38,6 +38,7 @@ workflow FASTQ_QC {
         FASTP(ch_fastp_input)
 
         FASTP.out.report
+            .transpose(by: 2)   // one row per report file; the {json,html} glob emits a list
             .groupTuple(by: [0, 1])
             .set { ch_fastp_reports }
 
