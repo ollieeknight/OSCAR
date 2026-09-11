@@ -1,6 +1,6 @@
 // ─── CELLRANGER_ATAC ──────────────────────────────────────────────────────────
 // Handles: DOGMA-ATAC, Multiome-ATAC, standalone ATAC, ASAP-ATAC.
-// Output dir: {library_id}_ATAC  (mirrors current OSCAR naming)
+// Output dir: {library_id}_ATAC
 process CELLRANGER_ATAC {
     tag "$meta.library_id"
     container "${params.container_cellranger_atac}"
@@ -18,32 +18,31 @@ process CELLRANGER_ATAC {
     def extra_args = (meta.assay == 'DOGMA') ? "\\\n        --chemistry ARC-v1" : ''
     """
     python3 << 'OSCAR_ATAC_PYEOF'
-import re, subprocess, sys
+import os, re, shutil, sys
 from pathlib import Path
+
+# Nextflow puts bin/ on PATH, not PYTHONPATH.
+sys.path.insert(0, os.path.dirname(shutil.which("stage_fastqs.py")))
+from stage_fastqs import count_reads, flowcell_of
 
 sample_id = "${meta.id}"
 min_reads  = ${min_reads}
-
-def count_reads(r1):
-    result = subprocess.run(
-        f"zcat {r1} | head -n {min_reads * 4} | awk 'NR%4==1' | wc -l",
-        shell=True, capture_output=True, text=True
-    )
-    return int(result.stdout.strip() or "0")
 
 staged = sorted(
     p for p in Path(".").glob("fastqs/atac/run_*/*")
     if p.name != "NO_FILE"
 )
 
-# Group per staged run_??? dir and key by read tag. Blind positional chunking
-# breaks whenever BCL Convert also emits index reads (_I1_/_I2_ sort before _R1_).
+# Group the R1/R2/R3 of one lane by flowcell and filename, not by staged dir:
+# stageAs gives every file its own run_??? dir, so the dir name records
+# input-list position rather than which flowcell a read came from.
 runs = {}
 for p in staged:
     m = re.search(r'_(R[123])_', p.name)
     if not m:
         continue                       # index reads (I1/I2) are not cellranger-atac inputs
-    runs.setdefault(p.parent.name, {})[m.group(1)] = p
+    key = (flowcell_of(p), re.sub(r'_R[123]_', '_R_', p.name))
+    runs.setdefault(key, {})[m.group(1)] = p
 
 if not runs:
     print("[cellranger_atac] ERROR: no R1/R2/R3 FASTQs staged", file=sys.stderr)
@@ -53,15 +52,16 @@ final_dir = Path("fastq_all/atac")
 final_dir.mkdir(parents=True, exist_ok=True)
 lane = 0
 
-for run_name in sorted(runs):
-    reads = runs[run_name]
-    missing = [t for t in ("R1", "R2") if t not in reads]
+for key in sorted(runs):
+    reads    = runs[key]
+    fq_group = reads["R1"].name
+    missing  = [t for t in ("R1", "R2") if t not in reads]
     if missing:
-        print(f"[cellranger_atac] ERROR: {run_name} missing {missing}", file=sys.stderr)
+        print(f"[cellranger_atac] ERROR: {fq_group} missing {missing}", file=sys.stderr)
         sys.exit(1)
-    n = count_reads(reads["R1"])
+    n = count_reads(reads["R1"], min_reads)
     if n < min_reads:
-        print(f"[cellranger_atac] skip {run_name}: {n} reads", file=sys.stderr)
+        print(f"[cellranger_atac] skip {fq_group}: {n} reads", file=sys.stderr)
         continue
     lane += 1
     for tag, p in sorted(reads.items()):

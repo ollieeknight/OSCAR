@@ -112,6 +112,55 @@ def test_placeholder_pairs_skipped(root):
     assert not list(final.iterdir()), "placeholder reads should not be staged"
 
 
+def atac_group(staged):
+    """R1/R2/R3 grouping as CELLRANGER_ATAC does it, keyed on the read header."""
+    import re
+    runs = {}
+    for p in staged:
+        m = re.search(r"_(R[123])_", p.name)
+        if not m:
+            continue
+        key = (flowcell_of(p), re.sub(r"_R[123]_", "_R_", p.name))
+        runs.setdefault(key, {})[m.group(1)] = p
+    return runs
+
+
+def build_atac_case(root):
+    """Two flowcells of ATAC R1/R2/R3, each read in its own run_??? dir.
+
+    stageAs gives every staged file a separate dir, so grouping on the dir name
+    puts each read in a group of one.
+    """
+    name = "ATAC_PBMC_exp1_libA_ATAC_S1_L001_{}_001.fastq.gz"
+    staged, run_no = [], 1
+    for fc in ("222KF7NNX", "222KG5FNX"):
+        for read in ("R1", "R2", "R3"):
+            p = root / f"run_{run_no:03d}" / name.format(read)
+            write_fastq(p, "VH00206", "502", fc, read[-1])
+            staged.append(p)
+            run_no += 1
+    return sorted(staged)
+
+
+def test_atac_groups_reads_into_triples(root):
+    runs = atac_group(build_atac_case(root))
+    assert len(runs) == 2, f"expected one group per flowcell, got {len(runs)}"
+    for key, reads in runs.items():
+        assert sorted(reads) == ["R1", "R2", "R3"], (key, sorted(reads))
+        fcs = {flowcell_of(p) for p in reads.values()}
+        assert len(fcs) == 1, f"group {key} mixes flowcells: {fcs}"
+
+
+def test_atac_dir_grouping_would_split_triples(root):
+    """Guards the test: grouping on the staged dir must fail on this fixture."""
+    staged = build_atac_case(root)
+    by_dir = {}
+    for p in staged:
+        by_dir.setdefault(p.parent.name, []).append(p)
+    assert all(len(v) == 1 for v in by_dir.values()), (
+        "fixture does not reproduce the bug; staged dirs already hold triples")
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in tests:
