@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: If you use OSCAR, please cite it using these metadata.
+title: >-
+  OSCAR: single-cell demultiplexing, counting and quality control for
+  multimodal 10x Genomics libraries
+abstract: >-
+  OSCAR is a Nextflow DSL2 pipeline that takes a raw BCL folder and a
+  samplesheet and returns demultiplexed FASTQs, count matrices and quality
+  control output. It covers scRNA-seq, scATAC-seq, Multiome, DOGMA, ASAP-seq,
+  CITE-seq, Flex (Fixed RNA Profiling), VDJ and CRISPR libraries. Demultiplexing
+  uses BCL Convert with per-sample OverrideCycles, counting uses cellranger
+  multi, cellranger-atac, cyto and kallisto/bustools, and quality control adds
+  fastp, MultiQC, CellBender, Scrublet, AMULET, mgatk2, MACS3 and donor
+  demultiplexing with cellsnp-lite and vireo.
+type: software
+authors:
+  - given-names: Oliver
+    family-names: Knight
+    email: oliver.knight@charite.de
+    affiliation: Charité – Universitätsmedizin Berlin
+    # orcid: 'https://orcid.org/0000-0000-0000-0000'  # TODO: add before release
+repository-code: https://github.com/ollieeknight/OSCAR
+license: MIT
+# TODO: set to the released tag and its Zenodo DOI before minting the record.
+# version: 1.0.0
+# doi: 10.5281/zenodo.0000000
+# date-released: 2026-09-11
+keywords:
+  - single-cell
+  - demultiplexing
+  - multimodal sequencing
+  - quality control
+  - nextflow
+  - bioinformatics
