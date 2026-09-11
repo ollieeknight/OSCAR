@@ -1,8 +1,7 @@
 // ─── CELLRANGER_MULTI ─────────────────────────────────────────────────────────
-// Merges former MULTI_CONFIG + CELLRANGER_MULTI into one process.
-// Inputs: 6 path() inputs staged per-file into fastqs/{mod}/run_???/
-// Python: read-count filters placeholder FASTQs, renames to L001/L002/...,
-//         writes multi_config.csv, then cellranger multi runs.
+// One path() input per modality, staged per-file into fastqs/{mod}/run_???/.
+// The Python block drops placeholder FASTQs on read count, renames the rest to
+// L001/L002/... and writes multi_config.csv, then cellranger multi runs.
 process CELLRANGER_MULTI {
     tag "$library_id"
     container "${params.container_cellranger}"

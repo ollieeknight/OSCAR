@@ -107,16 +107,15 @@ def get_override_cycles(assay, chemistry, index_type, modality, num_reads, index
     return oc
 }
 
-// Correct OverrideCycles for single-index (8bp) library on 4-read dual-index flow cell.
-// Input: 'Y28N*;I10N*;I10N*;Y90N*', seq_len=8
-// Output: 'Y28N*;I8N2;N*;Y90N*' (I1 uses 8bp+2masked, I2 fully masked)
-// index1_cycles is the flow cell's actual Index1 cycle count from RunInfo.xml.
-// It defaults to 10 only because that is what this was hardcoded to before the
-// per-row path existed; pass the real value whenever it is known, or an 8bp
-// index on a 12-cycle index read produces a mask 2 cycles short of the read.
+// Correct OverrideCycles for a single-index (8bp) library on a 4-read
+// dual-index flow cell.
+//   'Y28N*;I10N*;I10N*;Y90N*', seq_len=8 → 'Y28N*;I8N2;N*;Y90N*'
+// I1 takes 8bp plus 2 masked, I2 is masked outright. Pass the flow cell's real
+// Index1 cycle count from RunInfo.xml as index1_cycles whenever it is known:
+// on a 12-cycle index read the default of 10 leaves the mask 2 cycles short.
 def apply_si_on_di_correction(String oc, Integer seq_len, Integer index1_cycles = 10) {
     def parts     = oc.split(';') as List
-    def i_indices = (0..<parts.size()).findAll { parts[it].startsWith('I') }
+    def i_indices = (0..<parts.size()).findAll { i -> parts[i].startsWith('I') }
 
     if (i_indices.isEmpty()) return oc  // no index positions, no correction needed
 
@@ -138,24 +137,18 @@ def apply_si_on_di_correction(String oc, Integer seq_len, Integer index1_cycles 
 }
 
 // ─── GENERATE_SAMPLESHEET ────────────────────────────────────────────────────
-// Builds a BCL Convert V2 SampleSheet for one demux group.
-// Reads RunInfo.xml at runtime to get actual cycle lengths, then resolves
-// OverrideCycles wildcards (*) to exact counts required by BCL Convert 4.x.
+// Builds a BCL Convert V2 SampleSheet for one demux group. Reads cycle lengths
+// from RunInfo.xml at runtime, then resolves the OverrideCycles wildcards (*)
+// to the exact counts BCL Convert 4.x requires.
 //
-// Mixed-index groups (8bp TruSeq SI alongside 10bp 10x DI in one lane) are
-// demultiplexed in a SINGLE bcl-convert call using a per-sample OverrideCycles
-// column in [BCLConvert_Data], supported since BCL Convert 4.1.5 (in use here:
-// 4.5.4). Per Illumina's documentation a setting may be specified globally OR
-// per-sample but NOT both, so when the per-sample column is emitted the
-// OverrideCycles line is omitted from [BCLConvert_Settings].
-//
-// This replaces an earlier attempt that put 8bp Index values under a single
-// global 10bp mask. That does not work: bcl-convert matches the Index column
-// against the cycle count declared by OverrideCycles exactly and does not
-// prefix-match, so it aborts with
-//   "has an index of length 8 bases, but a length of 10 was expected".
-// The 8bp rows instead get their own mask that uses 8 index cycles and masks
-// the remaining ones (I8N2), with i5 fully masked (N10) for single-index rows.
+// Mixed-index groups (8bp TruSeq SI beside 10bp 10x DI in one lane) demux in a
+// single call via the per-sample OverrideCycles column in [BCLConvert_Data]
+// (BCL Convert 4.1.5+). Illumina allows that setting globally or per-sample but
+// not both, so emitting the column drops OverrideCycles from
+// [BCLConvert_Settings]. An 8bp row needs its own mask (I8N2, i5 masked): a
+// global 10bp mask makes bcl-convert abort with "has an index of length 8
+// bases, but a length of 10 was expected", since it compares the Index column
+// against the declared cycle count instead of prefix-matching.
 //
 // Input channel: [demux_key, metas_list, bcl_dir, bcl_parent, is_dual, sample_specs]
 // sample_specs: one map per samplesheet row —
@@ -181,13 +174,13 @@ process GENERATE_SAMPLESHEET {
         def oc3 = get_override_cycles(sp.assay, sp.chemistry, sp.index_type, sp.modality, 3, [is_dual: sp.is_dual, rows: [[i7: sp.i7]]], sp.index_len) ?: oc4
         [id: sp.id, i7: sp.i7, i5: sp.i5 ?: '', is_dual: sp.is_dual, oc4: oc4, oc3: oc3]
     }
-    def per_sample = specs.collect { "${it.oc4}|${it.oc3}" }.unique().size() > 1
+    def per_sample = specs.collect { sp -> "${sp.oc4}|${sp.oc3}" }.unique().size() > 1
 
     // TSV consumed by the shell loop below: id, i7, i5, 4-read mask, 3-read mask.
     // '-' stands in for an absent i5: bash `read` collapses empty fields even
     // with IFS=$'\t', which shifts every subsequent column. The placeholder is
     // turned back into an empty string when the row is written.
-    def spec_tsv = specs.collect { "${it.id}\t${it.i7}\t${it.i5 ?: '-'}\t${it.oc4}\t${it.oc3}" }.join('\n')
+    def spec_tsv = specs.collect { sp -> "${sp.id}\t${sp.i7}\t${sp.i5 ?: '-'}\t${sp.oc4}\t${sp.oc3}" }.join('\n')
 
     """
     mapfile -t cycles < <(grep -o 'NumCycles="[0-9]*"' ${bcl_dir}/RunInfo.xml | grep -o '[0-9]*')
@@ -294,13 +287,11 @@ SPECEOF
 }
 
 // ─── CLEAN_FASTQ_DIR ──────────────────────────────────────────────────────────
-// Wipes previously-published *.fastq.gz for one bcl_dir before any of this
-// run's BCLCONVERT tasks publish into the same directory. Runs once per unique
-// bcl_dir, gated ahead of BCLCONVERT via combine(by:0) in the subworkflow.
-// publishDir only ever adds/overwrites files — it never removes a file that a
-// prior invocation published under a since-changed sample sheet (different
-// bcl-convert-assigned S-number), so without this, old and new S-numbered
-// fastq for the same library silently coexist after a re-run.
+// Wipes previously published *.fastq.gz for one bcl_dir before this run's
+// BCLCONVERT tasks publish there. Runs once per bcl_dir, gated ahead of
+// BCLCONVERT via combine(by:0) in the subworkflow. publishDir only adds and
+// overwrites, so after a samplesheet change the old and new S-numbered fastq
+// for one library would otherwise sit side by side.
 
 process CLEAN_FASTQ_DIR {
     tag "$bcl_name"
@@ -332,12 +323,12 @@ process BCLCONVERT {
         def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
         "${bcl_parent}/${run}_fastq"
     }, mode: 'copy', pattern: "fastqs/*.fastq.gz", saveAs: { fn -> file(fn).name }
-    // bcl-convert writes Demultiplex_Stats.csv / Quality_Metrics.csv /
+    // bcl-convert writes Demultiplex_Stats.csv, Quality_Metrics.csv and
     // Top_Unknown_Barcodes.csv into <output-directory>/Reports for free. Keep
-    // them: without these, diagnosing a bad demux means decompressing the
-    // multi-GB Undetermined FASTQ by hand. One Reports dir per demux group and
-    // lane, so key the destination by both to avoid groups overwriting
-    // each other's stats.
+    // them: the alternative when a demux goes wrong is decompressing the
+    // multi-GB Undetermined FASTQ by hand. Each demux group and lane gets its
+    // own Reports dir, so key the destination by both to stop groups
+    // overwriting each other's stats.
     publishDir {
         def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
         "${bcl_parent}/${run}_fastq/Reports/${demux_key}_L${lane}"
@@ -371,13 +362,12 @@ process BCLCONVERT {
 }
 
 // ─── DEMUX_QC ─────────────────────────────────────────────────────────────────
-// Summarises bcl-convert's own demultiplexing stats for one run and flags a
+// Summarises bcl-convert's demultiplexing stats for one run and flags a
 // suspect demux. Each BCLCONVERT task (one per demux group per lane) writes its
-// own Reports/, so all of a run's Demultiplex_Stats.csv are concatenated here
-// before analysis -- otherwise each group is judged only against itself and a
-// whole missing group looks normal.
+// own Reports/, so a run's Demultiplex_Stats.csv are concatenated here before
+// analysis: judged alone, a group cannot reveal that another one is missing.
 //
-// Advisory only: warnings never fail the run, since the FASTQ are still valid.
+// Advisory only. Warnings never fail the run, as the FASTQ stay valid.
 
 process DEMUX_QC {
     tag "$run_name"

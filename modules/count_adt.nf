@@ -2,7 +2,7 @@
 // ASAP-only. Triggered after CELLRANGER_ATAC for ASAP libraries.
 // Chain: FEATUREMAP → KALLISTO_INDEX → ASAP_TO_KITE → KALLISTO_BUS
 //        → BUSTOOLS_CORRECT → BUSTOOLS_SORT → BUSTOOLS_COUNT
-// Source: 04_count.sh:246-342
+// Ported from original/bash/04_count.sh
 
 // ─── FEATUREMAP ───────────────────────────────────────────────────────────────
 
@@ -58,10 +58,10 @@ process ASAP_TO_KITE {
 
     script:
     def fastq_dirs = adt_fastqs instanceof List \
-        ? adt_fastqs.collect { it.parent }.unique().join(',') \
+        ? adt_fastqs.collect { fq -> fq.parent }.unique().join(',') \
         : adt_fastqs.parent.toString()
     def sample_names = adt_fastqs instanceof List \
-        ? adt_fastqs.collect { it.simpleName.replaceAll(/_S[0-9]+.*/, '') }.unique().join(',') \
+        ? adt_fastqs.collect { fq -> fq.simpleName.replaceAll(/_S[0-9]+.*/, '') }.unique().join(',') \
         : adt_fastqs.simpleName.replaceAll(/_S[0-9]+.*/, '')
     """
     mkdir -p kite_converted/"${meta.library_id}_ADT"
