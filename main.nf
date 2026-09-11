@@ -146,11 +146,10 @@ def resolve_input_paths() {
 // ─── Workflow ─────────────────────────────────────────────────────────────────
 
 workflow {
-    // Resolve every input path to an absolute path once, up front.
-    //
-    // These are locals rather than writes back into params: params is read-only
-    // under the strict parser (NXF_SYNTAX_PARSER=v2), and assigning to it makes
-    // a module's view of a path depend on whether the workflow body has run yet.
+    // Resolve every input path to an absolute path once, up front. Locals
+    // rather than writes back into params: the strict parser
+    // (NXF_SYNTAX_PARSER=v2) makes params read-only, and assigning to it ties a
+    // module's view of a path to whether the workflow body has run yet.
     def paths = resolve_input_paths()
 
     def primary_run_name = params.run_name
@@ -172,9 +171,9 @@ workflow {
     all_ss_paths.each { ss -> preflight_flex(ss) }
 
     // ── Resolve sequencer / i5 orientation (non-BCL fallback) ────────────────
-    // In BCL mode, sequencer is auto-detected per BCL dir inside the BCL branch
-    // below (each flowcell may come from a different instrument). For --run_from
-    // fastq/cellranger there is no BCL dir, so we fall back to params.sequencer.
+    // The BCL branch below detects the sequencer per BCL dir, since flowcells
+    // can come from different instruments. Without a BCL dir (--run_from
+    // fastq/cellranger) fall back to params.sequencer.
     def si_indexes_fallback = load_si_indexes(projectDir.toString(), params.sequencer)
     if (run_from != 'bcl')
         log.info "INFO: No BCL dir available — using params.sequencer='${params.sequencer}' for i5 orientation"
@@ -183,10 +182,10 @@ workflow {
     // For --run_from fastq/cellranger, ch_meta is set here and used downstream.
     // For BCL mode, the BCL branch below rebuilds ch_meta with per-instrument
     // index sequences — this initial set is overridden there.
-    def _all_rows = all_ss_paths.collectMany { ss_path ->
+    def all_rows = all_ss_paths.collectMany { ss_path ->
         parse_samplesheet(ss_path, si_indexes_fallback, primary_run_name, paths.adt_files_dir)
     }
-    Channel.fromList(_all_rows).set { ch_meta }
+    channel.fromList(all_rows).set { ch_meta }
 
     // ── Entry point: --run_from cellranger (QC only) ─────────────────────────
 
@@ -199,16 +198,16 @@ workflow {
             .map { meta -> [meta.library_id, meta] }
             .groupTuple(by: 0)
             .map { lid, metas -> [lid, metas, file("${paths.outs_dir}/${lid}/outs")] }
-            .filter { lid, metas, outs -> outs.exists() }
-            // A wrong --outs_dir filters everything out and the run would otherwise
-            // "succeed" with zero jobs. Fail loudly instead.
+            .filter { _lid, _metas, outs -> outs.exists() }
+            // A wrong --outs_dir filters everything out, which would end the
+            // run as a "success" with zero jobs. Fail instead.
             .ifEmpty { error "ERROR: no cellranger outs found under ${paths.outs_dir} — expected ${paths.outs_dir}/<library_id>/outs" }
             .set { ch_gex_outs }
 
         ch_meta
             .filter { meta -> meta.modality == 'ATAC' }
             .map { meta -> [meta, file("${paths.outs_dir}/${meta.library_id}_ATAC/outs")] }
-            .filter { meta, outs -> outs.exists() }
+            .filter { _meta, outs -> outs.exists() }
             .set { ch_atac_outs }
 
         QC_GEX(ch_gex_outs)
@@ -225,9 +224,9 @@ workflow {
                         .collect { f -> f.toPath() }
                     [meta, paths.fastq_dir, fqs]
                 }
-                .filter { meta, fastq_dir, fqs -> !fqs.isEmpty() }
-                // A wrong --fastq_dir filters every library out and the run would
-                // otherwise "succeed" with zero jobs. Fail loudly instead.
+                .filter { _meta, _fastq_dir, fqs -> !fqs.isEmpty() }
+                // A wrong --fastq_dir filters every library out, which would end
+                // the run as a "success" with zero jobs. Fail instead.
                 .ifEmpty { error "ERROR: no FASTQs matched any library under ${paths.fastq_dir} — expected files named <sample_id>*.fastq.gz" }
                 .set { ch_fastqs }
         } else {
@@ -244,8 +243,8 @@ workflow {
                 }
             }
 
-            def _meta_bcl_pairs = []
-            def _bcl_rows       = []   // used to rebuild ch_meta with correctly-resolved index_seqs
+            def meta_bcl_pairs = []
+            def bcl_rows       = []   // used to rebuild ch_meta with correctly-resolved index_seqs
             [bcl_paths, bcl_ss].transpose().each { bcl_path, ss_path ->
                 def flowcell_dir = file(bcl_path)
                 // Detect sequencer per BCL dir — each flowcell may originate from a
@@ -253,29 +252,25 @@ workflow {
                 def bcl_si  = load_si_indexes(projectDir.toString(), detect_sequencer(bcl_path, params.sequencer))
                 def run_nm  = flowcell_dir.name.replaceAll(/_bcl$/, '')
                 parse_samplesheet(ss_path, bcl_si, run_nm, paths.adt_files_dir).each { meta ->
-                    _meta_bcl_pairs << [meta, flowcell_dir]
-                    _bcl_rows       << meta
+                    meta_bcl_pairs << [meta, flowcell_dir]
+                    bcl_rows       << meta
                 }
             }
             // Override ch_meta with the correctly-detected index sequences from each
             // BCL dir. Deduplicate by meta.id (same sample listed in multiple flowcell
             // samplesheets) while preserving insertion order.
             def seen_ids    = [] as Set
-            def unique_rows = _bcl_rows.findAll { m -> seen_ids.add(m.id) }
-            Channel.fromList(unique_rows).set { ch_meta }
-            Channel.fromList(_meta_bcl_pairs).set { ch_meta_bcl }
+            def unique_rows = bcl_rows.findAll { m -> seen_ids.add(m.id) }
+            channel.fromList(unique_rows).set { ch_meta }
+            channel.fromList(meta_bcl_pairs).set { ch_meta_bcl }
 
             DEMUX(ch_meta_bcl)
             ch_fastqs = DEMUX.out.fastqs
         }
 
-        // MultiQC input is assembled after counting (below), so the report can
-        // carry demux stats and Cell Ranger metrics together rather than fastp
-        // alone. See the MULTIQC() call after COUNT_GEX.
-
         // ── Count ─────────────────────────────────────────────────────────
         ch_fastqs
-            .branch { meta, fastq_dir, fqs ->
+            .branch { meta, _fastq_dir, _fqs ->
                 gex:      (meta.modality in ['GEX', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR'] \
                           && meta.assay != 'ASAP') || meta.assay == 'Flex'
                 atac:     meta.modality == 'ATAC'
@@ -291,21 +286,16 @@ workflow {
             .tap { ch_gex_for_velocity }
             .map { meta, _fastq_dir, fqs ->
                 def files = (fqs instanceof List ? fqs : [fqs]).sort { f -> f.name }
-                log.warn "OSCAR_DEBUG entry lib=${meta.library_id} mod=${meta.modality} id=${meta.id} n=${files.size()} files=" + files.collect{ it.toUriString() }.join(' ')
                 [meta.library_id, [modality: meta.modality, meta: meta, files: files]]
             }
             .groupTuple(by: 0)
             .map { lid, entries ->
-                // Materialise ArrayBag → ArrayList
-                def el = []
-                entries.each { e -> el << e }
-
                 // Collect entries per modality. Sort entries by first-file URI for
                 // deterministic flowcell ordering, then flatten. Files within each
                 // entry are already name-sorted by BCLCONVERT so R1 < R2 within
                 // a flowcell — global name-sort would group all R1s together.
                 def mod_data = [:].withDefault { [meta: null, entries: [], files: []] }
-                el.each { e ->
+                entries.each { e ->
                     if (!mod_data[e.modality].meta) mod_data[e.modality].meta = e.meta
                     mod_data[e.modality].entries << e
                 }
@@ -343,16 +333,13 @@ workflow {
                 [meta.library_id, [meta: meta, files: files]]
             }
             .groupTuple(by: 0)
-            .map { lid, entries ->
-                def el = []
-                entries.each { e -> el << e }
-
-                def meta = el[0].meta
+            .map { _lid, entries ->
+                def meta = entries[0].meta
                 meta.run_name = primary_run_name
 
                 // Sort entries by first-file URI (deterministic flowcell order),
                 // then flatten. Files within each entry are already name-sorted.
-                def all_files = el.sort { e -> e.files[0].toUriString() }.collectMany { e -> e.files }
+                def all_files = entries.toSorted { e -> e.files[0].toUriString() }.collectMany { e -> e.files }
                 [meta, all_files]
             }
             .set { ch_atac_libraries }
@@ -369,7 +356,7 @@ workflow {
         // web summary, so CELLRANGER_MQC pivots the CSVs into a table.
         if (run_from == 'bcl') {
             COUNT_GEX.out.outs
-                .map { library_id, metas, outs -> [metas[0].run_name, outs] }
+                .map { _library_id, metas, outs -> [metas[0].run_name, outs] }
                 .groupTuple(by: 0)
                 .set { ch_cellranger_outs }
 
@@ -390,25 +377,25 @@ workflow {
                     def files     = pair ? pair[1] : []
                     [run_name, fastq_dir, files + (cr_mqc ? [cr_mqc] : [])]
                 }
-                .filter { run_name, fastq_dir, files -> fastq_dir && files }
+                .filter { _run_name, fastq_dir, files -> fastq_dir && files }
                 .set { ch_multiqc_in }
 
             MULTIQC(ch_multiqc_in)
         }
 
         ch_asap_atac_outs = CELLRANGER_ATAC.out.outs
-            .filter { meta, outs -> meta.assay == 'ASAP' }
+            .filter { meta, _outs -> meta.assay == 'ASAP' }
             .map    { meta, outs -> [meta.library_id, meta, outs] }
 
         ch_asap_adt_fastqs = ch_routed.asap_adt
-            .map { meta, fastq_dirs, fqs -> [meta.library_id, meta, fqs] }
+            .map { meta, _fastq_dirs, fqs -> [meta.library_id, meta, fqs] }
             .groupTuple(by: 0)
             .map { lid, metas, fq_lists -> [lid, metas[0], fq_lists.flatten()] }
 
         COUNT_ADT(
             ch_asap_atac_outs
                 .join(ch_asap_adt_fastqs, by: 0, failOnDuplicate: false, failOnMismatch: false)
-                .map { lid, atac_meta, outs, adt_meta, adt_fqs ->
+                .map { _lid, atac_meta, outs, adt_meta, adt_fqs ->
                     [atac_meta, outs, adt_meta, adt_fqs]
                 }
         )
@@ -420,7 +407,7 @@ workflow {
         // ── Viral detection — optional, gated on --extras viral ──────────
         if ('viral' in extras) {
             ch_viral_input = COUNT_GEX.out.outs
-                .filter { library_id, metas, outs -> metas[0].species == 'human' }
+                .filter { _library_id, metas, _outs -> metas[0].species == 'human' }
                 .map { library_id, metas, outs ->
                     def meta   = metas[0] + [library_id: library_id]
                     def bam    = file("${outs}/unassigned_alignments.bam")
@@ -444,7 +431,7 @@ workflow {
             // as CELLRANGER_MULTI. get_velocity_chemistry() errors on unregistered
             // chemistries, so this is built only when velocity is actually requested.
             ch_gex_for_velocity
-                .filter { meta, fastq_dir, _fqs ->
+                .filter { meta, _fastq_dir, _fqs ->
                     meta.modality == 'GEX' && get_velocity_chemistry(meta.chemistry) != null
                 }
                 .map { meta, fastq_dir, _fqs ->
@@ -452,16 +439,14 @@ workflow {
                 }
                 .groupTuple(by: 0)
                 .map { library_id, metas, fastq_dirs, chems ->
-                    def ml = []; metas.each { m -> ml << m }
-                    def dl = []; fastq_dirs.each { d -> dl << d }
-                    def meta = ml[0] + [library_id: library_id, run_name: primary_run_name]
-                    [ library_id, meta, dl.unique().join(','), chems[0] ]
+                    def meta = metas[0] + [library_id: library_id, run_name: primary_run_name]
+                    [ library_id, meta, fastq_dirs.toUnique().join(','), chems[0] ]
                 }
                 .join(
                     QC_GEX.out.barcodes.map { meta, bc -> [ meta.library_id, bc ] },
                     by: 0
                 )
-                .multiMap { library_id, meta, fastq_dirs, chemistry, barcodes ->
+                .multiMap { _library_id, meta, fastq_dirs, chemistry, barcodes ->
                     def is_human = meta.species == 'human'
                     def idx = file(is_human ? params.spliceu_index_human : params.spliceu_index_mouse)
                     input: [ meta, fastq_dirs, chemistry, barcodes ]
