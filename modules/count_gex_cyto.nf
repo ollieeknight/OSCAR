@@ -23,24 +23,26 @@ process CYTO_FLEX {
     def min_reads = 10000
     """
     python3 << 'OSCAR_PYEOF'
-import re, subprocess, sys
+import os, shutil, sys
 from pathlib import Path
+
+# Nextflow puts bin/ on PATH, not PYTHONPATH.
+sys.path.insert(0, os.path.dirname(shutil.which("stage_fastqs.py")))
+from stage_fastqs import count_reads, pair_reads
 
 min_reads = ${min_reads}
 staged    = sorted(p for p in Path(".").glob("fastqs/gex/run_*/*") if p.name != "NO_FILE")
-r1_files  = sorted(p for p in staged if re.search(r'_R1_', p.name))
-r2_files  = sorted(p for p in staged if re.search(r'_R2_', p.name))
 
-def count_reads(r1):
-    result = subprocess.run(
-        f"zcat {r1} | head -n {min_reads * 4} | awk 'NR%4==1' | wc -l",
-        shell=True, capture_output=True, text=True
-    )
-    return int(result.stdout.strip() or "0")
+# Pair on the read header, not on sorted position: two flowcells can stage
+# identically-named FASTQs, and zip() would then pair R1 with a foreign R2.
+read_pairs, unmatched = pair_reads(staged)
+if unmatched:
+    print(f"[cyto_flex] ERROR: unmatched reads: {unmatched}", file=sys.stderr)
+    sys.exit(1)
 
 pairs = []
-for r1, r2 in zip(r1_files, r2_files):
-    n = count_reads(r1)
+for r1, r2 in read_pairs:
+    n = count_reads(r1, min_reads)
     if n >= min_reads:
         pairs.extend([str(r1), str(r2)])
     else:
