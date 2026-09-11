@@ -13,6 +13,15 @@ nextflow run tests/test_lib.nf -w "$WORK" | grep -E "^OK:|ERROR"
 echo "── FASTQ staging ─────────────────────────────────────────"
 python3 tests/test_stage_fastqs.py
 
+echo "── samplesheet generation (Groovy) ───────────────────────"
+nextflow run tests/test_samplesheet_gen.nf -w "$WORK" | grep -E "^OK:|ERROR"
+
+echo "── samplesheet generation (shell) ────────────────────────"
+bash tests/test_samplesheet_shell.sh | grep -E "^OK:|FAIL"
+
+echo "── demux QC ──────────────────────────────────────────────"
+python3 tests/test_demux_qc.py | grep -E "^OK:|ERROR"
+
 echo "── publish layout ────────────────────────────────────────"
 python3 tests/test_publish_layout.py
 

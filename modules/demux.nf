@@ -110,7 +110,11 @@ def get_override_cycles(assay, chemistry, index_type, modality, num_reads, index
 // Correct OverrideCycles for single-index (8bp) library on 4-read dual-index flow cell.
 // Input: 'Y28N*;I10N*;I10N*;Y90N*', seq_len=8
 // Output: 'Y28N*;I8N2;N*;Y90N*' (I1 uses 8bp+2masked, I2 fully masked)
-def apply_si_on_di_correction(String oc, Integer seq_len) {
+// index1_cycles is the flow cell's actual Index1 cycle count from RunInfo.xml.
+// It defaults to 10 only because that is what this was hardcoded to before the
+// per-row path existed; pass the real value whenever it is known, or an 8bp
+// index on a 12-cycle index read produces a mask 2 cycles short of the read.
+def apply_si_on_di_correction(String oc, Integer seq_len, Integer index1_cycles = 10) {
     def parts     = oc.split(';') as List
     def i_indices = (0..<parts.size()).findAll { parts[it].startsWith('I') }
 
@@ -119,7 +123,7 @@ def apply_si_on_di_correction(String oc, Integer seq_len) {
     def fixed = (0..<parts.size()).collect { idx ->
         if (idx == i_indices[0]) {
             // First index: use actual seq_len (typically 8bp), mask remainder
-            def remaining = 10 - seq_len  // e.g., 10 - 8 = 2
+            def remaining = index1_cycles - seq_len  // e.g., 10 - 8 = 2
             remaining > 0 ? "I${seq_len}N${remaining}" : "I${seq_len}"
         } else if (i_indices.size() > 1 && idx == i_indices[1]) {
             // Second index: fully masked (no i5 present)
@@ -137,24 +141,53 @@ def apply_si_on_di_correction(String oc, Integer seq_len) {
 // Builds a BCL Convert V2 SampleSheet for one demux group.
 // Reads RunInfo.xml at runtime to get actual cycle lengths, then resolves
 // OverrideCycles wildcards (*) to exact counts required by BCL Convert 4.x.
-// Input channel: [demux_key, metas_list, bcl_dir]
+//
+// Mixed-index groups (8bp TruSeq SI alongside 10bp 10x DI in one lane) are
+// demultiplexed in a SINGLE bcl-convert call using a per-sample OverrideCycles
+// column in [BCLConvert_Data], supported since BCL Convert 4.1.5 (in use here:
+// 4.5.4). Per Illumina's documentation a setting may be specified globally OR
+// per-sample but NOT both, so when the per-sample column is emitted the
+// OverrideCycles line is omitted from [BCLConvert_Settings].
+//
+// This replaces an earlier attempt that put 8bp Index values under a single
+// global 10bp mask. That does not work: bcl-convert matches the Index column
+// against the cycle count declared by OverrideCycles exactly and does not
+// prefix-match, so it aborts with
+//   "has an index of length 8 bases, but a length of 10 was expected".
+// The 8bp rows instead get their own mask that uses 8 index cycles and masks
+// the remaining ones (I8N2), with i5 fully masked (N10) for single-index rows.
+//
+// Input channel: [demux_key, metas_list, bcl_dir, bcl_parent, is_dual, sample_specs]
+// sample_specs: one map per samplesheet row —
+//   [id, i7, i5, index_len, is_dual, assay, chemistry, index_type, modality]
 
 process GENERATE_SAMPLESHEET {
     tag "$demux_key"
     container "${params.container_bclconvert}"
 
     input:
-    tuple val(demux_key), val(metas), path(bcl_dir), val(bcl_parent), val(is_dual), val(data_header), val(data_rows)
+    tuple val(demux_key), val(metas), path(bcl_dir), val(bcl_parent), val(is_dual), val(sample_specs)
 
     output:
     tuple val(demux_key), val(metas), path(bcl_dir), val(bcl_parent), path("SampleSheet.csv"), emit: samplesheet
 
     script:
-    // metas is a plain ArrayList (materialised in subworkflow map) — safe to index
-    def meta      = metas[0]
-    def index_len = meta.index_seqs?.rows[0]?.i7?.length() ?: 10
-    def oc_4      = get_override_cycles(meta.assay, meta.chemistry, meta.index_type, meta.modality, 4, meta.index_seqs, index_len)
-    def oc_3      = get_override_cycles(meta.assay, meta.chemistry, meta.index_type, meta.modality, 3, meta.index_seqs, index_len) ?: oc_4
+    // Resolve each row's mask template up front (Groovy side), keeping the
+    // runtime wildcard expansion in the shell where RunInfo.xml is readable.
+    // A group is "mixed" when its rows do not all share one mask template and
+    // index length — that is exactly when the per-sample column is required.
+    def specs = sample_specs.collect { sp ->
+        def oc4 = get_override_cycles(sp.assay, sp.chemistry, sp.index_type, sp.modality, 4, [is_dual: sp.is_dual, rows: [[i7: sp.i7]]], sp.index_len)
+        def oc3 = get_override_cycles(sp.assay, sp.chemistry, sp.index_type, sp.modality, 3, [is_dual: sp.is_dual, rows: [[i7: sp.i7]]], sp.index_len) ?: oc4
+        [id: sp.id, i7: sp.i7, i5: sp.i5 ?: '', is_dual: sp.is_dual, oc4: oc4, oc3: oc3]
+    }
+    def per_sample = specs.collect { "${it.oc4}|${it.oc3}" }.unique().size() > 1
+
+    // TSV consumed by the shell loop below: id, i7, i5, 4-read mask, 3-read mask.
+    // '-' stands in for an absent i5: bash `read` collapses empty fields even
+    // with IFS=$'\t', which shifts every subsequent column. The placeholder is
+    // turned back into an empty string when the row is written.
+    def spec_tsv = specs.collect { "${it.id}\t${it.i7}\t${it.i5 ?: '-'}\t${it.oc4}\t${it.oc3}" }.join('\n')
 
     """
     mapfile -t cycles < <(grep -o 'NumCycles="[0-9]*"' ${bcl_dir}/RunInfo.xml | grep -o '[0-9]*')
@@ -164,37 +197,58 @@ process GENERATE_SAMPLESHEET {
     if [ "\$num_reads" -eq 4 ]; then
         i2=\${cycles[2]}
         r2=\${cycles[3]}
-        raw_oc="${oc_4}"
         read_lens=("\$r1" "\$i1" "\$i2" "\$r2")
     else
         r2=\${cycles[2]}
-        raw_oc="${oc_3}"
         read_lens=("\$r1" "\$i1" "\$r2")
     fi
 
-    # Resolve * to exact counts — BCL Convert 4.x rejects wildcards
-    IFS=';' read -ra oc_parts <<< "\$raw_oc"
-    expanded=()
-    for i in "\${!oc_parts[@]}"; do
-        part="\${oc_parts[\$i]}"
-        len="\${read_lens[\$i]}"
-        if [[ "\$part" == *'*' ]]; then
-            base="\${part%\\*}"
-            used=\$(echo "\$base" | grep -oE '[0-9]+' | awk '{s+=\$1}END{print s+0}')
-            rest=\$((len - used))
-            if [ "\$rest" -gt 0 ]; then
-                expanded+=("\${base}\${rest}")
-            elif [ "\$rest" -eq 0 ]; then
-                expanded+=("\${base%[A-Z]}")
+    # Resolve * to exact counts — BCL Convert 4.x rejects wildcards.
+    # Emits the expanded mask on stdout; fails loudly if a mask needs more
+    # cycles than the read actually has.
+    expand_mask() {
+        local raw="\$1"
+        local -a oc_parts expanded
+        IFS=';' read -ra oc_parts <<< "\$raw"
+        expanded=()
+        for i in "\${!oc_parts[@]}"; do
+            part="\${oc_parts[\$i]}"
+            len="\${read_lens[\$i]}"
+            if [[ "\$part" == *'*' ]]; then
+                base="\${part%\\*}"
+                used=\$(echo "\$base" | grep -oE '[0-9]+' | awk '{s+=\$1}END{print s+0}')
+                rest=\$((len - used))
+                if [ "\$rest" -gt 0 ]; then
+                    expanded+=("\${base}\${rest}")
+                elif [ "\$rest" -eq 0 ]; then
+                    expanded+=("\${base%[A-Z]}")
+                else
+                    echo "ERROR: read \$((i+1)) has only \${len} cycles but mask '\${part}' requires at least \${used} cycles. Check RunInfo.xml and OverrideCycles mask." >&2
+                    return 1
+                fi
             else
-                echo "ERROR: read \$((i+1)) has only \${len} cycles but mask '\${part}' requires at least \${used} cycles. Check RunInfo.xml and OverrideCycles mask." >&2
-                exit 1
+                expanded+=("\$part")
             fi
-        else
-            expanded+=("\$part")
-        fi
-    done
-    override_cycles=\$(IFS=';'; echo "\${expanded[*]}")
+        done
+        (IFS=';'; echo "\${expanded[*]}")
+    }
+
+    cat > sample_specs.tsv << 'SPECEOF'
+${spec_tsv}
+SPECEOF
+
+    # Per-row expanded masks, in samplesheet row order.
+    : > row_masks.txt
+    while IFS=\$'\\t' read -r sid si7 si5 soc4 soc3; do
+        [ -z "\$sid" ] && continue
+        if [ "\$num_reads" -eq 4 ]; then raw="\$soc4"; else raw="\$soc3"; fi
+        expand_mask "\$raw" >> row_masks.txt || exit 1
+    done < sample_specs.tsv
+
+    # Global OverrideCycles only when every row agrees; per-sample column
+    # otherwise. Never both — bcl-convert rejects a setting given twice.
+    per_sample=${per_sample}
+    override_cycles=\$(head -n1 row_masks.txt)
 
     {
         echo '[Header]'
@@ -207,17 +261,35 @@ process GENERATE_SAMPLESHEET {
         echo "Read2Cycles,\$r2"
         echo ''
         echo '[BCLConvert_Settings]'
-        echo "OverrideCycles,\$override_cycles"
+        [ "\$per_sample" = "true" ] || echo "OverrideCycles,\$override_cycles"
         echo 'BarcodeMismatchesIndex1,1'
-        [ "${is_dual}" = "true" ] && echo 'BarcodeMismatchesIndex2,1' || true
+        # BarcodeMismatchesIndex2 is only valid when index2 is used for
+        # demultiplexing across ALL samples. On a mixed sheet the single-index
+        # rows mask i5 entirely, so the setting is omitted there.
+        if [ "${is_dual}" = "true" ] && [ "\$per_sample" != "true" ]; then
+            echo 'BarcodeMismatchesIndex2,1'
+        fi
         echo ''
         echo '[BCLConvert_Data]'
     } > SampleSheet.csv
 
-    cat >> SampleSheet.csv << 'DATAEOF'
-${data_header}
-${data_rows}
-DATAEOF
+    # Data section. Index2 column present whenever any row in the group is
+    # dual-indexed; single-index rows leave it blank and mask i5 via their own
+    # OverrideCycles entry.
+    {
+        header='Sample_ID,Index'
+        [ "${is_dual}" = "true" ] && header="\$header,Index2"
+        [ "\$per_sample" = "true" ] && header="\$header,OverrideCycles"
+        echo "\$header"
+        paste sample_specs.tsv row_masks.txt | while IFS=\$'\\t' read -r sid si7 si5 soc4 soc3 mask; do
+            [ -z "\$sid" ] && continue
+            [ "\$si5" = "-" ] && si5=""
+            row="\$sid,\$si7"
+            [ "${is_dual}" = "true" ] && row="\$row,\$si5"
+            [ "\$per_sample" = "true" ] && row="\$row,\$mask"
+            echo "\$row"
+        done
+    } >> SampleSheet.csv
     """
 }
 
@@ -260,12 +332,23 @@ process BCLCONVERT {
         def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
         "${bcl_parent}/${run}_fastq"
     }, mode: 'copy', pattern: "fastqs/*.fastq.gz", saveAs: { fn -> file(fn).name }
+    // bcl-convert writes Demultiplex_Stats.csv / Quality_Metrics.csv /
+    // Top_Unknown_Barcodes.csv into <output-directory>/Reports for free. Keep
+    // them: without these, diagnosing a bad demux means decompressing the
+    // multi-GB Undetermined FASTQ by hand. One Reports dir per demux group and
+    // lane, so key the destination by both to avoid groups overwriting
+    // each other's stats.
+    publishDir {
+        def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
+        "${bcl_parent}/${run}_fastq/Reports/${demux_key}_L${lane}"
+    }, mode: 'copy', pattern: "fastqs/Reports/*", saveAs: { fn -> file(fn).name }
 
     input:
     tuple val(demux_key), val(metas), path(bcl_dir), val(bcl_parent), path(samplesheet), val(lane)
 
     output:
     tuple val(demux_key), val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"), emit: fastqs
+    tuple val(demux_key), val(metas), val(bcl_dir.name), val(bcl_parent), val(lane), path("fastqs/Reports/Demultiplex_Stats.csv"), path("fastqs/Reports/Top_Unknown_Barcodes.csv"), emit: reports
 
     script:
     def n_tiles      = Math.max(1, (task.cpus / 8).toInteger())
@@ -284,6 +367,54 @@ process BCLCONVERT {
         --bcl-num-conversion-threads       ${n_convert} \\
         --bcl-num-compression-threads      ${n_compress} \\
         --bcl-num-decompression-threads    ${n_decompress}
+    """
+}
+
+// ─── DEMUX_QC ─────────────────────────────────────────────────────────────────
+// Summarises bcl-convert's own demultiplexing stats for one run and flags a
+// suspect demux. Each BCLCONVERT task (one per demux group per lane) writes its
+// own Reports/, so all of a run's Demultiplex_Stats.csv are concatenated here
+// before analysis -- otherwise each group is judged only against itself and a
+// whole missing group looks normal.
+//
+// Advisory only: warnings never fail the run, since the FASTQ are still valid.
+
+process DEMUX_QC {
+    tag "$run_name"
+    container "${params.container_multiqc}"
+    publishDir { "${fastq_dir}" }, mode: 'copy', pattern: "*.csv"
+
+    input:
+    tuple val(run_name), val(fastq_dir), path(stats, stageAs: 'stats/*'), path(unknown, stageAs: 'unknown/*')
+    path indexes_dir
+
+    output:
+    tuple val(run_name), val(fastq_dir), path("${run_name}_demux_summary.csv"),  emit: summary
+    tuple val(run_name), val(fastq_dir), path("${run_name}_demux_warnings.csv"), emit: warnings
+    tuple val(run_name), val(fastq_dir), path("${run_name}_demux_mqc.csv"), emit: mqc
+
+    script:
+    """
+    # Concatenate the per-group/per-lane Reports, keeping a single header.
+    awk 'FNR==1 && NR!=1 { next } { print }' stats/*   > all_demultiplex_stats.csv
+    awk 'FNR==1 && NR!=1 { next } { print }' unknown/* > all_top_unknown.csv
+
+    demux_qc.py \\
+        --stats    all_demultiplex_stats.csv \\
+        --unknown  all_top_unknown.csv \\
+        --indexes  ${indexes_dir} \\
+        --prefix   ${run_name} \\
+        --dropout-ratio ${params.demux_qc_dropout_ratio} \\
+        --unknown-pct   ${params.demux_qc_unknown_pct}
+
+    # MultiQC custom-content: header comment block makes it a named section.
+    {
+        echo '# id: oscar_demux'
+        echo '# section_name: Demultiplexing (bcl-convert)'
+        echo '# description: "Reads per library from bcl-convert Demultiplex_Stats.csv, as a percent of each lane total (Undetermined included)."'
+        echo '# plot_type: table'
+        cat ${run_name}_demux_summary.csv
+    } > ${run_name}_demux_mqc.csv
     """
 }
 

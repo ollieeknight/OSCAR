@@ -268,9 +268,17 @@ workflow {
             ch_fastqs = DEMUX.out.fastqs
         }
 
-        // MultiQC runs on fastp reports from demux (BCL mode only)
+        // MultiQC runs on fastp reports from demux (BCL mode only), plus the
+        // demux summary table so a bad demultiplex shows up in the same report.
+        // join by run so each run's MultiQC sees only its own demux stats.
         if (run_from == 'bcl') {
-            MULTIQC(DEMUX.out.fastp_reports)
+            DEMUX.out.fastp_reports
+                .join(DEMUX.out.demux_mqc, by: [0, 1], remainder: true)
+                .map { run_name, fastq_dir, reports, summary ->
+                    [run_name, fastq_dir, (reports ?: []) + (summary ? [summary] : [])]
+                }
+                .set { ch_multiqc_in }
+            MULTIQC(ch_multiqc_in)
         }
 
         // ── Count ─────────────────────────────────────────────────────────
