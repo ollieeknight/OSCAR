@@ -1,5 +1,6 @@
 include { GENERATE_SAMPLESHEET  } from '../modules/demux'
 include { BCLCONVERT            } from '../modules/demux'
+include { CLEAN_FASTQ_DIR       } from '../modules/demux'
 include { FASTQ_QC              } from './fastq_qc'
 
 workflow DEMUX {
@@ -7,11 +8,27 @@ workflow DEMUX {
         ch_meta_bcl  // [meta, bcl_dir] pairs — each meta pre-bound to its BCL dir
 
     main:
-        // Group by (assay_indextype_chemistry_modality_indexlength, bcl_dir) → one samplesheet per group
+        // Wipe stale published fastq.gz from any earlier invocation before this
+        // run's BCLCONVERT tasks publish into the same directory (publishDir
+        // only adds/overwrites — it never deletes files a previous run left
+        // behind under a different bcl-convert-assigned S-number).
+        ch_meta_bcl
+            .map { meta, bcl_dir -> [bcl_dir.name, bcl_dir.parent.toString()] }
+            .unique()
+            .set { ch_unique_bcl_dirs }
+
+        CLEAN_FASTQ_DIR(ch_unique_bcl_dirs)
+
+        // Group by (assay_chemistry, bcl_dir) → one samplesheet per group.
+        // Deliberately NOT split by modality or index_type: bcl-convert supports
+        // mixed SI(8bp)/DI(10bp) rows in one [BCLConvert_Data] table (SI rows
+        // just leave Index2 blank — see is_dual/data_rows below), and the
+        // OverrideCycles mask table in lib/indexes.nf never actually varies by
+        // modality for a given chemistry+index_type. Merging GEX+ADT+HTO into
+        // one bcl-convert pass per lane cuts flowcell-tile reads 3x → 1x.
         ch_meta_bcl
             .map { meta, bcl_dir ->
-                def index_len = meta.index_seqs?.rows[0]?.i7?.length() ?: 0
-                def key = "${meta.assay}_${meta.index_type}_${meta.chemistry}_${meta.modality}_${bcl_dir.name}"
+                def key = "${meta.assay}_${meta.chemistry}_${bcl_dir.name}"
                 [key, meta, bcl_dir]
             }
             .groupTuple(by: 0)
@@ -21,11 +38,19 @@ workflow DEMUX {
                 metas.each { m -> ml << m }
                 def bcl_dir = bcl_dirs[0]
 
-                // Validate index-length homogeneity (guaranteed by key, but defensive)
-                def index_len = ml[0].index_seqs?.rows[0]?.i7?.length() ?: 10
-                if (ml.any { m -> (m.index_seqs?.rows[0]?.i7?.length() ?: 10) != index_len })
-                    error "Demux group ${key} has mixed index lengths: " +
-                          ml.collect { m -> "${m.id}=${m.index_seqs?.rows[0]?.i7?.length() ?: 10}" }.join(', ')
+                // Defensive: index length must agree within each index kind (SI vs
+                // DI). Mixing SI and DI *between* kinds in one group is expected
+                // (that's the whole point); two different kit lengths within the
+                // same kind would be a real samplesheet error.
+                [false, true].each { is_dual_flag ->
+                    def subset = ml.findAll { m -> (m.index_seqs?.is_dual ?: false) == is_dual_flag }
+                    if (subset.size() > 1) {
+                        def len0 = subset[0].index_seqs?.rows[0]?.i7?.length() ?: 0
+                        if (subset.any { m -> (m.index_seqs?.rows[0]?.i7?.length() ?: 0) != len0 })
+                            error "Demux group ${key} has mixed ${is_dual_flag ? 'DI' : 'SI'} index lengths: " +
+                                  subset.collect { m -> "${m.id}=${m.index_seqs?.rows[0]?.i7?.length() ?: 0}" }.join(', ')
+                    }
+                }
 
                 // Pre-build samplesheet data section — avoids ArrayBag ops inside process script
                 def is_dual     = ml.any { m -> m.index_seqs.is_dual }
@@ -45,6 +70,8 @@ workflow DEMUX {
         // Detect which lanes have cbcl data (Groovy filesystem read — same pattern as detect_sequencer).
         // flatMap emits one channel item per present lane → one BCLCONVERT job per lane.
         // This avoids --no-lane-splitting memory buffering on high-output flowcells.
+        // Each item is gated on CLEAN_FASTQ_DIR for its bcl_dir via combine(by:0),
+        // so no BCLCONVERT task can publish into a fastq dir that hasn't been wiped.
         GENERATE_SAMPLESHEET.out.samplesheet
             .flatMap { demux_key, metas, bcl_dir, bcl_parent, samplesheet ->
                 def base_calls = new File("${bcl_dir}/Data/Intensities/BaseCalls")
@@ -57,7 +84,11 @@ workflow DEMUX {
                     ?.sort()
                 if (!present_lanes)
                     error "No lanes with cbcl data found in ${bcl_dir}/Data/Intensities/BaseCalls/"
-                present_lanes.collect { lane -> [demux_key, metas, bcl_dir, bcl_parent, samplesheet, lane] }
+                present_lanes.collect { lane -> [bcl_dir.name, demux_key, metas, bcl_dir, bcl_parent, samplesheet, lane] }
+            }
+            .combine(CLEAN_FASTQ_DIR.out.done, by: 0)
+            .map { bcl_name, demux_key, metas, bcl_dir, bcl_parent, samplesheet, lane, cleaned ->
+                [demux_key, metas, bcl_dir, bcl_parent, samplesheet, lane]
             }
             .set { ch_bclconvert_input }
 
