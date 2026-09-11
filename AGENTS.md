@@ -1,6 +1,6 @@
 # OSCAR Agent Guidelines
 
-Nextflow DSL2 single-cell pipeline. For Romagnani Lab (BIH Charité). Process scRNA-seq, scATAC-seq, Multiome, DOGMA, ASAP-seq, CITE-seq, Flex (Fixed RNA Profiling), VDJ, CRISPR. Run on SLURM, Apptainer container.
+Nextflow DSL2 single-cell pipeline for the Romagnani Lab (BIH Charité). Processes scRNA-seq, scATAC-seq, Multiome, DOGMA, ASAP-seq, CITE-seq, Flex (Fixed RNA Profiling), VDJ and CRISPR data. Runs on SLURM under Apptainer.
 
 ---
 
@@ -16,7 +16,8 @@ Nextflow DSL2 single-cell pipeline. For Romagnani Lab (BIH Charité). Process sc
 │   ├── samplesheet.nf         ← Samplesheet parsing, validation, ADT CSV resolution
 │   └── multi_config.nf        ← cellranger multi config header & flex sample builders
 ├── modules/
-│   ├── demux.nf               ← GENERATE_SAMPLESHEET, BCLCONVERT, VALIDATE_FASTQ, FALCO, MULTIQC
+│   ├── demux.nf               ← GENERATE_SAMPLESHEET, CLEAN_FASTQ_DIR, BCLCONVERT, DEMUX_QC,
+│   │                            CELLRANGER_MQC, FASTP, MULTIQC, VALIDATE_FASTQ
 │   ├── count_gex.nf           ← CELLRANGER_MULTI (staged FASTQs, Python read filter, config gen)
 │   ├── count_gex_cyto.nf      ← CYTO_FLEX, CYTO_RENAME_SAMPLES (Flex probe-level QC)
 │   ├── flex_probe_convert.nf  ← FLEX_PROBE_PREPARE, FLEX_SAMPLE_PREPARE, barcode extraction
@@ -28,7 +29,7 @@ Nextflow DSL2 single-cell pipeline. For Romagnani Lab (BIH Charité). Process sc
 │   └── quant_extra.nf         ← VIRAL_DETECT, SIMPLEAF_VELOCITY
 ├── subworkflows/
 │   ├── demux.nf               ← DEMUX: samplesheet gen, per-lane BCL Convert, FASTQ QC
-│   ├── fastq_qc.nf            ← FASTQ_QC: pigz validation + Falco on R-reads
+│   ├── fastq_qc.nf            ← FASTQ_QC: fastp on R-reads, pigz on everything else
 │   ├── count_gex.nf           ← COUNT_GEX: probe preparation, cellranger multi, optional cyto
 │   ├── count_atac.nf          ← COUNT_ATAC: CELLRANGER_ATAC execution
 │   ├── count_adt.nf           ← COUNT_ADT: ASAP kallisto/bustools processing
@@ -52,9 +53,9 @@ nextflow run main.nf -profile slurm \
     --outdir results \
     --run_name R463
 ```
-- Many flowcell: use `--extra_bcl_dirs /path/to/R464` (plus `--extra_samplesheets` if sheets differ).
-- FASTQ publish beside source flowcell: `{bcl_dir.parent}/{run}_fastq`, not under `--outdir`.
-- FASTQ merge by `meta.library_id`, downstream, before count.
+- Several flowcells: add `--extra_bcl_dirs /path/to/R464`, plus `--extra_samplesheets` when the sheets differ.
+- FASTQs publish beside their source flowcell at `{bcl_dir.parent}/{run}_fastq`, not under `--outdir`.
+- FASTQs merge by `meta.library_id` downstream, before counting.
 
 ### 2. FASTQ Mode
 ```bash
@@ -75,8 +76,8 @@ nextflow run main.nf -profile slurm \
 ```
 
 ### Execution Limits
-- `--run_from bcl` (default) | `fastq` | `cellranger`: pipeline entry point.
-- `--extras velocity,viral`: opt-in supplementary quantification.
+- `--run_from bcl` (default), `fastq` or `cellranger` selects the entry point.
+- `--extras velocity,viral` opts in to supplementary quantification.
 
 ---
 
@@ -84,46 +85,44 @@ nextflow run main.nf -profile slurm \
 
 | Assay | Modality | Route | Notes |
 |---|---|---|---|
-| GEX, CITE, DOGMA, Multiome, Flex | GEX, ADT, HTO, VDJ-T, VDJ-B, CRISPR | COUNT_GEX → QC_GEX | DOGMA ADT run cellranger multi, never kallisto |
-| ATAC, DOGMA, Multiome, ASAP | ATAC | COUNT_ATAC → QC_ATAC | Standalone or paired ATAC count |
-| ASAP | ADT, HTO | COUNT_ADT (kallisto) | Trigger only after ATAC cellranger done |
-| Any | GENO | Skipped | Info only |
+| GEX, CITE, DOGMA, Multiome, Flex | GEX, ADT, HTO, VDJ-T, VDJ-B, CRISPR | COUNT_GEX → QC_GEX | DOGMA ADT runs through cellranger multi, never kallisto |
+| ATAC, DOGMA, Multiome, ASAP | ATAC | COUNT_ATAC → QC_ATAC | Standalone or paired ATAC counting |
+| ASAP | ADT, HTO | COUNT_ADT (kallisto) | Triggered once ATAC cellranger finishes |
+| Any | GENO | Skipped | Informational only |
 
-- **DOGMA Experiments**: GEX and ATAC run in separate Nextflow runs, integrate downstream in R.
-- **Flex Experiments**: Use `flex_backend` (`cellranger`, `cyto`, or `both`). Need `--flex_probe_set` and `--flex_samples_file` when multiplexed.
-- **Donor Genotyping**: `CELLSNP_LITE` → `VIREO` run only when `meta.n_donors > 1 && meta.species == 'human'`. Mouse sample always set `n_donors = 1`.
+- **DOGMA experiments**: GEX and ATAC run as separate Nextflow runs and are integrated downstream in R.
+- **Flex experiments**: set `flex_backend` to `cellranger`, `cyto` or `both`. Multiplexed runs need `--flex_probe_set` and `--flex_samples_file`.
+- **Donor genotyping**: `CELLSNP_LITE` and `VIREO` run only when `meta.n_donors > 1 && meta.species == 'human'`. Mouse samples always set `n_donors = 1`.
 
 ---
 
 ## Key Technical Mechanics
 
-- **FASTQ Staging & Filtering**: FASTQ file stage via `path(fastqs, stageAs: "fastqs/{mod}/run_???/*")`. Python inside `CELLRANGER_MULTI` / `CELLRANGER_ATAC` filter empty placeholder run (`<10000` reads on R1), rename lane in order to `L001`, `L002`, etc.
-- **Nextflow ArrayBag Materialization**: `groupTuple` emit `nextflow.util.ArrayBag`. No do collection op inside process script block. Materialize inside subworkflow `.map {}` block:
+- **FASTQ staging and filtering**: files stage via `path(fastqs, stageAs: "fastqs/{mod}/run_???/*")`, which gives each file its own `run_???` dir. `bin/stage_fastqs.py` pairs reads on the FASTQ header, since two flowcells can stage identically-named files and the dir name records list position rather than flowcell. `CELLRANGER_MULTI` and `CELLRANGER_ATAC` then drop placeholder runs (under 10000 reads on R1) and renumber the survivors `L001`, `L002` and so on.
+- **ArrayBag materialisation**: `groupTuple` emits a `nextflow.util.ArrayBag`. Do not run collection operations on one inside a process script block; convert it in the subworkflow `.map {}` first:
   ```groovy
-  .map { key, metas ->
-      def ml = []
-      metas.each { m -> ml << m }
-      [key, ml]
-  }
+  .map { key, metas -> [key, metas.collect()] }
   ```
-- **Sequencer Auto-Detection**: `detect_sequencer` look at `<Instrument>` in `RunInfo.xml`, per BCL folder:
+- **Sequencer auto-detection**: `detect_sequencer` reads `<Instrument>` from `RunInfo.xml`, once per BCL folder:
   - `VH`, `NDX`, `FS`, `LH` → `novaseq_x` (i5 forward).
   - `A`, `NB`, `NS`, `MN` → `novaseq6000` (i5 reverse complement).
-- **Chemistry Registry**: `lib/chemistry.nf` = one truth source for chemistry, family, barcode whitelist, simpleaf chemistry.
-- **ADT CSV Resolution**: Look for `{samplesheet_dir}/adt_files/{adt_file}.csv`, then `{samplesheet_dir}/../adt_files/`, then `--adt_files_dir`.
-- **Optional Analyses**:
-  - `VIRAL_DETECT`: simpleaf viral quant, on unassigned BAM read (gate on `--extras viral`). `bamtofastq_bin` may be an https URL, Nextflow stage and cache it.
-  - `SIMPLEAF_VELOCITY`: simpleaf spliced/unspliced quant on GEX, use CellBender filtered barcode (gate on `--extras velocity`, skip for Flex).
+- **Chemistry registry**: `lib/chemistry.nf` is the single source of truth for chemistry, family, barcode whitelist and simpleaf chemistry.
+- **ADT CSV resolution**: checks `{samplesheet_dir}/adt_files/{adt_file}.csv`, then `{samplesheet_dir}/../adt_files/`, then `--adt_files_dir`.
+- **Optional analyses**:
+  - `VIRAL_DETECT`: simpleaf viral quantification over unassigned BAM reads, gated on `--extras viral`. `bamtofastq_bin` may be an https URL, which Nextflow stages and caches.
+  - `SIMPLEAF_VELOCITY`: simpleaf spliced/unspliced quantification on GEX using the CellBender barcode list, gated on `--extras velocity` and skipped for Flex.
 
 ---
 
-## Skills to Use
+## Working in This Repo
 
-In this repo, follow these agent skill rule:
-
-- **`investigate-first`**: Use before touch code, when diagnose failed pipeline run, Slurm job crash, missing input file, or bad channel tuple. Read task `.command.log`, `.command.err`, and `.command.sh`.
-- **`surgical-patch`**: Use for bug fix in module, library script, or config file. Keep edit small, focus on broke part, no touch surround logic.
-- **`safe-refactor`**: Use when change subworkflow topology, channel operator, or process signature. Check emit tuple match downstream input need.
-- **`ponytail` / `ponytail-review`**: Enforce minimal, YAGNI. Favor native Nextflow DSL2 operator and Python stdlib over extra dependency or wrapper abstraction.
-- **`cavecrew`**: Send deep investigation, multi-module search, or big log audit to investigator subagent. Keep context clean.
-- **`verify-and-stop`**: Test syntax (`nextflow config` / dry-run), check acceptance criteria, no speculative change.
+- Diagnose a failed run from the task directory first: read `.command.log`,
+  `.command.err` and `.command.sh` before changing code.
+- Keep bug fixes small and local to the broken part.
+- Changing subworkflow topology, a channel operator or a process signature
+  means re-checking that the emitted tuple still matches what downstream
+  consumes.
+- Prefer native DSL2 operators and the Python standard library over new
+  dependencies or wrapper layers.
+- Verify before claiming done: `bash tests/run_all.sh` runs every self-check
+  without a cluster, containers or sequencing data.
