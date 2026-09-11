@@ -117,4 +117,19 @@ assert [w["index"] for w in und] == ["GAATTCGT"], und
 assert und[0]["reads"] == 200000
 print("OK: undeclared kit index flagged; non-kit and sub-threshold ignored")
 
+# ── concatenation of several groups' Reports ──────────────────────────────
+# Each demux group writes its own Demultiplex_Stats.csv with the same filename,
+# so DEMUX_QC stages them into numbered subdirs and concatenates. Only the
+# first header survives; a leaked header row would parse as a bogus sample and
+# a whole missing group would look like a normal small pool if not merged.
+g1 = "Lane,SampleID,# Reads\n1,GEX_A,1000000\n1,Undetermined,5000\n"
+g2 = "Lane,SampleID,# Reads\n1,ADT_A,900000\n1,Undetermined,4000\n"
+merged = g1 + "".join(g2.splitlines(keepends=True)[1:])
+per_lane_merged = demux_qc.read_demultiplex_stats(_tmp("merged.csv", merged))
+assert set(per_lane_merged["1"]) == {"GEX_A", "ADT_A", "Undetermined"}, per_lane_merged
+# Undetermined appears once per group and must accumulate, not overwrite.
+assert per_lane_merged["1"]["Undetermined"] == 9000
+assert "SampleID" not in per_lane_merged["1"], "duplicate header row leaked in as a sample"
+print("OK: multi-group Reports concatenate, Undetermined accumulates, no header leak")
+
 print("\nAll demux_qc self-checks passed.")

@@ -385,7 +385,10 @@ process DEMUX_QC {
     publishDir { "${fastq_dir}" }, mode: 'copy', pattern: "*.csv"
 
     input:
-    tuple val(run_name), val(fastq_dir), path(stats, stageAs: 'stats/*'), path(unknown, stageAs: 'unknown/*')
+    // Every demux group writes a Reports/ dir with identically-named files, so
+    // they are staged into numbered subdirectories ('stats/1/', 'stats/2/'...).
+    // A flat 'stats/*' collides the moment a run has more than one group.
+    tuple val(run_name), val(fastq_dir), path(stats, stageAs: 'stats/*/'), path(unknown, stageAs: 'unknown/*/')
     path indexes_dir
 
     output:
@@ -396,8 +399,8 @@ process DEMUX_QC {
     script:
     """
     # Concatenate the per-group/per-lane Reports, keeping a single header.
-    awk 'FNR==1 && NR!=1 { next } { print }' stats/*   > all_demultiplex_stats.csv
-    awk 'FNR==1 && NR!=1 { next } { print }' unknown/* > all_top_unknown.csv
+    awk 'FNR==1 && NR!=1 { next } { print }' stats/*/*.csv   > all_demultiplex_stats.csv
+    awk 'FNR==1 && NR!=1 { next } { print }' unknown/*/*.csv > all_top_unknown.csv
 
     demux_qc.py \\
         --stats    all_demultiplex_stats.csv \\
@@ -418,6 +421,28 @@ process DEMUX_QC {
     """
 }
 
+// ─── CELLRANGER_MQC ───────────────────────────────────────────────────────────
+// Pivots `cellranger multi` per-sample metrics into a MultiQC custom-content
+// table. MultiQC's built-in cellranger module matches web summaries on
+// '"subcommand":"count"' / '"subcommand":"vdj"' only, so a `cellranger multi`
+// web_summary.html is never picked up and the metrics go unreported.
+
+process CELLRANGER_MQC {
+    tag "$run_name"
+    container "${params.container_multiqc}"
+
+    input:
+    tuple val(run_name), path(outs, stageAs: 'outs/*/')
+
+    output:
+    tuple val(run_name), path("${run_name}_cellranger_mqc.csv"), emit: mqc, optional: true
+
+    script:
+    """
+    cellranger_mqc.py --root outs --out ${run_name}_cellranger_mqc.csv
+    """
+}
+
 // ─── FASTP ────────────────────────────────────────────────────────────────────
 // Per-file QC, report only. One job per R-read FASTQ (R1/R2/R3); index reads
 // (I1/I2) skipped. No -o/--out1, so fastp writes reports and no filtered reads.
@@ -435,6 +460,9 @@ process FASTP {
 
     output:
     tuple val(run_name), val(fastq_dir), path("${run_name}_${fastq_name}.{json,html}"), emit: report
+    // Completion signal keyed by the FASTQ this task verified. FASTQ_QC uses it
+    // to release the file downstream, so a fastp failure blocks its library.
+    tuple val(fastq_name), val(true), emit: checked
 
     script:
     """

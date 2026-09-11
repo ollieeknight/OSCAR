@@ -10,6 +10,7 @@ include { QC_GEX }         from './subworkflows/qc_gex'
 include { QC_ATAC }        from './subworkflows/qc_atac'
 include { CELLRANGER_ATAC } from './modules/count_atac'
 include { MULTIQC }         from './modules/demux'
+include { CELLRANGER_MQC } from './modules/demux'
 include { VIRAL_DETECT; SIMPLEAF_VELOCITY } from './modules/quant_extra'
 
 include { load_si_indexes; detect_sequencer } from './lib/indexes'
@@ -268,18 +269,9 @@ workflow {
             ch_fastqs = DEMUX.out.fastqs
         }
 
-        // MultiQC runs on fastp reports from demux (BCL mode only), plus the
-        // demux summary table so a bad demultiplex shows up in the same report.
-        // join by run so each run's MultiQC sees only its own demux stats.
-        if (run_from == 'bcl') {
-            DEMUX.out.fastp_reports
-                .join(DEMUX.out.demux_mqc, by: [0, 1], remainder: true)
-                .map { run_name, fastq_dir, reports, summary ->
-                    [run_name, fastq_dir, (reports ?: []) + (summary ? [summary] : [])]
-                }
-                .set { ch_multiqc_in }
-            MULTIQC(ch_multiqc_in)
-        }
+        // MultiQC input is assembled after counting (below), so the report can
+        // carry demux stats and Cell Ranger metrics together rather than fastp
+        // alone. See the MULTIQC() call after COUNT_GEX.
 
         // ── Count ─────────────────────────────────────────────────────────
         ch_fastqs
@@ -367,6 +359,42 @@ workflow {
 
         COUNT_GEX(ch_gex_libraries)
         CELLRANGER_ATAC(ch_atac_libraries)
+
+        // ── MultiQC ───────────────────────────────────────────────────────
+        // Runs after counting so one report covers demultiplexing (fastp +
+        // the demux summary table) and Cell Ranger metrics.
+        //
+        // cellranger multi writes per_sample_outs/*/metrics_summary.csv per
+        // library; MultiQC's built-in cellranger module cannot read a `multi`
+        // web summary, so CELLRANGER_MQC pivots the CSVs into a table.
+        if (run_from == 'bcl') {
+            COUNT_GEX.out.outs
+                .map { library_id, metas, outs -> [metas[0].run_name, outs] }
+                .groupTuple(by: 0)
+                .set { ch_cellranger_outs }
+
+            CELLRANGER_MQC(ch_cellranger_outs)
+
+            // remainder:true on both joins: a run may finish demux with no
+            // countable library, and MultiQC should still report the demux.
+            DEMUX.out.fastp_reports
+                .join(DEMUX.out.demux_mqc, by: [0, 1], remainder: true)
+                .map { run_name, fastq_dir, reports, demux_mqc ->
+                    [run_name, fastq_dir, (reports ?: []) + (demux_mqc ? [demux_mqc] : [])]
+                }
+                .map { run_name, fastq_dir, files -> [run_name, [fastq_dir, files]] }
+                .join(CELLRANGER_MQC.out.mqc, by: 0, remainder: true)
+                .map { run_name, pair, cr_mqc ->
+                    // remainder:true pads the missing side with null.
+                    def fastq_dir = pair ? pair[0] : null
+                    def files     = pair ? pair[1] : []
+                    [run_name, fastq_dir, files + (cr_mqc ? [cr_mqc] : [])]
+                }
+                .filter { run_name, fastq_dir, files -> fastq_dir && files }
+                .set { ch_multiqc_in }
+
+            MULTIQC(ch_multiqc_in)
+        }
 
         ch_asap_atac_outs = CELLRANGER_ATAC.out.outs
             .filter { meta, outs -> meta.assay == 'ASAP' }

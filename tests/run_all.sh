@@ -22,6 +22,12 @@ bash tests/test_samplesheet_shell.sh | grep -E "^OK:|FAIL"
 echo "── demux QC ──────────────────────────────────────────────"
 python3 tests/test_demux_qc.py | grep -E "^OK:|ERROR"
 
+echo "── FASTQ QC routing ──────────────────────────────────────"
+nextflow run tests/test_fastq_qc_routing.nf -w "$WORK" | grep -E "^OK:|ERROR"
+
+echo "── cellranger MultiQC table ──────────────────────────────"
+python3 tests/test_cellranger_mqc.py | grep -E "^OK:|ERROR"
+
 echo "── publish layout ────────────────────────────────────────"
 python3 tests/test_publish_layout.py
 

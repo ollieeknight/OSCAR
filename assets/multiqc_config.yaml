@@ -4,25 +4,32 @@ title: "OSCAR Pipeline QC Report"
 skip_generalstats: false
 
 # Collect whatever is present; no hard requirement on any module
+# cellranger is deliberately absent: the built-in module only parses
+# `cellranger count` / `cellranger vdj` web summaries (it matches on
+# '"subcommand":"count"' / '"subcommand":"vdj"'). This pipeline runs
+# `cellranger multi`, so that module never matched anything. The metrics are
+# surfaced via custom_content instead — see bin/cellranger_mqc.py.
 run_modules:
   - fastp
-  - cellranger
   - custom_content
 
 # Module-specific settings
 module_order:
   - fastp:
       name: "Read QC (fastp)"
-  - cellranger
 
 # Demux summary table emitted by DEMUX_QC as *_demux_mqc.csv. The section name
 # and plot type are carried in the file's own header comments.
 custom_data:
   oscar_demux:
     file_format: "csv"
+  oscar_cellranger:
+    file_format: "csv"
 sp:
   oscar_demux:
-    fn: "*_demux_mqc.csv" 
+    fn: "*_demux_mqc.csv"
+  oscar_cellranger:
+    fn: "*_cellranger_mqc.csv" 
 
 extra_fn_clean_s_name:
   - "_S[0-9]+_L[0-9]+_R[12]_001$": ""
