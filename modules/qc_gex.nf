@@ -3,7 +3,7 @@
 
 // ─── CELLBENDER ───────────────────────────────────────────────────────────────
 // Ambient RNA removal. GPU process.
-// Source: 05_quality_control.sh:91-139
+// Ported from original/bash/05_quality_control.sh
 
 process CELLBENDER {
     tag "$meta.library_id"
@@ -40,7 +40,7 @@ process CELLBENDER {
 
 // ─── SCRUBLET ────────────────────────────────────────────────────────────────
 // GEX Doublet detection.
-// Source: nf-core/scdownstream doublet detection step
+// Follows the nf-core/scdownstream doublet detection step
 
 process SCRUBLET {
     tag "$meta.library_id"

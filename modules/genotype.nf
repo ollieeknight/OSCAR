@@ -5,7 +5,7 @@
 // ─── CELLSNP_LITE ─────────────────────────────────────────────────────────────
 // SNP pileup for donor demultiplexing.
 // Two modes: GEX (uses UMI-tagged BAM) and ATAC (no UMI tag).
-// Source: 05_quality_control.sh:196-204, 265-273, 350-359
+// Ported from original/bash/05_quality_control.sh
 
 process CELLSNP_LITE {
     tag { "${meta.library_id} (${mode})" }
@@ -22,7 +22,6 @@ process CELLSNP_LITE {
     path "cellsnp_${meta.library_id}/*"
 
     script:
-    def out_dir    = (mode == 'atac') ? "${meta.library_id}_ATAC" : meta.library_id
     def umi_flag   = (mode == 'atac') ? '--UMItag None' : ''
     """
     mkdir -p cellsnp_${meta.library_id}
@@ -42,7 +41,7 @@ process CELLSNP_LITE {
 
 // ─── VIREO ────────────────────────────────────────────────────────────────────
 // Probabilistic donor demultiplexing.
-// Source: 05_quality_control.sh:210-214, 279-283, 365-369
+// Ported from original/bash/05_quality_control.sh
 
 process VIREO {
     tag "$meta.library_id"
@@ -59,7 +58,6 @@ process VIREO {
     path "vireo_out/*"
 
     script:
-    def out_dir = (mode == 'atac') ? "${meta.library_id}_ATAC" : meta.library_id
     """
     mkdir -p vireo_out
     vireo \\

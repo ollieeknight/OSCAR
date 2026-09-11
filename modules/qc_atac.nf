@@ -3,7 +3,7 @@
 
 // ─── AMULET ───────────────────────────────────────────────────────────────────
 // ATAC doublet detection from fragment overlaps.
-// Source: 05_quality_control.sh:336-342, 422-428
+// Ported from original/bash/05_quality_control.sh
 
 process AMULET {
     tag "$meta.library_id"
@@ -42,7 +42,7 @@ process AMULET {
 
 // ─── MGATK2 ───────────────────────────────────────────────────────────────────
 // Mitochondrial genotyping for ATAC libraries.
-// Source: 05_quality_control.sh:373, 432
+// Ported from original/bash/05_quality_control.sh
 
 process MGATK2 {
     tag "$meta.library_id"
@@ -75,7 +75,7 @@ process MGATK2 {
 //   --nomodel --shift -75 --extsize 150 (nucleosome-free region model)
 //   --keep-dup all                       (cellranger-atac already deduplicates)
 //   --nolambda                           (disable local background; sparse libraries)
-// Source: 04_count.sh (cellranger-atac outs), ENCODE ATAC pipeline recommendations
+// Ported from original/bash/04_count.sh; settings per the ENCODE ATAC pipeline
 
 process MACS3 {
     tag "$meta.library_id"
