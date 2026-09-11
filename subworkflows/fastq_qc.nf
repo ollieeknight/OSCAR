@@ -1,30 +1,25 @@
-include { VALIDATE_FASTQ } from '../modules/demux'
-include { FASTP          } from '../modules/demux'
+include { VALIDATE_FASTQ; FASTP } from '../modules/demux'
 
 workflow FASTQ_QC {
     take:
         ch_fastqs   // [meta, fastq_dir_str, [fq_files]]
 
     main:
-        // Integrity checking and fastp both have to decompress the whole file,
-        // so each FASTQ is routed to exactly ONE of them rather than both.
+        // Integrity checking and fastp both decompress the whole file, so each
+        // FASTQ goes to one of them, never both. fastp doubles as the gzip
+        // check: on a truncated stream its reader hits
+        // error_exit("igzip: unexpected eof"), which is exit(-1), failing the
+        // task. (fastp issue #410, the exit-0 bug, is a malformed record on
+        // --stdin rather than a truncated file.)
         //
-        // fastp is a real gzip integrity check: on a truncated stream its
-        // reader calls error_exit("igzip: unexpected eof"), and error_exit is
-        // exit(-1), so the task fails. (The known exit-0 bug, fastp issue #410,
-        // is a malformed-record case on --stdin, not truncated file input.)
-        // Running `pigz -t` over the same bytes first only re-reads them.
-        //
-        // Two kinds of file fastp never sees, and which therefore still need an
-        // explicit check:
+        // Two kinds of file fastp never sees, which pigz checks instead:
         //   - I1/I2 index reads (no _R*_ in the name)
         //   - R-reads at or below the 1MB fastp floor
-        // Everything else is covered by the FASTP task below.
         def fastp_covers = { f -> f.name =~ /_R[0-9]+_/ && f.size() > 1024 * 1024 }
 
         ch_fastqs
             .transpose(by: 2)
-            .branch { meta, fq_dir, fastq ->
+            .branch { _meta, _fq_dir, fastq ->
                 needs_pigz: !fastp_covers.call(fastq)
                 via_fastp:  true
             }
@@ -59,14 +54,14 @@ workflow FASTQ_QC {
                 [ fastq.name.replaceAll(/\.fastq\.gz$/, '').toString(), meta, fq_dir, fastq ]
             }
             .join(FASTP.out.checked, by: 0)
-            .map { key, meta, fq_dir, fastq, ok -> [meta, fq_dir, fastq] }
+            .map { _key, meta, fq_dir, fastq, _ok -> [meta, fq_dir, fastq] }
             .set { ch_fastp_checked }
 
         VALIDATE_FASTQ.out.fastq
             .mix(ch_fastp_checked)
             .map { meta, fq_dir, fastq -> [meta.id, meta, fq_dir, fastq] }
             .groupTuple(by: 0)
-            .map { id, metas, fq_dirs, fastqs ->
+            .map { _id, metas, fq_dirs, fastqs ->
                 // fq_dirs is one entry per validated file, all identical for a given
                 // meta.id — collapse to the single dir string downstream expects.
                 [metas[0], fq_dirs.unique(false).first(), fastqs]

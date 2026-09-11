@@ -1,28 +1,20 @@
 include { AMULET; MGATK2; MACS3 } from '../modules/qc_atac'
-include { GENOTYPE    } from './genotype'
+include { GENOTYPE } from './genotype'
 
 workflow QC_ATAC {
     take:
         ch_atac_outs   // [meta, outs_dir]
 
     main:
-        // AMULET doublet detection — always
         AMULET(ch_atac_outs)
-
-        // mgatk2 mitochondrial genotyping — always
         MGATK2(ch_atac_outs)
-
-        // MACS3 custom peak calling — always
         MACS3(ch_atac_outs)
 
         // Donor demultiplexing — only when n_donors > 1 and species == human
         ch_atac_outs
-            .filter { meta, outs -> meta.n_donors > 1 && meta.species == 'human' }
+            .filter { meta, _outs -> meta.n_donors > 1 && meta.species == 'human' }
             .set { ch_multi_donor }
 
-        // Build [meta, bam, bai, barcodes] for cellsnp-lite
-        // BAM: outs/possorted_bam.bam
-        // Barcodes: outs/filtered_peak_bc_matrix/barcodes.tsv
         ch_snp_input = ch_multi_donor
             .map { meta, outs ->
                 def bam      = file("${outs}/possorted_bam.bam")

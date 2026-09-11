@@ -1,5 +1,5 @@
 include { CELLBENDER; SCRUBLET } from '../modules/qc_gex'
-include { GENOTYPE             } from './genotype'
+include { GENOTYPE } from './genotype'
 
 workflow QC_GEX {
     take:
@@ -11,20 +11,15 @@ workflow QC_GEX {
             .map { library_id, metas, outs -> [ metas[0] + [library_id: library_id], outs ] }
             .set { ch_input }
 
-        // Ambient RNA removal (GPU)
         CELLBENDER(ch_input)
-
-        // GEX Doublet detection with Scrublet
         SCRUBLET(CELLBENDER.out.h5)
 
         // Donor demultiplexing — only when n_donors > 1 and species == human
         ch_input
-            .filter { meta, outs -> meta.n_donors > 1 && meta.species == 'human' }
+            .filter { meta, _outs -> meta.n_donors > 1 && meta.species == 'human' }
             .set { ch_multi_donor }
 
-        // Build [meta, bam, bai, barcodes] for cellsnp-lite
-        // BAM: per_sample_outs/{library}/sample_alignments.bam
-        // Barcodes: from cellbender output_cell_barcodes.csv
+        // cellsnp-lite input: the per-sample BAM plus cellbender's cell list.
         ch_snp_input = ch_multi_donor
             .join(CELLBENDER.out.barcodes, by: 0)
             .map { meta, outs, barcodes ->
@@ -40,5 +35,4 @@ workflow QC_GEX {
         barcodes   = CELLBENDER.out.barcodes  // [meta, output_cell_barcodes.csv]
         doublets   = SCRUBLET.out.doublets    // [meta, doublets.csv]
         vireo      = GENOTYPE.out.donor_ids   // [meta, donor_ids.tsv] (empty if n_donors <= 1)
-        logs       = Channel.empty()
 }

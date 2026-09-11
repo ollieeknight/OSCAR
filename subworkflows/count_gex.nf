@@ -1,10 +1,7 @@
-include { CELLRANGER_MULTI    } from '../modules/count_gex'
-include { CYTO_FLEX           } from '../modules/count_gex_cyto'
-include { CYTO_RENAME_SAMPLES } from '../modules/count_gex_cyto'
-include { FLEX_PROBE_PREPARE     } from '../modules/flex_probe_convert'
-include { FLEX_SAMPLE_PREPARE    } from '../modules/flex_probe_convert'
-include { FLEX_BARCODE_EXTRACT   } from '../modules/flex_probe_convert'
-include { FLEX_WHITELIST_EXTRACT } from '../modules/flex_probe_convert'
+include { CELLRANGER_MULTI } from '../modules/count_gex'
+include { CYTO_FLEX; CYTO_RENAME_SAMPLES } from '../modules/count_gex_cyto'
+include { FLEX_PROBE_PREPARE; FLEX_SAMPLE_PREPARE
+          FLEX_BARCODE_EXTRACT; FLEX_WHITELIST_EXTRACT } from '../modules/flex_probe_convert'
 include { build_multi_config_header; build_flex_samples_section } from '../lib/multi_config'
 
 workflow COUNT_GEX {
@@ -35,14 +32,14 @@ workflow COUNT_GEX {
                 ? file(params.flex_probe_set)        : file('NO_FILE')
             def cust_probe = file(params.flex_probe_set_custom)
 
-            FLEX_PROBE_PREPARE(Channel.value([std_probe, cust_probe]))
+            FLEX_PROBE_PREPARE(channel.value([std_probe, cust_probe]))
             ch_probe_csv_cr = FLEX_PROBE_PREPARE.out.probe_csv_cr
         }
         else {
             // No custom probes — cellranger uses the standard 10x CSV directly.
             ch_probe_csv_cr = params.flex_probe_set
-                ? Channel.value(file(params.flex_probe_set))
-                : Channel.value(file('NO_FILE'))
+                ? channel.value(file(params.flex_probe_set))
+                : channel.value(file('NO_FILE'))
         }
 
         // ── cellranger path ───────────────────────────────────────────────────
@@ -88,13 +85,13 @@ workflow COUNT_GEX {
             if (!has_custom_probes) {
                 def std_only = params.flex_probe_set
                     ? file(params.flex_probe_set) : file('NO_FILE')
-                FLEX_PROBE_PREPARE(Channel.value([std_only, file('NO_FILE')]))
+                FLEX_PROBE_PREPARE(channel.value([std_only, file('NO_FILE')]))
             }
 
             // Detect Flex chemistry from the first Flex library to auto-select
             // barcode ref + preset.
             def ch_flex_chem = ch_split.flex
-                .map { lid, metas, _refs, _adt, _gex, _adt_fqs, _hto_fqs, _vdj_t, _vdj_b, _crispr ->
+                .map { _lid, metas, _refs, _adt, _gex, _adt_fqs, _hto_fqs, _vdj_t, _vdj_b, _crispr ->
                     def ml = []; metas.each { m -> ml << m }
                     (ml.find { m -> m.modality == 'GEX' }?.chemistry ?: 'Flex-v2-R1')
                 }
@@ -115,12 +112,12 @@ workflow COUNT_GEX {
 
             if (has_samples) {
                 FLEX_SAMPLE_PREPARE(
-                    Channel.value(file(params.flex_samples_file)),
+                    channel.value(file(params.flex_samples_file)),
                     FLEX_BARCODE_EXTRACT.out.barcodes
                 )
                 ch_cyto_barcodes = FLEX_SAMPLE_PREPARE.out.cyto_barcodes
             } else {
-                ch_cyto_barcodes = Channel.value(file('NO_FILE'))
+                ch_cyto_barcodes = channel.value(file('NO_FILE'))
             }
 
             // Build cyto input: [lid, metas, probe_tsv, barcodes, whitelist, preset, gex_fastqs]
@@ -140,8 +137,8 @@ workflow COUNT_GEX {
             CYTO_FLEX(ch_cyto_input)
 
             def ch_samples_file = has_samples
-                ? Channel.value(file(params.flex_samples_file))
-                : Channel.value(file('NO_FILE'))
+                ? channel.value(file(params.flex_samples_file))
+                : channel.value(file('NO_FILE'))
 
             CYTO_RENAME_SAMPLES(
                 CYTO_FLEX.out.counts.combine(ch_samples_file)
