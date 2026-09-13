@@ -7,7 +7,7 @@ include { chemistry_registry; valid_chemistries; get_velocity_chemistry
           get_simpleaf_chemistry; get_viral_whitelist
           get_flex_barcode_file; get_flex_whitelist_file
           get_chemistry_family } from '../lib/chemistry'
-include { preflight_samplesheet; read_samplesheet_rows } from '../lib/samplesheet'
+include { preflight_samplesheet; read_samplesheet_rows; find_meta_conflicts } from '../lib/samplesheet'
 include { to_abs_path; to_abs_list } from '../main'
 include { build_multi_config_header; build_flex_samples_section } from '../lib/multi_config'
 
@@ -58,13 +58,17 @@ workflow {
     assert !h1.contains('probe-set')
     assert !h1.contains('[feature]')
 
-    // CITE: ADT present → [feature] block with the resolved CSV
+    // CITE: ADT present → [feature] block with the resolved CSV.
+    // A real file: the builder rejects a CSV that does not exist, since the
+    // --adt_files_dir fallback can hand it a path that was never checked.
     def adt_meta = [modality: 'ADT', assay: 'CITE', chemistry: 'SC3Pv3']
+    def real_adt = java.nio.file.Files.createTempFile('oscar_adt_', '.csv')
+    real_adt.text = 'id,name,read,pattern,sequence,feature_type\n'
     def h2 = build_multi_config_header(
         library_id: 'L2', metas: [gex_meta, adt_meta], refs: refs,
-        probe_set: null, adt_csv: file('/tmp/adt.csv'))
+        probe_set: null, adt_csv: file(real_adt.toString()))
     assert h2.contains('[feature]')
-    assert h2.contains('/tmp/adt.csv')
+    assert h2.contains(real_adt.toString())
 
     // Flex v2: no transcriptome reference, probe-set present.
     // This is the custom-probe path: a merged CSV must land in probe-set.
@@ -90,8 +94,40 @@ workflow {
         build_multi_config_header(
             library_id: 'L5', metas: [gex_meta, adt_meta], refs: refs,
             probe_set: null, adt_csv: file('NO_FILE'))
-    } catch (Exception e) { threw = true }
+    } catch (Exception _e) { threw = true }
     assert threw : "ADT with no feature CSV must error"
+
+    // A resolved-but-absent CSV must also fail here. resolve_adt_csv's
+    // --adt_files_dir fallback returns a path without checking it exists, so
+    // with several flowcells an ADT name present in one run's adt_files but not
+    // in the centralized dir reached cellranger as a bad [feature] reference
+    // and failed hours into the run instead of at launch.
+    def threw_missing = false
+    try {
+        build_multi_config_header(
+            library_id: 'L6', metas: [gex_meta, adt_meta], refs: refs,
+            probe_set: null, adt_csv: file('/nonexistent/adt_files/TotalSeqC.csv'))
+    } catch (Exception _e) { threw_missing = true }
+    assert threw_missing : "ADT feature CSV that does not exist must error before cellranger"
+
+    // With several flowcells the same library id appears in each samplesheet.
+    // Only the first occurrence survives the meta.id dedup, so a row that
+    // disagrees on library-defining fields would be silently ignored and the
+    // library counted under the wrong chemistry/species/reference.
+    def rows_ok = [
+        [id: 'L_GEX', chemistry: 'SC3Pv3', species: 'human', assay: 'CITE', modality: 'GEX'],
+        [id: 'L_GEX', chemistry: 'SC3Pv3', species: 'human', assay: 'CITE', modality: 'GEX'],
+    ]
+    def rows_bad = [
+        [id: 'L_GEX', chemistry: 'SC3Pv3', species: 'human', assay: 'CITE', modality: 'GEX'],
+        [id: 'L_GEX', chemistry: 'SC3Pv4', species: 'human', assay: 'CITE', modality: 'GEX'],
+    ]
+    assert find_meta_conflicts(rows_ok).isEmpty() :
+        "identical rows across flowcells must not be reported as conflicts"
+    def conflicts = find_meta_conflicts(rows_bad)
+    assert conflicts.size() == 1 : "a disagreeing chemistry must be reported: ${conflicts}"
+    assert conflicts[0].contains('chemistry') : conflicts[0]
+    assert conflicts[0].contains('L_GEX') : conflicts[0]
 
     // singleplex Flex → no [samples] section
     assert build_flex_samples_section(flex_meta, null) == ''

@@ -2,7 +2,7 @@
 // Optional re-quantification of GEX data: viral transcript detection and
 // spliced/unspliced counts for RNA velocity. Both use simpleaf.
 
-// ─── VIRAL_DETECT ─────────────────────────────────────────────────────────────
+// ─── VIRAL_DETECT ────────────────────────────────────────────────────────────
 // Detect viral transcripts using simpleaf (piscem + alevin-fry).
 // BAM→FASTQ via bamtofastq v1.4.1; piscem index built from RVDB-nt C-RVDBv31.0.
 // bamtofastq writes: {outdir}/{libid}_{n}_{n}_{flowcell}/bamtofastq_S1_L001_R{1,2}_001.fastq.gz
@@ -22,7 +22,6 @@ process VIRAL_DETECT {
 
     output:
     tuple val(meta), path("viral/"), emit: counts
-    path "versions.yml",                                emit: versions
 
     script:
     """
@@ -50,16 +49,10 @@ process VIRAL_DETECT {
         --resolution    cr-like \\
         --unfiltered-pl ${whitelist} \\
         --output        viral
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        simpleaf: \$(simpleaf --version | sed 's/simpleaf //')
-        bamtofastq: \$(./${bamtofastq_bin} --help 2>&1 | head -1 | sed 's/bamtofastq v//')
-    END_VERSIONS
     """
 }
 
-// ─── SIMPLEAF_VELOCITY ────────────────────────────────────────────────────────
+// ─── SIMPLEAF_VELOCITY ───────────────────────────────────────────────────────
 // Spliced/unspliced quantification for RNA velocity.
 // Re-quantifies GEX FASTQs using simpleaf USA mode (spliceu reference).
 // Runs after cellbender; uses cellbender barcodes as the permitted list.
@@ -78,7 +71,6 @@ process SIMPLEAF_VELOCITY {
 
     output:
     tuple val(meta), path("velocity/"), emit: counts
-    path "versions.yml",                emit: versions
 
     script:
     """
@@ -109,10 +101,5 @@ process SIMPLEAF_VELOCITY {
         --resolution    cr-like \\
         --unfiltered-pl barcodes_clean.txt \\
         --output        velocity
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        simpleaf: \$(simpleaf --version | sed 's/simpleaf //')
-    END_VERSIONS
     """
 }

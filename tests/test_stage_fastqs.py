@@ -161,6 +161,38 @@ def test_atac_dir_grouping_would_split_triples(root):
         "fixture does not reproduce the bug; staged dirs already hold triples")
 
 
+def atac_required_reads(reads):
+    """The per-lane completeness check from modules/count_atac.nf."""
+    return [t for t in ("R1", "R2", "R3") if t not in reads]
+
+
+def build_partial_atac_case(root):
+    """Two flowcells where the second demuxed without R3.
+
+    cellranger-atac needs R1/R2/R3 per lane. A flowcell missing R3 must be
+    rejected, not staged as a lane with a different read set than its peers.
+    """
+    name = "ATAC_PBMC_exp1_libA_ATAC_S1_L001_{}_001.fastq.gz"
+    staged, run_no = [], 1
+    for fc, reads in (("222KF7NNX", ("R1", "R2", "R3")),
+                      ("222KG5FNX", ("R1", "R2"))):
+        for read in reads:
+            p = root / f"run_{run_no:03d}" / name.format(read)
+            write_fastq(p, "VH00206", "502", fc, read[-1])
+            staged.append(p)
+            run_no += 1
+    return sorted(staged)
+
+
+def test_atac_rejects_lane_missing_r3(root):
+    runs = atac_group(build_partial_atac_case(root))
+    incomplete = [k for k, reads in runs.items() if atac_required_reads(reads)]
+    assert len(incomplete) == 1, (
+        f"the R3-less flowcell must be flagged, got {incomplete} from {runs}")
+    complete = [k for k, reads in runs.items() if not atac_required_reads(reads)]
+    assert len(complete) == 1, "the intact flowcell must still pass"
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in tests:

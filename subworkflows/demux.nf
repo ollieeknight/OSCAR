@@ -124,14 +124,22 @@ workflow DEMUX {
         DEMUX_QC(ch_demux_qc, channel.value(file("${projectDir}/assets/indexes")))
 
         // Merge FASTQs from all lanes of the same demux group, then explode back to individual metas.
-        // groupTuple(by: [0,1]) groups by (demux_key, bcl_dir_name) — same group across lanes.
+        // groupTuple(by: [0,2]) groups by (demux_key, bcl_dir_name) — same group across lanes.
+        // Grouping keeps flowcells separate: each one needs its own published
+        // fastq_dir, and COUNT_GEX merges them later by library_id.
         BCLCONVERT.out.fastqs
             .groupTuple(by: [0, 2])
-            .flatMap { demux_key, metas_per_lane, _bcl_name, fq_file_lists ->
+            .flatMap { demux_key, metas_per_lane, bcl_name, bcl_parents, fq_file_lists ->
                 // metas identical across lanes — take first; flatten all lane FASTQs into one list
                 def metas   = metas_per_lane[0]
                 def fqs     = fq_file_lists.flatten()
-                def fq_dir  = fqs[0].parent.toAbsolutePath().toString()
+                // The published FASTQ directory for this flowcell, built the same
+                // way as BCLCONVERT's publishDir and DEMUX_QC's path. Deriving it
+                // from fqs[0].parent instead gives a per-lane Nextflow work dir,
+                // which holds only one lane's reads — velocity quant globs this
+                // string, so it would silently see a subset of the flowcell.
+                def run     = bcl_name.replaceAll(/_bcl.*$/, '')
+                def fq_dir  = "${bcl_parents[0]}/${run}_fastq".toString()
 
                 // Branch: warn on empty FASTQs (<30 bytes), drop from downstream
                 def valid_fqs = fqs.findAll { f -> f.size() >= 30 }

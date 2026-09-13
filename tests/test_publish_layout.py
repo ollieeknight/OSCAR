@@ -47,18 +47,24 @@ def test_every_publish_is_fastq_or_outs():
         "publishDir targets outside {run}_fastq / {run}_outs:\n  " + "\n  ".join(bad))
 
 
+def process_body(name):
+    """Body of a process up to its script block, found in whichever module holds it."""
+    for mod in MODULES:
+        block = mod.read_text().split(f"process {name} {{", 1)
+        if len(block) == 2:
+            return block[1].split("\n    script:", 1)[0]
+    raise AssertionError(f"process {name} not found in modules/")
+
+
 def test_fastq_qc_publishes_beside_its_own_fastqs():
     """Read-level QC must derive its path from fastq_dir, not params.outdir.
 
     Deriving from params.outdir is what created the stray {run}_fastq trees:
     with --extra_bcl_dirs every run's QC landed under the primary run's folder.
     """
-    demux = (REPO / "modules" / "demux.nf").read_text()
     offenders = []
     for proc in ("FASTP", "MULTIQC"):
-        block = demux.split(f"process {proc} {{", 1)
-        assert len(block) == 2, f"process {proc} not found in demux.nf"
-        body = block[1].split("\n    script:", 1)[0]
+        body = process_body(proc)
         m = PUBLISH.search(body)
         assert m, f"{proc} has no publishDir"
         if "${fastq_dir}" not in m.group(1):
@@ -68,8 +74,7 @@ def test_fastq_qc_publishes_beside_its_own_fastqs():
 
 
 def test_bclconvert_publishes_beside_source_flowcell():
-    demux = (REPO / "modules" / "demux.nf").read_text()
-    body = demux.split("process BCLCONVERT {", 1)[1].split("\n    script:", 1)[0]
+    body = process_body("BCLCONVERT")
     assert "${bcl_parent}/${run}_fastq" in body, (
         "BCLCONVERT must publish to {bcl_parent}/{run}_fastq so each flowcell's "
         "reads land beside their own BCL directory")

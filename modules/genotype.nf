@@ -2,13 +2,13 @@
 // cellsnp-lite SNP pileup → vireo donor assignment. Shared by GEX and ATAC via
 // the `mode` input ('gex' | 'atac').
 
-// ─── CELLSNP_LITE ─────────────────────────────────────────────────────────────
+// ─── CELLSNP_LITE ────────────────────────────────────────────────────────────
 // SNP pileup for donor demultiplexing.
 // Two modes: GEX (uses UMI-tagged BAM) and ATAC (no UMI tag).
 // Ported from original/bash/05_quality_control.sh
 
 process CELLSNP_LITE {
-    tag { "${meta.library_id} (${mode})" }
+    tag "$meta.library_id ($mode)"
     container "${params.container_cellsnp}"
     publishDir { "${params.outdir}/${meta.run_name}_outs/${mode == 'atac' ? "${meta.library_id}_ATAC" : meta.library_id}/vireo" }, mode: 'copy',
                saveAs: { fn -> fn.contains('/') ? file(fn).name : null }
@@ -39,7 +39,7 @@ process CELLSNP_LITE {
     """
 }
 
-// ─── VIREO ────────────────────────────────────────────────────────────────────
+// ─── VIREO ───────────────────────────────────────────────────────────────────
 // Probabilistic donor demultiplexing.
 // Ported from original/bash/05_quality_control.sh
 

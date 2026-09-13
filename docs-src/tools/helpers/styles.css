@@ -1,39 +1,46 @@
 /* OSCAR Interactive Tools */
 
 :root {
-  /* Colors — Restrained: tinted neutrals + one blue accent */
-  --color-bg:            oklch(98% 0.006 250);
-  --color-surface:       oklch(99.5% 0.004 250);
-  --color-surface-2:     oklch(96.5% 0.008 250);
-  --color-border:        oklch(87% 0.012 250);
-  --color-text:          oklch(18% 0.015 250);
-  --color-text-muted:    oklch(48% 0.015 250);
+  /* Material for MkDocs default palette (indigo on white), so the generators
+     match the pages they are linked from. Values taken from Material's own
+     palette stylesheet; update them here if the theme palette changes. */
+  --color-bg:            #fff;
+  --color-surface:       #fff;
+  --color-surface-2:     #f5f5f5;
+  --color-border:        rgba(0, 0, 0, 0.12);
+  --color-text:          rgba(0, 0, 0, 0.87);
+  --color-text-muted:    rgba(0, 0, 0, 0.54);
 
-  --color-primary:       oklch(44% 0.12 262);
-  --color-primary-hover: oklch(38% 0.11 262);
-  --color-primary-light: oklch(55% 0.12 262);
-  --color-primary-tint:  oklch(96% 0.012 262);
+  --color-primary:       #4051b5;
+  --color-primary-hover: #303fa1;
+  --color-primary-light: #5d6cc0;
+  --color-primary-tint:  #eaecf7;
 
-  --color-success:       oklch(42% 0.12 148);
-  --color-success-hover: oklch(36% 0.11 148);
-  --color-error:         oklch(50% 0.18 25);
-  --color-error-hover:   oklch(42% 0.16 25);
-  --color-accent:        oklch(55% 0.10 215);
-  --color-accent-hover:  oklch(48% 0.09 215);
+  --color-success:       #00897b;
+  --color-success-hover: #00695f;
+  --color-error:         #ff1744;
+  --color-error-hover:   #d50032;
+  --color-accent:        #5488e8;
+  --color-accent-hover:  #4051b5;
 
-  /* Shadows — blue-tinted, not pure black */
-  --shadow-sm:  0 1px 3px oklch(18% 0.015 250 / 0.08);
-  --shadow-md:  0 4px 12px oklch(18% 0.015 250 / 0.10);
-  --shadow-lg:  0 8px 24px oklch(18% 0.015 250 / 0.12);
+  /* Text on a filled primary/accent/error button, and disabled button states. */
+  --color-on-primary:    #fff;
+  --color-disabled-bg:   rgba(0, 0, 0, 0.12);
+  --color-disabled-text: rgba(0, 0, 0, 0.38);
+  --color-error-tint:    #ffebee;
 
-  /* Type */
-  --font-body: 'Roboto', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+  --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.10);
+  --shadow-lg:  0 8px 24px rgba(0, 0, 0, 0.12);
 
-  /* Spacing */
-  --radius-sm: 3px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
+  /* Material's stacks. These pages load no web font, so a system face is used
+     unless Roboto is already installed. */
+  --font-body: Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+  --font-mono: 'Roboto Mono', SFMono-Regular, Consolas, Menlo, monospace;
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
 
   --transition: 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -144,13 +151,13 @@ a:hover {
 .top-bar a {
   float: left;
   display: block;
-  color: oklch(96% 0.008 250);
+  color: var(--color-on-primary);
   text-align: center;
   padding: 14px 20px;
   text-decoration: none;
   font-weight: 500;
   font-size: 0.9rem;
-  border-right: 1px solid oklch(52% 0.10 262 / 0.4);
+  border-right: 1px solid var(--color-primary-light);
   transition: background-color var(--transition);
 }
 
@@ -159,8 +166,8 @@ a:hover {
 }
 
 .top-bar a:hover {
-  background-color: oklch(38% 0.11 262);
-  color: oklch(98% 0.004 250);
+  background-color: var(--color-primary-hover);
+  color: var(--color-on-primary);
   text-decoration: none;
 }
 
@@ -257,7 +264,7 @@ input:focus,
 select:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px oklch(44% 0.12 262 / 0.12);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
 }
 
 select {
@@ -286,7 +293,7 @@ button {
   padding: 9px 18px;
   margin-top: 8px;
   background-color: var(--color-primary);
-  color: oklch(98% 0.004 250);
+  color: var(--color-on-primary);
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -308,8 +315,8 @@ button:active {
 }
 
 button:disabled {
-  background-color: oklch(78% 0.008 250);
-  color: oklch(55% 0.010 250);
+  background-color: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
   cursor: not-allowed;
   box-shadow: none;
 }
@@ -329,7 +336,7 @@ button:disabled {
   font-size: 0.825em;
   padding: 5px 12px;
   background-color: var(--color-accent);
-  color: oklch(98% 0.004 250);
+  color: var(--color-on-primary);
   border: none;
   border-radius: var(--radius-sm);
   margin-top: 0;
@@ -346,7 +353,7 @@ button:disabled {
 .delete-row-button {
   cursor: pointer;
   font-family: var(--font-body);
-  color: oklch(98% 0.004 250);
+  color: var(--color-on-primary);
   background-color: var(--color-error);
   padding: 5px 12px;
   border: none;
@@ -502,7 +509,7 @@ hr {
 
 .error {
   border: 2px solid var(--color-error) !important;
-  background-color: oklch(96% 0.018 25);
+  background-color: var(--color-error-tint);
 }
 
 #search {
@@ -685,35 +692,65 @@ hr {
 
 /* ── Dark mode ──────────────────────────────────────────────────────────────
    Token overrides only. Every rule below :root reads these, so nothing else
-   needs a dark variant. Matches the Material docs site's own toggle. */
+   needs a dark variant.
+
+   Values match Material's slate scheme, so the generators and the docs pages
+   look the same in the dark. These pages are standalone and never receive
+   Material's data-md-color-scheme attribute, so they follow the operating
+   system instead; the attribute selector is there in case a page is ever
+   rendered inside the Material shell. */
+:root {
+  --dark-bg:            hsl(232, 15%, 14%);
+  --dark-surface:       hsl(232, 15%, 18%);
+  --dark-surface-2:     hsl(232, 15%, 22%);
+  --dark-border:        hsla(232, 15%, 90%, 0.12);
+  --dark-text:          hsla(232, 15%, 90%, 0.82);
+  --dark-text-muted:    hsla(232, 15%, 90%, 0.56);
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg:            oklch(21% 0.012 250);
-    --color-surface:       oklch(25% 0.014 250);
-    --color-surface-2:     oklch(29% 0.016 250);
-    --color-border:        oklch(38% 0.018 250);
-    --color-text:          oklch(94% 0.008 250);
-    --color-text-muted:    oklch(72% 0.014 250);
+    --color-bg:            var(--dark-bg);
+    --color-surface:       var(--dark-surface);
+    --color-surface-2:     var(--dark-surface-2);
+    --color-border:        var(--dark-border);
+    --color-text:          var(--dark-text);
+    --color-text-muted:    var(--dark-text-muted);
 
-    --color-primary:       oklch(72% 0.13 262);
-    --color-primary-hover: oklch(80% 0.12 262);
-    --color-primary-light: oklch(66% 0.12 262);
-    --color-primary-tint:  oklch(32% 0.030 262);
+    --color-primary:       #7986cb;
+    --color-primary-hover: #9fa8da;
+    --color-primary-light: #5d6cc0;
+    --color-primary-tint:  hsl(232, 15%, 24%);
 
-    --color-success:       oklch(72% 0.14 148);
-    --color-success-hover: oklch(80% 0.13 148);
-    --color-error:         oklch(70% 0.17 25);
-    --color-error-hover:   oklch(78% 0.16 25);
-    --color-accent:        oklch(74% 0.11 215);
-    --color-accent-hover:  oklch(82% 0.10 215);
+    --color-success:       #4db6ac;
+    --color-success-hover: #80cbc4;
+    --color-error:         #ff5252;
+    --color-error-hover:   #ff8a80;
+    --color-accent:        #8ab4f8;
+    --color-accent-hover:  #aecbfa;
 
-    --shadow-sm:  0 1px 3px oklch(0% 0 0 / 0.36);
-    --shadow-md:  0 4px 12px oklch(0% 0 0 / 0.44);
-    --shadow-lg:  0 8px 24px oklch(0% 0 0 / 0.52);
+    --color-disabled-bg:   hsla(232, 15%, 90%, 0.12);
+    --color-disabled-text: hsla(232, 15%, 90%, 0.38);
+    --color-error-tint:    hsl(352, 30%, 22%);
+
+    --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.36);
+    --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.44);
+    --shadow-lg:  0 8px 24px rgba(0, 0, 0, 0.52);
   }
 
   /* Keep the GitHub mark legible on a dark surface. */
   .github-link img { filter: invert(1) opacity(0.85); }
+}
+
+[data-md-color-scheme="slate"] {
+  --color-bg:         var(--dark-bg);
+  --color-surface:    var(--dark-surface);
+  --color-surface-2:  var(--dark-surface-2);
+  --color-border:     var(--dark-border);
+  --color-text:       var(--dark-text);
+  --color-text-muted: var(--dark-text-muted);
+  --color-primary:    #7986cb;
+  --color-accent:     #8ab4f8;
 }
 
 /* ── Row actions ────────────────────────────────────────────────────────── */
@@ -732,10 +769,10 @@ hr {
   line-height: 1;
   cursor: pointer;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text-muted);
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
 
 .row-duplicate:hover {
@@ -760,7 +797,7 @@ hr {
 .message {
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   border-left: 3px solid;
 }
 

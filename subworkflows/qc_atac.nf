@@ -10,10 +10,19 @@ workflow QC_ATAC {
         MGATK2(ch_atac_outs)
         MACS3(ch_atac_outs)
 
-        // Donor demultiplexing — only when n_donors > 1 and species == human
+        // Donor demultiplexing — human only: vireo needs a human SNP reference
+        // panel, so a mouse library never takes this path regardless of n_donors.
+        // Warn when a samplesheet asks for donors that cannot be resolved, rather
+        // than dropping the library silently.
         ch_atac_outs
             .filter { meta, _outs -> meta.n_donors > 1 && meta.species == 'human' }
             .set { ch_multi_donor }
+
+        ch_atac_outs
+            .filter { meta, _outs -> meta.n_donors > 1 && meta.species != 'human' }
+            .subscribe { meta, _outs ->
+                log.warn "WARN: '${meta.library_id}' declares n_donors=${meta.n_donors} but species='${meta.species}' — genotyping is human-only, skipping donor demultiplexing"
+            }
 
         ch_snp_input = ch_multi_donor
             .map { meta, outs ->
@@ -29,5 +38,5 @@ workflow QC_ATAC {
         amulet   = AMULET.out.summary        // [meta, MultipletSummary.txt]
         mgatk    = MGATK2.out.results        // [meta, mgatk2_out/]
         peaks    = MACS3.out.peaks           // [meta, peaks/]
-        vireo    = GENOTYPE.out.donor_ids    // [meta, donor_ids.tsv]
+        vireo    = GENOTYPE.out    // [meta, donor_ids.tsv]
 }

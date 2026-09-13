@@ -48,5 +48,5 @@ workflow COUNT_ADT {
         BUSTOOLS_COUNT(BUSTOOLS_SORT.out.sorted)
 
     emit:
-        counts   = BUSTOOLS_COUNT.out.counts   // [meta, count_files]
+        BUSTOOLS_COUNT.out.counts   // [meta, count_files]
 }

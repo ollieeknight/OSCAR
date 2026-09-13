@@ -1,16 +1,35 @@
 # OSCAR
 
-OSCAR processes a sequencing run into FASTQs, count matrices, and quality-control results.
+OSCAR turns a finished sequencing run into count matrices and quality-control
+reports. It is the Romagnani lab's single-cell processing pipeline.
 
-## Prepare these before you run
+## Who does what
 
-1. **Sequencing data:** a completed BCL folder.
-2. **Metadata:** make one CSV for the run with the [metadata generator](tools/metadata_generator.html).
-3. **Feature barcodes:** for ADT or HTO libraries, make a reference CSV with the [feature barcode generator](tools/adt_generator.html). Put it in `adt_files/` beside the metadata CSV.
+**If you have libraries to sequence,** you need two files from this site and
+nothing else. Fill in the [metadata generator](tools/metadata_generator.html).
+If you have antibody or hashtag libraries, also fill in the
+[feature barcode generator](tools/adt_generator.html). Send both to Ollie.
+[Filling these in](guide/filling-these-in.md) explains the fields.
 
-Then copy the command from [Quickstart](guide/quickstart.md).
+You do not need cluster access, and you do not run OSCAR yourself.
 
-## Supported assays
+**If you are running OSCAR,** see [Running OSCAR](guide/running.md).
+
+**If you are taking OSCAR over,** see [Maintaining OSCAR](reference/maintaining.md).
+
+## Two clusters
+
+The lab uses two separate machines, and they are easy to confuse.
+
+| | Charité SC | BIH-CUBI |
+|---|---|---|
+| Used for | running OSCAR | RStudio, Jupyter, your analysis |
+| Set up by | Ollie | [the HPC cluster guide](https://github.com/Romagnani-Lab/bih-cubi-romagnani) |
+
+OSCAR runs on Charité SC. Its results are copied to wherever you analyse them.
+Everything in the HPC cluster guide is about BIH-CUBI and does not apply here.
+
+## What OSCAR supports
 
 | Assay | Library types |
 |---|---|
@@ -22,11 +41,9 @@ Then copy the command from [Quickstart](guide/quickstart.md).
 | DOGMA | GEX, ATAC, ADT, HTO |
 | ASAP | ATAC, ADT, HTO |
 
-## Help
-
-- [Quickstart](guide/quickstart.md): run one flowcell.
-- [Samplesheet](guide/samplesheet.md): metadata fields and feature references.
-- [Installation](guide/installation.md): set up OSCAR once.
-- [Troubleshooting](guide/troubleshooting.md): fix common failures.
+Every run also gets read-level QC. GEX libraries get ambient-RNA and doublet
+calls; ATAC libraries get doublet, mitochondrial and peak calls. For any library
+with more than one donor, OSCAR assigns each cell back to its donor by
+genotype.
 
 Questions: `oliver.knight@charite.de`.

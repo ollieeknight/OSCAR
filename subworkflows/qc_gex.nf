@@ -14,10 +14,19 @@ workflow QC_GEX {
         CELLBENDER(ch_input)
         SCRUBLET(CELLBENDER.out.h5)
 
-        // Donor demultiplexing — only when n_donors > 1 and species == human
+        // Donor demultiplexing — human only: vireo needs a human SNP reference
+        // panel, so a mouse library never takes this path regardless of n_donors.
+        // Warn when a samplesheet asks for donors that cannot be resolved, rather
+        // than dropping the library silently.
         ch_input
             .filter { meta, _outs -> meta.n_donors > 1 && meta.species == 'human' }
             .set { ch_multi_donor }
+
+        ch_input
+            .filter { meta, _outs -> meta.n_donors > 1 && meta.species != 'human' }
+            .subscribe { meta, _outs ->
+                log.warn "WARN: '${meta.library_id}' declares n_donors=${meta.n_donors} but species='${meta.species}' — genotyping is human-only, skipping donor demultiplexing"
+            }
 
         // cellsnp-lite input: the per-sample BAM plus cellbender's cell list.
         ch_snp_input = ch_multi_donor
@@ -34,5 +43,5 @@ workflow QC_GEX {
         cellbender = CELLBENDER.out.h5        // [meta, h5]
         barcodes   = CELLBENDER.out.barcodes  // [meta, output_cell_barcodes.csv]
         doublets   = SCRUBLET.out.doublets    // [meta, doublets.csv]
-        vireo      = GENOTYPE.out.donor_ids   // [meta, donor_ids.tsv] (empty if n_donors <= 1)
+        vireo      = GENOTYPE.out   // [meta, donor_ids.tsv] (empty if n_donors <= 1)
 }

@@ -1,4 +1,4 @@
-// ─── Chemistry registry ───────────────────────────────────────────────────────
+// ─── Chemistry registry ──────────────────────────────────────────────────────
 // Single source of truth for what each OSCAR chemistry string means.
 //
 // Every consumer (samplesheet validation, viral detection, velocity, Flex
@@ -109,7 +109,7 @@ def chemistry_info(String chemistry) {
     return info
 }
 
-// ─── Field accessors ──────────────────────────────────────────────────────────
+// ─── Field accessors ─────────────────────────────────────────────────────────
 // Each errors on a chemistry that exists but lacks the field, so a half-added
 // chemistry fails loudly at the point of use rather than silently doing nothing.
 

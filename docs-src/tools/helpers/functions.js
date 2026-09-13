@@ -17,8 +17,7 @@ const NAV_LINKS = [
     { href: '../',                      text: 'Home' },
     { href: 'metadata_generator.html',  text: 'Metadata file generator' },
     { href: 'adt_generator.html',       text: 'Feature barcode generator' },
-    { href: '../guide/samplesheet/',    text: 'Samplesheet guide' },
-    { href: '../reference/parameters/', text: 'Parameters' },
+    { href: '../guide/filling-these-in/', text: 'Filling these in' },
 ];
 
 function includeTopBar() {
@@ -38,8 +37,6 @@ function includeTopBar() {
     target.replaceChildren(nav);
 }
 
-// Retained for the old entry points.
-const indexIncludeTopBar = includeTopBar;
 const pagesIncludeTopBar = includeTopBar;
 
 function fetchLastCommitDate(owner, repo) {

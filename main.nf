@@ -2,22 +2,21 @@
 
 nextflow.enable.dsl = 2
 
-// ─── Imports ──────────────────────────────────────────────────────────────────
+// ─── Imports ─────────────────────────────────────────────────────────────────
 include { DEMUX }          from './subworkflows/demux'
 include { COUNT_GEX }      from './subworkflows/count_gex'
+include { COUNT_ATAC }     from './subworkflows/count_atac'
 include { COUNT_ADT }      from './subworkflows/count_adt'
 include { QC_GEX }         from './subworkflows/qc_gex'
 include { QC_ATAC }        from './subworkflows/qc_atac'
-include { CELLRANGER_ATAC } from './modules/count_atac'
-include { MULTIQC }         from './modules/demux'
-include { CELLRANGER_MQC } from './modules/demux'
-include { VIRAL_DETECT; SIMPLEAF_VELOCITY } from './modules/quant_extra'
+
+include { REPORT }         from './subworkflows/report'
+include { QUANT_EXTRA }    from './subworkflows/quant_extra'
 
 include { load_si_indexes; detect_sequencer } from './lib/indexes'
-include { preflight_samplesheet; parse_samplesheet } from './lib/samplesheet'
-include { get_viral_whitelist; get_simpleaf_chemistry; get_velocity_chemistry } from './lib/chemistry'
+include { preflight_samplesheet; parse_samplesheet; find_meta_conflicts } from './lib/samplesheet'
 
-// ─── Preflight ────────────────────────────────────────────────────────────────
+// ─── Preflight ───────────────────────────────────────────────────────────────
 
 def preflight_check(Map paths) {
     if (!paths.samplesheet) error "ERROR: --samplesheet is required"
@@ -28,8 +27,14 @@ def preflight_check(Map paths) {
         if (!paths.bcl_dir) error "ERROR: --bcl_dir is required when --run_from bcl"
         if (!file(paths.bcl_dir).exists()) error "ERROR: bcl_dir not found: ${paths.bcl_dir}"
     }
-    if (run_from == 'fastq' && !paths.fastq_dir)
-        error "ERROR: --fastq_dir is required when --run_from fastq"
+    if (run_from == 'fastq') {
+        if (!paths.fastq_dir) error "ERROR: --fastq_dir is required when --run_from fastq"
+        // With several dirs a single typo would otherwise just contribute no
+        // FASTQs, quietly undercounting a library rather than failing.
+        paths.fastq_dir.each { d ->
+            if (!file(d).exists()) error "ERROR: fastq_dir not found: ${d}"
+        }
+    }
     if (run_from == 'cellranger' && !paths.outs_dir)
         error "ERROR: --outs_dir is required when --run_from cellranger"
 
@@ -56,7 +61,7 @@ def preflight_check(Map paths) {
     }
 }
 
-// ─── Entry point & extras resolution ──────────────────────────────────────────
+// ─── Entry point & extras resolution ─────────────────────────────────────────
 // Both are plain strings validated here — Nextflow has no enum param type.
 
 def resolve_run_from() {
@@ -135,7 +140,9 @@ def resolve_input_paths() {
     [
         samplesheet:        to_abs_path(params.samplesheet),
         bcl_dir:            to_abs_path(params.bcl_dir),
-        fastq_dir:          to_abs_path(params.fastq_dir),
+        // A List: one entry per flowcell, so a library sequenced across several
+        // runs can be counted from pre-existing FASTQs.
+        fastq_dir:          to_abs_list(params.fastq_dir),
         outs_dir:           to_abs_path(params.outs_dir),
         adt_files_dir:      to_abs_path(params.adt_files_dir),
         extra_samplesheets: to_abs_list(params.extra_samplesheets),
@@ -143,7 +150,7 @@ def resolve_input_paths() {
     ]
 }
 
-// ─── Workflow ─────────────────────────────────────────────────────────────────
+// ─── Workflow ────────────────────────────────────────────────────────────────
 
 workflow {
     // Resolve every input path to an absolute path once, up front. Locals
@@ -207,8 +214,20 @@ workflow {
         ch_meta
             .filter { meta -> meta.modality == 'ATAC' }
             .map { meta -> [meta, file("${paths.outs_dir}/${meta.library_id}_ATAC/outs")] }
-            .filter { _meta, outs -> outs.exists() }
-            .set { ch_atac_outs }
+            .branch { _meta, outs ->
+                found:   outs.exists()
+                missing: true
+            }
+            .set { ch_atac_routed }
+
+        // A wrong --outs_dir silently drops every ATAC library, ending the run as
+        // a "success" with zero jobs. Warn per library, as a mixed samplesheet may
+        // legitimately have GEX outs present and ATAC outs absent.
+        ch_atac_routed.missing.subscribe { meta, outs ->
+            log.warn "WARN: no cellranger-atac outs for '${meta.library_id}' at ${outs} — skipping ATAC QC"
+        }
+
+        ch_atac_routed.found.set { ch_atac_outs }
 
         QC_GEX(ch_gex_outs)
         QC_ATAC(ch_atac_outs)
@@ -216,18 +235,31 @@ workflow {
     } else {
         // ── Obtain FASTQs (BCL demux or pre-existing) ─────────────────────────
         if (run_from == 'fastq') {
-            ch_meta
-                .map { meta ->
-                    def baseDir = new File(paths.fastq_dir)
-                    def fqs = (baseDir.listFiles() ?: [])
-                        .findAll { f -> f.isFile() && f.name.startsWith(meta.id) && f.name.endsWith('.fastq.gz') }
+            // paths.fastq_dir is a List, one entry per flowcell, so a library
+            // sequenced across several runs can be counted from pre-existing
+            // FASTQs the same way --extra_bcl_dirs handles it from BCL. One item
+            // per (library, dir): downstream grouping by library_id merges them
+            // into a single cellranger config.
+            channel.fromList(paths.fastq_dir)
+                .combine(ch_meta)
+                .map { fastq_dir, meta ->
+                    // Anchor on bcl-convert's naming (<Sample_ID>_S<n>_...) rather
+                    // than a bare prefix test: with startsWith, a library id that
+                    // is a prefix of another ('..._GEX' vs '..._GEX2') stole the
+                    // other's FASTQs. Same anchoring as the BCL path.
+                    def id_re = java.util.regex.Pattern.compile(
+                        "^" + java.util.regex.Pattern.quote(meta.id) + "_S\\d+_")
+                    def fqs = (new File(fastq_dir).listFiles() ?: [])
+                        .findAll { f -> f.isFile() && f.name.endsWith('.fastq.gz') \
+                                        && id_re.matcher(f.name).find() }
                         .collect { f -> f.toPath() }
-                    [meta, paths.fastq_dir, fqs]
+                        .sort { p -> p.getFileName().toString() }
+                    [meta, fastq_dir, fqs]
                 }
                 .filter { _meta, _fastq_dir, fqs -> !fqs.isEmpty() }
                 // A wrong --fastq_dir filters every library out, which would end
                 // the run as a "success" with zero jobs. Fail instead.
-                .ifEmpty { error "ERROR: no FASTQs matched any library under ${paths.fastq_dir} — expected files named <sample_id>*.fastq.gz" }
+                .ifEmpty { error "ERROR: no FASTQs matched any library under ${paths.fastq_dir} — expected files named <sample_id>_S<n>_*.fastq.gz" }
                 .set { ch_fastqs }
         } else {
             def bcl_paths = [paths.bcl_dir]
@@ -259,6 +291,14 @@ workflow {
             // Override ch_meta with the correctly-detected index sequences from each
             // BCL dir. Deduplicate by meta.id (same sample listed in multiple flowcell
             // samplesheets) while preserving insertion order.
+            // Only the first occurrence of an id survives, so a later
+            // samplesheet that disagrees about the same library would be
+            // silently ignored — and the library counted under the wrong
+            // chemistry or species. Fail instead.
+            def conflicts = find_meta_conflicts(bcl_rows)
+            if (conflicts)
+                error "ERROR: samplesheets disagree about the same library:\n  " + conflicts.join("\n  ")
+
             def seen_ids    = [] as Set
             def unique_rows = bcl_rows.findAll { m -> seen_ids.add(m.id) }
             channel.fromList(unique_rows).set { ch_meta }
@@ -278,6 +318,12 @@ workflow {
                 skip:     true
             }
             .set { ch_routed }
+
+        // Anything landing in `skip` is an unroutable assay/modality combination —
+        // usually a samplesheet typo — which would otherwise vanish without trace.
+        ch_routed.skip.subscribe { meta, _fastq_dir, _fqs ->
+            log.warn "WARN: '${meta.id}' (assay=${meta.assay}, modality=${meta.modality}) matched no counting route — not counted"
+        }
 
         // GEX: group by library_id; keep actual FASTQ files (path-staged in CELLRANGER_MULTI).
         // Package [meta, files] as a map so both travel together through groupTuple.
@@ -345,45 +391,13 @@ workflow {
             .set { ch_atac_libraries }
 
         COUNT_GEX(ch_gex_libraries)
-        CELLRANGER_ATAC(ch_atac_libraries)
+        COUNT_ATAC(ch_atac_libraries)
 
-        // ── MultiQC ───────────────────────────────────────────────────────
-        // Runs after counting so one report covers demultiplexing (fastp +
-        // the demux summary table) and Cell Ranger metrics.
-        //
-        // cellranger multi writes per_sample_outs/*/metrics_summary.csv per
-        // library; MultiQC's built-in cellranger module cannot read a `multi`
-        // web summary, so CELLRANGER_MQC pivots the CSVs into a table.
         if (run_from == 'bcl') {
-            COUNT_GEX.out.outs
-                .map { _library_id, metas, outs -> [metas[0].run_name, outs] }
-                .groupTuple(by: 0)
-                .set { ch_cellranger_outs }
-
-            CELLRANGER_MQC(ch_cellranger_outs)
-
-            // remainder:true on both joins: a run may finish demux with no
-            // countable library, and MultiQC should still report the demux.
-            DEMUX.out.fastp_reports
-                .join(DEMUX.out.demux_mqc, by: [0, 1], remainder: true)
-                .map { run_name, fastq_dir, reports, demux_mqc ->
-                    [run_name, fastq_dir, (reports ?: []) + (demux_mqc ? [demux_mqc] : [])]
-                }
-                .map { run_name, fastq_dir, files -> [run_name, [fastq_dir, files]] }
-                .join(CELLRANGER_MQC.out.mqc, by: 0, remainder: true)
-                .map { run_name, pair, cr_mqc ->
-                    // remainder:true pads the missing side with null.
-                    def fastq_dir = pair ? pair[0] : null
-                    def files     = pair ? pair[1] : []
-                    [run_name, fastq_dir, files + (cr_mqc ? [cr_mqc] : [])]
-                }
-                .filter { _run_name, fastq_dir, files -> fastq_dir && files }
-                .set { ch_multiqc_in }
-
-            MULTIQC(ch_multiqc_in)
+            REPORT(COUNT_GEX.out, DEMUX.out.fastp_reports, DEMUX.out.demux_mqc)
         }
 
-        ch_asap_atac_outs = CELLRANGER_ATAC.out.outs
+        ch_asap_atac_outs = COUNT_ATAC.out
             .filter { meta, _outs -> meta.assay == 'ASAP' }
             .map    { meta, outs -> [meta.library_id, meta, outs] }
 
@@ -401,63 +415,15 @@ workflow {
         )
 
         // ── Full run: QC ──────────────────────────────────────────────
-        QC_GEX(COUNT_GEX.out.outs)
-        QC_ATAC(CELLRANGER_ATAC.out.outs)
+        QC_GEX(COUNT_GEX.out)
+        QC_ATAC(COUNT_ATAC.out)
 
-        // ── Viral detection — optional, gated on --extras viral ──────────
-        if ('viral' in extras) {
-            ch_viral_input = COUNT_GEX.out.outs
-                .filter { _library_id, metas, _outs -> metas[0].species == 'human' }
-                .map { library_id, metas, outs ->
-                    def meta   = metas[0] + [library_id: library_id]
-                    def bam    = file("${outs}/unassigned_alignments.bam")
-                    def bai    = file("${outs}/unassigned_alignments.bam.bai")
-                    def wl     = file(get_viral_whitelist(meta.chemistry, params.tenx_barcodes_dir))
-                    def schem  = get_simpleaf_chemistry(meta.chemistry)
-                    [meta, bam, bai, wl, schem]
-                }
-            VIRAL_DETECT(
-                ch_viral_input,
-                file(params.viral_piscem_index),
-                file(params.viral_t2g),
-                file(params.bamtofastq_bin)
-            )
-        }
-
-        // ── RNA Velocity — simpleaf USA mode, gated on --extras velocity ──
-        // Joins GEX FASTQs with cellbender barcodes (ambient-corrected cell list).
-        if ('velocity' in extras) {
-            // Uses the raw fastq_dir NFS strings (not staged files) — same pattern
-            // as CELLRANGER_MULTI. get_velocity_chemistry() errors on unregistered
-            // chemistries, so this is built only when velocity is actually requested.
-            ch_gex_for_velocity
-                .filter { meta, _fastq_dir, _fqs ->
-                    meta.modality == 'GEX' && get_velocity_chemistry(meta.chemistry) != null
-                }
-                .map { meta, fastq_dir, _fqs ->
-                    [ meta.library_id, meta, fastq_dir, get_velocity_chemistry(meta.chemistry) ]
-                }
-                .groupTuple(by: 0)
-                .map { library_id, metas, fastq_dirs, chems ->
-                    def meta = metas[0] + [library_id: library_id, run_name: primary_run_name]
-                    [ library_id, meta, fastq_dirs.toUnique().join(','), chems[0] ]
-                }
-                .join(
-                    QC_GEX.out.barcodes.map { meta, bc -> [ meta.library_id, bc ] },
-                    by: 0
-                )
-                .multiMap { _library_id, meta, fastq_dirs, chemistry, barcodes ->
-                    def is_human = meta.species == 'human'
-                    def idx = file(is_human ? params.spliceu_index_human : params.spliceu_index_mouse)
-                    input: [ meta, fastq_dirs, chemistry, barcodes ]
-                    index: idx
-                }
-                .set { ch_velocity_split }
-
-            SIMPLEAF_VELOCITY(
-                ch_velocity_split.input,
-                ch_velocity_split.index
-            )
-        }
+        QUANT_EXTRA(
+            COUNT_GEX.out,
+            ch_gex_for_velocity,
+            QC_GEX.out.barcodes,
+            extras,
+            primary_run_name
+        )
     }
 }

@@ -4,7 +4,7 @@
 //        → BUSTOOLS_CORRECT → BUSTOOLS_SORT → BUSTOOLS_COUNT
 // Ported from original/bash/04_count.sh
 
-// ─── FEATUREMAP ───────────────────────────────────────────────────────────────
+// ─── FEATUREMAP ──────────────────────────────────────────────────────────────
 
 process FEATUREMAP {
     tag "$meta.library_id"
@@ -25,7 +25,7 @@ process FEATUREMAP {
     """
 }
 
-// ─── KALLISTO_INDEX ───────────────────────────────────────────────────────────
+// ─── KALLISTO_INDEX ──────────────────────────────────────────────────────────
 
 process KALLISTO_INDEX {
     tag "$meta.library_id"
@@ -43,7 +43,7 @@ process KALLISTO_INDEX {
     """
 }
 
-// ─── ASAP_TO_KITE ─────────────────────────────────────────────────────────────
+// ─── ASAP_TO_KITE ────────────────────────────────────────────────────────────
 // Converts ATAC-barcode-geometry FASTQs → GEX-barcode-geometry FASTQs.
 
 process ASAP_TO_KITE {
@@ -75,7 +75,7 @@ process ASAP_TO_KITE {
     """
 }
 
-// ─── KALLISTO_BUS ─────────────────────────────────────────────────────────────
+// ─── KALLISTO_BUS ────────────────────────────────────────────────────────────
 
 process KALLISTO_BUS {
     tag "$meta.library_id"
@@ -100,7 +100,7 @@ process KALLISTO_BUS {
     """
 }
 
-// ─── BUSTOOLS_CORRECT ─────────────────────────────────────────────────────────
+// ─── BUSTOOLS_CORRECT ────────────────────────────────────────────────────────
 
 process BUSTOOLS_CORRECT {
     tag "$meta.library_id"
@@ -122,7 +122,7 @@ process BUSTOOLS_CORRECT {
     """
 }
 
-// ─── BUSTOOLS_SORT ────────────────────────────────────────────────────────────
+// ─── BUSTOOLS_SORT ───────────────────────────────────────────────────────────
 
 process BUSTOOLS_SORT {
     tag "$meta.library_id"
@@ -144,7 +144,7 @@ process BUSTOOLS_SORT {
     """
 }
 
-// ─── BUSTOOLS_COUNT ───────────────────────────────────────────────────────────
+// ─── BUSTOOLS_COUNT ──────────────────────────────────────────────────────────
 
 process BUSTOOLS_COUNT {
     tag "$meta.library_id"

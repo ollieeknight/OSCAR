@@ -1,4 +1,4 @@
-// ─── CELLRANGER_ATAC ──────────────────────────────────────────────────────────
+// ─── CELLRANGER_ATAC ─────────────────────────────────────────────────────────
 // Handles: DOGMA-ATAC, Multiome-ATAC, standalone ATAC, ASAP-ATAC.
 // Output dir: {library_id}_ATAC
 process CELLRANGER_ATAC {
@@ -55,7 +55,11 @@ lane = 0
 for key in sorted(runs):
     reads    = runs[key]
     fq_group = reads["R1"].name
-    missing  = [t for t in ("R1", "R2") if t not in reads]
+    # cellranger-atac needs all three reads per lane: R1 (insert), R2 (cell
+    # barcode) and R3 (insert mate). Checking only R1/R2 let a flowcell that
+    # demuxed without R3 through, writing a lane whose read set differs from
+    # every other lane's.
+    missing  = [t for t in ("R1", "R2", "R3") if t not in reads]
     if missing:
         print(f"[cellranger_atac] ERROR: {fq_group} missing {missing}", file=sys.stderr)
         sys.exit(1)

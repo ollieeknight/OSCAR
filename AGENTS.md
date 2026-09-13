@@ -17,10 +17,11 @@ Nextflow DSL2 single-cell pipeline for the Romagnani Lab (BIH Charité). Process
 │   └── multi_config.nf        ← cellranger multi config header & flex sample builders
 ├── modules/
 │   ├── demux.nf               ← GENERATE_SAMPLESHEET, CLEAN_FASTQ_DIR, BCLCONVERT, DEMUX_QC,
-│   │                            CELLRANGER_MQC, FASTP, MULTIQC, VALIDATE_FASTQ
+│   │                            CELLRANGER_MQC
+│   ├── fastq_qc.nf            ← FASTP, MULTIQC, VALIDATE_FASTQ
 │   ├── count_gex.nf           ← CELLRANGER_MULTI (staged FASTQs, Python read filter, config gen)
-│   ├── count_gex_cyto.nf      ← CYTO_FLEX, CYTO_RENAME_SAMPLES (Flex probe-level QC)
-│   ├── flex_probe_convert.nf  ← FLEX_PROBE_PREPARE, FLEX_SAMPLE_PREPARE, barcode extraction
+│   ├── flex.nf                ← FLEX_PROBE_PREPARE, FLEX_SAMPLE_PREPARE, barcode extraction,
+│   │                            CYTO_FLEX, CYTO_RENAME_SAMPLES (Flex probe-level QC)
 │   ├── count_atac.nf          ← CELLRANGER_ATAC (staged FASTQs, Python read filter)
 │   ├── count_adt.nf           ← ASAP ADT kallisto/bustools pipeline
 │   ├── qc_gex.nf              ← CELLBENDER (GPU), SCRUBLET
@@ -35,11 +36,17 @@ Nextflow DSL2 single-cell pipeline for the Romagnani Lab (BIH Charité). Process
 │   ├── count_adt.nf           ← COUNT_ADT: ASAP kallisto/bustools processing
 │   ├── qc_gex.nf              ← QC_GEX: CellBender → Scrublet → Genotyping
 │   ├── qc_atac.nf             ← QC_ATAC: AMULET + mgatk2 + MACS3 → Genotyping
-│   └── genotype.nf            ← GENOTYPE: cellsnp-lite → vireo wrapper
+│   ├── genotype.nf            ← GENOTYPE: cellsnp-lite → vireo wrapper
+│   ├── report.nf              ← REPORT: CELLRANGER_MQC → MultiQC (run-level, BCL mode)
+│   └── quant_extra.nf         ← QUANT_EXTRA: viral detection, RNA velocity (--extras)
 └── assets/
     ├── indexes/               ← 10x SI/DI kit CSV index definitions
     └── multiqc_config.yaml    ← MultiQC report configuration
 ```
+
+`main.nf` calls only subworkflows and `lib/` helpers — no process is invoked
+directly. Run-level reporting lives in REPORT and the `--extras` analyses in
+QUANT_EXTRA, both of which fan in from every counting branch.
 
 ---
 
@@ -88,11 +95,10 @@ nextflow run main.nf -profile slurm \
 | GEX, CITE, DOGMA, Multiome, Flex | GEX, ADT, HTO, VDJ-T, VDJ-B, CRISPR | COUNT_GEX → QC_GEX | DOGMA ADT runs through cellranger multi, never kallisto |
 | ATAC, DOGMA, Multiome, ASAP | ATAC | COUNT_ATAC → QC_ATAC | Standalone or paired ATAC counting |
 | ASAP | ADT, HTO | COUNT_ADT (kallisto) | Triggered once ATAC cellranger finishes |
-| Any | GENO | Skipped | Informational only |
 
 - **DOGMA experiments**: GEX and ATAC run as separate Nextflow runs and are integrated downstream in R.
 - **Flex experiments**: set `flex_backend` to `cellranger`, `cyto` or `both`. Multiplexed runs need `--flex_probe_set` and `--flex_samples_file`.
-- **Donor genotyping**: `CELLSNP_LITE` and `VIREO` run only when `meta.n_donors > 1 && meta.species == 'human'`. Mouse samples always set `n_donors = 1`.
+- **Donor genotyping**: `CELLSNP_LITE` and `VIREO` run only when `meta.n_donors > 1 && meta.species == 'human'`. Genotyping is human-only — vireo needs a human SNP reference panel — so a mouse library never takes this path whatever `n_donors` says. A non-human library declaring `n_donors > 1` is logged as a warning and skipped, not failed.
 
 ---
 

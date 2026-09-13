@@ -12,15 +12,15 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: teal
-      accent: teal
+      primary: indigo
+      accent: indigo
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: teal
-      accent: teal
+      primary: indigo
+      accent: indigo
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
@@ -28,6 +28,7 @@ theme:
     - navigation.instant
     - navigation.tracking
     - navigation.sections
+    - navigation.expand
     - navigation.top
     - content.code.copy
     - search.highlight
@@ -35,17 +36,12 @@ theme:
 
 nav:
   - Home: index.md
-  - Prepare your run:
+  - For the lab:
       - Metadata generator: tools/metadata_generator.html
       - Feature barcode generator: tools/adt_generator.html
-      - Metadata and feature barcodes: guide/samplesheet.md
-  - Guide:
-      - Quickstart: guide/quickstart.md
-      - Troubleshooting: guide/troubleshooting.md
-      - Installation: guide/installation.md
-  - Reference:
-      - Parameters: reference/parameters.md
-      - Architecture: reference/architecture.md
+      - Filling these in: guide/filling-these-in.md
+  - Running OSCAR: guide/running.md
+  - Maintaining OSCAR: reference/maintaining.md
 
 markdown_extensions:
   - admonition

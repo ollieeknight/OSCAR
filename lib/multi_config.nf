@@ -46,6 +46,13 @@ def build_multi_config_header(Map opts) {
             error "Library '${library_id}' has ADT/HTO modalities but no feature barcode CSV was resolved. " +
                   "Check that 'adt_file' is set in the samplesheet and either place " +
                   "{samplesheet_dir}/adt_files/{adt_file}.csv or pass --adt_files_dir."
+        // resolve_adt_csv's --adt_files_dir fallback returns a path without
+        // checking it exists, so a name present in one flowcell's adt_files but
+        // absent from the centralized dir would otherwise only surface as a
+        // cellranger failure hours in.
+        if (!adt_csv.exists())
+            error "Library '${library_id}': feature barcode CSV not found: ${adt_csv.toAbsolutePath()}. " +
+                  "Check the samplesheet's 'adt_file' column and --adt_files_dir."
         lines += ['', '[feature]', "reference,${adt_csv.toAbsolutePath()}"]
     }
 

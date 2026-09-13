@@ -43,7 +43,6 @@ MODALITY_LABELS = {
     "VDJ-T": "VDJ, T cell",
     "VDJ-B": "VDJ, B cell",
     "CRISPR": "CRISPR guide capture",
-    "GENO": "GoTChA genotyping",
 }
 
 

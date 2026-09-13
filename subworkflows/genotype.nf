@@ -10,5 +10,5 @@ workflow GENOTYPE {
         VIREO(CELLSNP_LITE.out.vcf, mode)
 
     emit:
-        donor_ids = VIREO.out.donor_ids   // [meta, donor_ids.tsv]
+        VIREO.out.donor_ids   // [meta, donor_ids.tsv]
 }

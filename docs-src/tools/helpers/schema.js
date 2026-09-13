@@ -57,10 +57,6 @@ const OSCAR_SCHEMA = {
     {
       "value": "CRISPR",
       "label": "CRISPR guide capture"
-    },
-    {
-      "value": "GENO",
-      "label": "GoTChA genotyping"
     }
   ],
   "chemistries": [

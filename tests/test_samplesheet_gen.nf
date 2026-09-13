@@ -37,10 +37,10 @@ workflow {
     }
 
     // Sanity: the mix this whole feature exists for is actually present.
-    assert metas.find { it.id == 'CITE_A_GEX' }.index_seqs.is_dual
-    assert metas.find { it.id == 'CITE_A_GEX' }.index_seqs.rows[0].i7.length() == 10
-    assert !metas.find { it.id == 'CITE_A_ADT' }.index_seqs.is_dual
-    assert metas.find { it.id == 'CITE_A_ADT' }.index_seqs.rows[0].i7.length() == 8
+    assert metas.find { m -> m.id == 'CITE_A_GEX' }.index_seqs.is_dual
+    assert metas.find { m -> m.id == 'CITE_A_GEX' }.index_seqs.rows[0].i7.length() == 10
+    assert !metas.find { m -> m.id == 'CITE_A_ADT' }.index_seqs.is_dual
+    assert metas.find { m -> m.id == 'CITE_A_ADT' }.index_seqs.rows[0].i7.length() == 8
 
     // Same spec-building as subworkflows/demux.nf.
     def is_dual = metas.any { m -> m.index_seqs.is_dual }
@@ -60,7 +60,7 @@ workflow {
         def oc4 = get_override_cycles(sp.assay, sp.chemistry, sp.index_type, sp.modality, 4, fake, sp.index_len)
         [id: sp.id, i7: sp.i7, i5: sp.i5, oc4: oc4]
     }
-    def by_id = specs.collectEntries { [(it.id): it] }
+    def by_id = specs.collectEntries { s -> [(s.id): s] }
 
     // The DI rows keep both 10bp index reads.
     assert by_id['CITE_A_GEX'].oc4 == 'Y28N*;I10N*;I10N*;Y90N*' : by_id['CITE_A_GEX'].oc4
@@ -74,7 +74,7 @@ workflow {
     println "OK: mixed group yields distinct per-row masks (I10 for DI, I8N2+masked i5 for SI)"
 
     // Mixed group => per-sample column required.
-    def per_sample = specs.collect { it.oc4 }.unique().size() > 1
+    def per_sample = specs.collect { s -> s.oc4 }.unique().size() > 1
     assert per_sample : "mixed 8bp/10bp group must use the per-sample OverrideCycles column"
     println "OK: mixed group selects per-sample OverrideCycles column"
 
@@ -117,12 +117,12 @@ workflow {
     def match_for = { String id ->
         def re = java.util.regex.Pattern.compile(
             "^" + java.util.regex.Pattern.quote(id) + "_S\\d+_")
-        fq_names.findAll { re.matcher(it).find() }
+        fq_names.findAll { n -> re.matcher(n).find() }
     }
     assert match_for.call('CITE_X_exp1_libA_GEX').size() == 2 : match_for.call('CITE_X_exp1_libA_GEX')
     assert match_for.call('CITE_X_exp1_libA_GEX_2') == ['CITE_X_exp1_libA_GEX_2_S2_L001_R1_001.fastq.gz']
     assert match_for.call('CITE_X_exp1_libA_ADT').size() == 1
-    assert match_for.call('CITE_X_exp1_libA_GEX').every { !it.startsWith('CITE_X_exp1_libA_GEX_2') }
+    assert match_for.call('CITE_X_exp1_libA_GEX').every { n -> !n.startsWith('CITE_X_exp1_libA_GEX_2') }
     assert match_for.call('CITE_X_exp1_libA').isEmpty() : "partial id must not match anything"
     println "OK: FASTQ matching anchored to bcl-convert naming, no prefix theft"
 
@@ -138,7 +138,7 @@ workflow {
         get_override_cycles('CITE', 'SC3Pv4', 'SI', mod, 4,
                             [is_dual: false, rows: [[i7: 'ATTCAGAA']]], 8)
     }
-    assert cite_masks.collect { y_struct.call(it) }.unique().size() == 1 :
+    assert cite_masks.collect { m -> y_struct.call(m) }.unique().size() == 1 :
         "CITE modalities no longer share a Y-read structure: ${cite_masks}"
 
     // ATAC is the counter-example the grouping key must keep separate: its

@@ -1,4 +1,4 @@
-include { VALIDATE_FASTQ; FASTP } from '../modules/demux'
+include { VALIDATE_FASTQ; FASTP } from '../modules/fastq_qc'
 
 workflow FASTQ_QC {
     take:
@@ -49,23 +49,31 @@ workflow FASTQ_QC {
         // is only re-emitted after the task that verified it completed. Files
         // checked by fastp are re-emitted keyed on the fastp report for the
         // same file, so a failing fastp task still blocks its library.
+        // Keyed on (fastq_dir, basename): bcl-convert's naming has no flowcell
+        // component, so two flowcells of the same library+lane produce
+        // identical basenames. `join` is 1:1, so a basename-only key silently
+        // drops every flowcell after the first — halving a library's reads with
+        // no error. failOnDuplicate turns any future key collision into a
+        // crash rather than lost data.
         ch_split.via_fastp
             .map { meta, fq_dir, fastq ->
-                [ fastq.name.replaceAll(/\.fastq\.gz$/, '').toString(), meta, fq_dir, fastq ]
+                [ [fq_dir, fastq.name.replaceAll(/\.fastq\.gz$/, '').toString()], meta, fq_dir, fastq ]
             }
-            .join(FASTP.out.checked, by: 0)
+            .join(FASTP.out.checked.map { d, n, ok -> [[d, n], ok] }, by: 0, failOnDuplicate: true)
             .map { _key, meta, fq_dir, fastq, _ok -> [meta, fq_dir, fastq] }
             .set { ch_fastp_checked }
 
         VALIDATE_FASTQ.out.fastq
             .mix(ch_fastp_checked)
-            .map { meta, fq_dir, fastq -> [meta.id, meta, fq_dir, fastq] }
+            // Grouped by (meta.id, fastq_dir), so one row per library per
+            // flowcell. Grouping on meta.id alone merged every flowcell into
+            // one row and then discarded all but the first fastq_dir, which
+            // hid the other flowcells from velocity quant (it reads the dir
+            // string, not the file list). COUNT_GEX regroups these rows by
+            // library_id, so cellranger still sees every flowcell's FASTQs.
+            .map { meta, fq_dir, fastq -> [[meta.id, fq_dir], meta, fq_dir, fastq] }
             .groupTuple(by: 0)
-            .map { _id, metas, fq_dirs, fastqs ->
-                // fq_dirs is one entry per validated file, all identical for a given
-                // meta.id — collapse to the single dir string downstream expects.
-                [metas[0], fq_dirs.unique(false).first(), fastqs]
-            }
+            .map { key, metas, _fq_dirs, fastqs -> [metas[0], key[1], fastqs] }
             .set { ch_validated_fastqs }
 
         FASTP.out.report

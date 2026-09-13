@@ -1,7 +1,7 @@
 include { CELLRANGER_MULTI } from '../modules/count_gex'
-include { CYTO_FLEX; CYTO_RENAME_SAMPLES } from '../modules/count_gex_cyto'
 include { FLEX_PROBE_PREPARE; FLEX_SAMPLE_PREPARE
-          FLEX_BARCODE_EXTRACT; FLEX_WHITELIST_EXTRACT } from '../modules/flex_probe_convert'
+          FLEX_BARCODE_EXTRACT; FLEX_WHITELIST_EXTRACT
+          CYTO_FLEX; CYTO_RENAME_SAMPLES } from '../modules/flex'
 include { build_multi_config_header; build_flex_samples_section } from '../lib/multi_config'
 
 workflow COUNT_GEX {
@@ -149,5 +149,5 @@ workflow COUNT_GEX {
         // QC runs only on cellranger output — cyto output is probe-level
         // comparison only. When flex_backend == 'cyto', CELLRANGER_MULTI may
         // still run for non-Flex libraries, so its output is always emitted.
-        outs = CELLRANGER_MULTI.out.outs
+        CELLRANGER_MULTI.out.outs
 }

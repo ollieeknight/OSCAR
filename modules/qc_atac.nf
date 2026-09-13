@@ -1,7 +1,7 @@
 // ─── ATAC quality control ────────────────────────────────────────────────────
 // AMULET doublet detection, mgatk2 mitochondrial genotyping, MACS3 peak calling.
 
-// ─── AMULET ───────────────────────────────────────────────────────────────────
+// ─── AMULET ──────────────────────────────────────────────────────────────────
 // ATAC doublet detection from fragment overlaps.
 // Ported from original/bash/05_quality_control.sh
 
@@ -40,7 +40,7 @@ process AMULET {
     """
 }
 
-// ─── MGATK2 ───────────────────────────────────────────────────────────────────
+// ─── MGATK2 ──────────────────────────────────────────────────────────────────
 // Mitochondrial genotyping for ATAC libraries.
 // Ported from original/bash/05_quality_control.sh
 
@@ -69,7 +69,7 @@ process MGATK2 {
     """
 }
 
-// ─── MACS3 ────────────────────────────────────────────────────────────────────
+// ─── MACS3 ───────────────────────────────────────────────────────────────────
 // Custom peak calling on ATAC fragment files.
 // Settings follow ENCODE scATAC recommendations:
 //   --nomodel --shift -75 --extsize 150 (nucleosome-free region model)

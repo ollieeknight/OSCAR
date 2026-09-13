@@ -10,7 +10,7 @@ def samplesheet_required_columns() {
 }
 
 def valid_assays()     { ['GEX', 'CITE', 'DOGMA', 'ATAC', 'Multiome', 'ASAP', 'Flex'] }
-def valid_modalities() { ['GEX', 'ATAC', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR', 'GENO'] }
+def valid_modalities() { ['GEX', 'ATAC', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR'] }
 def valid_index_types(){ ['SI', 'DI', 'NA'] }
 
 // Read a samplesheet into a list of [header: value] maps, skipping blank lines.
@@ -120,5 +120,25 @@ def parse_samplesheet(String ss_path, Map si_indexes, String run_name, adt_files
         def meta = parse_row(row, si_indexes, ss_path, adt_files_dir)
         meta.run_name = run_name
         meta
+    }
+}
+
+// Rows sharing a meta.id that disagree on a library-defining field.
+//
+// With --extra_bcl_dirs the same library is listed in every flowcell's
+// samplesheet, and only the first occurrence survives the meta.id dedup in
+// main.nf. A typo in a later samplesheet would otherwise be ignored silently
+// and the library counted under the wrong chemistry, species or reference.
+// Returns a list of human-readable messages, empty when the rows agree.
+def find_meta_conflicts(rows) {
+    def fields = ['assay', 'modality', 'chemistry', 'species', 'index_type', 'index']
+    rows.groupBy { r -> r.id }.findResults { id, group ->
+        def differing = fields.findAll { f ->
+            group.collect { r -> r[f] }.unique().size() > 1
+        }
+        differing
+            ? "library '${id}' disagrees across samplesheets on: " +
+              differing.collect { f -> "${f}=${group.collect { r -> r[f] }.unique().join(' vs ')}" }.join(', ')
+            : null
     }
 }

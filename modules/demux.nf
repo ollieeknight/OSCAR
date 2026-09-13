@@ -1,6 +1,6 @@
 include { get_chemistry_family } from '../lib/chemistry'
 
-// ─── Override Cycles Helpers ──────────────────────────────────────────────────
+// ─── Override Cycles Helpers ─────────────────────────────────────────────────
 // BCL Convert OverrideCycles for each assay/chemistry/index/modality combination.
 // Format: Y=data read, I=index, N=masked cycle. Semicolons separate read segments.
 // Example: 'Y28N*;I10N*;I10N*;Y90N*' = 28bp read1, 10bp index1, 10bp index2, 90bp read2.
@@ -54,7 +54,6 @@ def get_override_cycles(assay, chemistry, index_type, modality, num_reads, index
         'DI_ASAP_ATAC':         [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
         'DI_ASAP_ADT':          [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
         'DI_ASAP_HTO':          [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
-        'DI_ASAP_GENO':         [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
         // GEM-X Flex v2 (Fixed RNA Profiling): full cycles — N-masking causes bcl-convert cbcl stall
         'DI_Flex-v2_GEX':       [4: 'Y*;I10;I10;Y*'],
     ]
@@ -286,7 +285,7 @@ SPECEOF
     """
 }
 
-// ─── CLEAN_FASTQ_DIR ──────────────────────────────────────────────────────────
+// ─── CLEAN_FASTQ_DIR ─────────────────────────────────────────────────────────
 // Wipes previously published *.fastq.gz for one bcl_dir before this run's
 // BCLCONVERT tasks publish there. Runs once per bcl_dir, gated ahead of
 // BCLCONVERT via combine(by:0) in the subworkflow. publishDir only adds and
@@ -311,10 +310,10 @@ process CLEAN_FASTQ_DIR {
     """
 }
 
-// ─── BCLCONVERT ─────────────────────────────────────────────────────────────
+// ─── BCLCONVERT ──────────────────────────────────────────────────────────────
 
 process BCLCONVERT {
-    tag "${demux_key}_L${lane}"
+    tag "$demux_key L$lane"
     container "${params.container_bclconvert}"
     // FASTQs are published beside their source flowcell (bcl_parent), not under
     // params.outdir — so each run's reads land in its own directory when several
@@ -338,7 +337,7 @@ process BCLCONVERT {
     tuple val(demux_key), val(metas), path(bcl_dir), val(bcl_parent), path(samplesheet), val(lane)
 
     output:
-    tuple val(demux_key), val(metas), val(bcl_dir.name), path("fastqs/*.fastq.gz"), emit: fastqs
+    tuple val(demux_key), val(metas), val(bcl_dir.name), val(bcl_parent), path("fastqs/*.fastq.gz"), emit: fastqs
     tuple val(demux_key), val(metas), val(bcl_dir.name), val(bcl_parent), val(lane), path("fastqs/Reports/Demultiplex_Stats.csv"), path("fastqs/Reports/Top_Unknown_Barcodes.csv"), emit: reports
 
     script:
@@ -361,7 +360,7 @@ process BCLCONVERT {
     """
 }
 
-// ─── DEMUX_QC ─────────────────────────────────────────────────────────────────
+// ─── DEMUX_QC ────────────────────────────────────────────────────────────────
 // Summarises bcl-convert's demultiplexing stats for one run and flags a
 // suspect demux. Each BCLCONVERT task (one per demux group per lane) writes its
 // own Reports/, so a run's Demultiplex_Stats.csv are concatenated here before
@@ -411,7 +410,7 @@ process DEMUX_QC {
     """
 }
 
-// ─── CELLRANGER_MQC ───────────────────────────────────────────────────────────
+// ─── CELLRANGER_MQC ──────────────────────────────────────────────────────────
 // Pivots `cellranger multi` per-sample metrics into a MultiQC custom-content
 // table. MultiQC's built-in cellranger module matches web summaries on
 // '"subcommand":"count"' / '"subcommand":"vdj"' only, so a `cellranger multi`
@@ -430,80 +429,5 @@ process CELLRANGER_MQC {
     script:
     """
     cellranger_mqc.py --root outs --out ${run_name}_cellranger_mqc.csv
-    """
-}
-
-// ─── FASTP ────────────────────────────────────────────────────────────────────
-// Per-file QC, report only. One job per R-read FASTQ (R1/R2/R3); index reads
-// (I1/I2) skipped. No -o/--out1, so fastp writes reports and no filtered reads.
-
-process FASTP {
-    tag "$fastq_name"
-    container "${params.container_fastp}"
-    // Published beside the source flowcell's FASTQs (fastq_dir), not under
-    // params.outdir — otherwise every --extra_bcl_dirs run drops a stray
-    // {run}_fastq/fastp tree into the primary run's directory.
-    publishDir { "${fastq_dir}/fastp" }, mode: 'copy'
-
-    input:
-    tuple val(run_name), val(fastq_dir), val(fastq_name), path(fastq)
-
-    output:
-    tuple val(run_name), val(fastq_dir), path("${run_name}_${fastq_name}.{json,html}"), emit: report
-    // Completion signal keyed by the FASTQ this task verified. FASTQ_QC uses it
-    // to release the file downstream, so a fastp failure blocks its library.
-    tuple val(fastq_name), val(true), emit: checked
-
-    script:
-    """
-    fastp \\
-        --in1                       ${fastq} \\
-        --disable_adapter_trimming \\
-        --disable_quality_filtering \\
-        --disable_length_filtering \\
-        --thread                    ${task.cpus} \\
-        --json                      ${run_name}_${fastq_name}.json \\
-        --html                      ${run_name}_${fastq_name}.html
-    """
-}
-
-// ─── MULTIQC ──────────────────────────────────────────────────────────────────
-
-process MULTIQC {
-    container "${params.container_multiqc}"
-    // Beside the source flowcell's FASTQs, matching FASTP.
-    publishDir { "${fastq_dir}/multiqc" }, mode: 'copy'
-
-    input:
-    tuple val(run_name), val(fastq_dir), path(reports)
-
-    output:
-    path "multiqc_report.html",      emit: report
-    path "multiqc_report_data/",     emit: data
-
-    script:
-    def config = params.multiqc_config ? "--config ${params.multiqc_config}" : ''
-    """
-    multiqc ${config} --force --filename multiqc_report -o . .
-    """
-}
-
-// ─── VALIDATE_FASTQ ───────────────────────────────────────────────────────────
-// Lightweight validation step that runs gzip -t on each individual fastq file.
-// Fully distributed across Slurm nodes and benefits from Nextflow caching.
-
-process VALIDATE_FASTQ {
-    tag "$meta.id"
-    container "${params.container_pigz}"
-
-    input:
-    tuple val(meta), val(fastq_dir), path(fastq), val(fastq_name)
-
-    output:
-    tuple val(meta), val(fastq_dir), path(fastq), emit: fastq
-
-    script:
-    """
-    pigz -t -f -p ${task.cpus} ${fastq}
     """
 }

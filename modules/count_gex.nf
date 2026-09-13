@@ -1,4 +1,4 @@
-// ─── CELLRANGER_MULTI ─────────────────────────────────────────────────────────
+// ─── CELLRANGER_MULTI ────────────────────────────────────────────────────────
 // One path() input per modality, staged per-file into fastqs/{mod}/run_???/.
 // The Python block drops placeholder FASTQs on read count, renames the rest to
 // L001/L002/... and writes multi_config.csv, then cellranger multi runs.
