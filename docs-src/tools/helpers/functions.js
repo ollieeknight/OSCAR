@@ -84,12 +84,39 @@ function adtShowMessage(text, kind = 'error') {
     box.hidden = !text;
 }
 
+// Splits one CSV line, honouring double quotes. A plain split(',') breaks the
+// markers BioLegend quotes because they contain commas ("HLA-A,B,C",
+// "CD21,CD35", "TCR Vbeta5.1, 5.2"), shifting every later field along one — the
+// clone name lands in barcode_sequence and the exported reference is wrong.
+function adtSplitCSVLine(line) {
+    const fields = [];
+    let field = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+            // A doubled quote inside a quoted field is one literal quote.
+            if (inQuotes && line[i + 1] === '"') { field += '"'; i++; }
+            else inQuotes = !inQuotes;
+        } else if (ch === ',' && !inQuotes) {
+            fields.push(field);
+            field = '';
+        } else {
+            field += ch;
+        }
+    }
+    fields.push(field);
+    return fields.map(f => f.trim());
+}
+
 function adtParseCSV(data) {
     const rows = data.split('\n').slice(1);
-    return rows.map(row => {
-        const [catalogue_number, totalseq_id, marker, clone, reactivity, barcode_sequence] = row.split(',');
-        return { catalogue_number, totalseq_id, marker, clone, reactivity, barcode_sequence };
-    });
+    return rows
+        .filter(row => row.trim() !== '')
+        .map(row => {
+            const [catalogue_number, totalseq_id, marker, clone, reactivity, barcode_sequence] = adtSplitCSVLine(row);
+            return { catalogue_number, totalseq_id, marker, clone, reactivity, barcode_sequence };
+        });
 }
 
 async function adtFilterMarkers() {

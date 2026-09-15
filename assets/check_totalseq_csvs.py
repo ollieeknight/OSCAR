@@ -67,11 +67,17 @@ def check(path):
         else:
             seen_cat[cat] = i
 
+        # `clone` is legitimately blank for streptavidin and epitope reagents,
+        # which have no antibody clone. Every other column must be filled.
         for col in COLUMNS:
-            if not (row.get(col) or "").strip():
+            if col != "clone" and not (row.get(col) or "").strip():
                 bad.append(f"{where}: empty {col}")
-            elif "," in (row.get(col) or ""):
-                bad.append(f"{where}: {col} contains a comma, which breaks the generator")
+
+        # BioLegend names some markers with commas ("HLA-A,B,C"). That is fine
+        # as long as the field is quoted, which csv handles; the generator's
+        # own parser was fixed to honour quoting too.
+        if "," in (row.get("barcode_sequence") or ""):
+            bad.append(f"{where}: barcode_sequence contains a comma")
     return bad
 
 

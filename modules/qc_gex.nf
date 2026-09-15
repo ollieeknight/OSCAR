@@ -2,20 +2,23 @@
 // cellbender ambient RNA removal (GPU) → scrublet doublet detection.
 
 // ─── CELLBENDER ──────────────────────────────────────────────────────────────
-// Ambient RNA removal. GPU process.
+// Ambient RNA removal. GPU process. Emits the filtered matrix (called cells
+// only) so downstream doublet detection never sees empty droplets.
 // Ported from original/bash/05_quality_control.sh
 
 process CELLBENDER {
     tag "$meta.library_id"
     container "${params.container_cellbender}"
+    // output_posterior.h5 is ~475 MB and only feeds cellbender's own posterior
+    // re-regularization; nothing downstream reads it, so it stays in the work dir.
     publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}/cellbender" }, mode: 'copy',
-               saveAs: { fn -> file(fn).name }
+               saveAs: { fn -> file(fn).name == 'output_posterior.h5' ? null : file(fn).name }
 
     input:
     tuple val(meta), path(outs_dir)
 
     output:
-    tuple val(meta), path("cellbender_out/output.h5"),               emit: h5
+    tuple val(meta), path("cellbender_out/output_filtered.h5"),       emit: h5
     tuple val(meta), path("cellbender_out/output_cell_barcodes.csv"), emit: barcodes
     path "cellbender_out/*"
 

@@ -4,6 +4,8 @@
 // ─── FASTP ───────────────────────────────────────────────────────────────────
 // Per-file QC, report only. One job per R-read FASTQ (R1/R2/R3); index reads
 // (I1/I2) skipped. No -o/--out1, so fastp writes reports and no filtered reads.
+// Reporting only: this does not gate counting (see subworkflows/fastq_qc.nf),
+// so cellranger runs concurrently with it.
 
 process FASTP {
     tag "$fastq_name"
@@ -18,12 +20,6 @@ process FASTP {
 
     output:
     tuple val(run_name), val(fastq_dir), path("${run_name}_${fastq_name}.{json,html}"), emit: report
-    // Completion signal keyed by the FASTQ this task verified. FASTQ_QC uses it
-    // to release the file downstream, so a fastp failure blocks its library.
-    // Keyed on (fastq_dir, fastq_name), not fastq_name alone: bcl-convert puts
-    // no flowcell in the filename, so the same library+lane on two flowcells
-    // yields identical basenames and the release join stops being 1:1.
-    tuple val(fastq_dir), val(fastq_name), val(true), emit: checked
 
     script:
     """
@@ -60,8 +56,9 @@ process MULTIQC {
 }
 
 // ─── VALIDATE_FASTQ ──────────────────────────────────────────────────────────
-// Lightweight validation step that runs gzip -t on each individual fastq file.
-// Fully distributed across Slurm nodes and benefits from Nextflow caching.
+// Lightweight validation step that runs pigz -t on each individual fastq file.
+// Every FASTQ passes through here, and this is the sole integrity gate on
+// counting. Fully distributed across Slurm nodes, and Nextflow-cacheable.
 
 process VALIDATE_FASTQ {
     tag "$fastq_name"

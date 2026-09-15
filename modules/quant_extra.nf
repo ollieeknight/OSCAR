@@ -62,8 +62,11 @@ process VIRAL_DETECT {
 process SIMPLEAF_VELOCITY {
     tag "$meta.library_id"
     container "${params.container_simpleaf}"
+    // af_map is the ~5 GB RAD mapping intermediate; loadFry only reads af_quant,
+    // so it is left in the work dir rather than copied to the output tree.
     publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}" },
-               mode: 'copy'
+               mode: 'copy',
+               saveAs: { fn -> fn.startsWith('velocity/af_map/') ? null : fn }
 
     input:
     tuple val(meta), val(gex_fastq_dirs), val(simpleaf_chemistry), path(barcodes)
