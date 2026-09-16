@@ -30,7 +30,7 @@ From: ubuntu:22.04
 
     cd /
     rm -rf /opt/cyto-src
-    rm -rf /opt/cargo/registry /opt/cargo/git
+    rm -rf /opt/cargo/registry /opt/cargo/git /opt/rustup/toolchains/*/share/doc
     strip /usr/local/bin/cyto 2>/dev/null || true
 
 %environment

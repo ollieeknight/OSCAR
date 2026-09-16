@@ -29,6 +29,8 @@ From: python:3.11-slim
     export OMP_NUM_THREADS=1
     export OPENBLAS_NUM_THREADS=1
     export MKL_NUM_THREADS=1
+    export NUMBA_CACHE_DIR=/tmp/numba_cache
+    export MPLCONFIGDIR=/tmp/mpl
 
 %test
     python -c "import scanpy, scrublet, h5py; print('scanpy', scanpy.__version__, '| scrublet', scrublet.__version__)"
