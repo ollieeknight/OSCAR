@@ -1,18 +1,6 @@
-// ─── FASTQ quality control ───────────────────────────────────────────────────
-// Per-file QC and integrity checking, plus the run-level MultiQC report.
-
-// ─── FASTP ───────────────────────────────────────────────────────────────────
-// Per-file QC, report only. One job per R-read FASTQ (R1/R2/R3); index reads
-// (I1/I2) skipped. No -o/--out1, so fastp writes reports and no filtered reads.
-// Reporting only: this does not gate counting (see subworkflows/fastq_qc.nf),
-// so cellranger runs concurrently with it.
-
 process FASTP {
     tag "$fastq_name"
     container "${params.container_fastp}"
-    // Published beside the source flowcell's FASTQs (fastq_dir), not under
-    // params.outdir — otherwise every --extra_bcl_dirs run drops a stray
-    // {run}_fastq/fastp tree into the primary run's directory.
     publishDir { "${fastq_dir}/fastp" }, mode: 'copy'
 
     input:
@@ -34,11 +22,9 @@ process FASTP {
     """
 }
 
-// ─── MULTIQC ─────────────────────────────────────────────────────────────────
 
 process MULTIQC {
     container "${params.container_multiqc}"
-    // Beside the source flowcell's FASTQs, matching FASTP.
     publishDir { "${fastq_dir}/multiqc" }, mode: 'copy'
 
     input:
@@ -54,11 +40,6 @@ process MULTIQC {
     multiqc ${config} --force --filename multiqc_report -o . .
     """
 }
-
-// ─── VALIDATE_FASTQ ──────────────────────────────────────────────────────────
-// Lightweight validation step that runs pigz -t on each individual fastq file.
-// Every FASTQ passes through here, and this is the sole integrity gate on
-// counting. Fully distributed across Slurm nodes, and Nextflow-cacheable.
 
 process VALIDATE_FASTQ {
     tag "$fastq_name"

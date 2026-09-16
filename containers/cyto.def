@@ -1,10 +1,6 @@
 Bootstrap: docker
 From: ubuntu:22.04
 
-%labels
-    org.opencontainers.image.source https://github.com/arcinstitute/cyto
-    org.opencontainers.image.description "cyto — 10x Flex scRNA-seq processing (ARC Institute)"
-
 %post
     export DEBIAN_FRONTEND=noninteractive
 
@@ -19,7 +15,6 @@ From: ubuntu:22.04
         zlib1g-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-    # ── Install Rust toolchain ────────────────────────────────────────────────
     export CARGO_HOME=/opt/cargo
     export RUSTUP_HOME=/opt/rustup
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
@@ -27,23 +22,15 @@ From: ubuntu:22.04
     export PATH="/opt/cargo/bin:$PATH"
     rustup show
 
-    # ── Clone cyto and build ──────────────────────────────────────────────────
-    # Pin to a specific commit for reproducibility.
-    # Update CYTO_COMMIT when upgrading.
     CYTO_COMMIT="main"
     git clone --depth 1 https://github.com/arcinstitute/cyto /opt/cyto-src
     cd /opt/cyto-src
 
-    # target-cpu=native optimises for the build node's CPU microarchitecture.
-    # Build and execute nodes should be the same CPU family on BIH HPC (AVX2+).
-    # Remove the flag if building on a different machine than where jobs run.
     cargo install --path crates/cyto --root /usr/local --locked
 
-    # ── Clean build artefacts to reduce image size ────────────────────────────
     cd /
     rm -rf /opt/cyto-src
     rm -rf /opt/cargo/registry /opt/cargo/git
-    # Keep rustup/cargo env for bqtools if needed later; strip binaries
     strip /usr/local/bin/cyto 2>/dev/null || true
 
 %environment

@@ -2,11 +2,11 @@ include { CELLRANGER_ATAC } from '../modules/count_atac'
 
 workflow COUNT_ATAC {
     take:
-        ch_atac_libraries   // [meta, [atac_fastqs]]
+        ch_atac_libraries
 
     main:
         CELLRANGER_ATAC(ch_atac_libraries)
 
     emit:
-        CELLRANGER_ATAC.out.outs   // [meta, outs/]
+        CELLRANGER_ATAC.out.outs
 }

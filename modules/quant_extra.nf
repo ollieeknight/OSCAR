@@ -1,13 +1,3 @@
-// ─── Supplementary quantification ────────────────────────────────────────────
-// Optional re-quantification of GEX data: viral transcript detection and
-// spliced/unspliced counts for RNA velocity. Both use simpleaf.
-
-// ─── VIRAL_DETECT ────────────────────────────────────────────────────────────
-// Detect viral transcripts using simpleaf (piscem + alevin-fry).
-// BAM→FASTQ via bamtofastq v1.4.1; piscem index built from RVDB-nt C-RVDBv31.0.
-// bamtofastq writes: {outdir}/{libid}_{n}_{n}_{flowcell}/bamtofastq_S1_L001_R{1,2}_001.fastq.gz
-// ALEVIN_FRY_HOME set to PWD/.alevin_fry_home per-task for isolation.
-
 process VIRAL_DETECT {
     tag "$meta.library_id"
     container "${params.container_simpleaf}"
@@ -52,18 +42,9 @@ process VIRAL_DETECT {
     """
 }
 
-// ─── SIMPLEAF_VELOCITY ───────────────────────────────────────────────────────
-// Spliced/unspliced quantification for RNA velocity.
-// Re-quantifies GEX FASTQs using simpleaf USA mode (spliceu reference).
-// Runs after cellbender; uses cellbender barcodes as the permitted list.
-// Not run for Flex (probe-based chemistry, no intronic signal).
-// R import: fishpond::loadFry("velocity/af_quant", outputFormat = "velocity")
-
 process SIMPLEAF_VELOCITY {
     tag "$meta.library_id"
     container "${params.container_simpleaf}"
-    // af_map is the ~5 GB RAD mapping intermediate; loadFry only reads af_quant,
-    // so it is left in the work dir rather than copied to the output tree.
     publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}" },
                mode: 'copy',
                saveAs: { fn -> fn.startsWith('velocity/af_map/') ? null : fn }

@@ -1,21 +1,12 @@
-// ─── Donor demultiplexing ────────────────────────────────────────────────────
-// cellsnp-lite SNP pileup → vireo donor assignment. Shared by GEX and ATAC via
-// the `mode` input ('gex' | 'atac').
-
-// ─── CELLSNP_LITE ────────────────────────────────────────────────────────────
-// SNP pileup for donor demultiplexing.
-// Two modes: GEX (uses UMI-tagged BAM) and ATAC (no UMI tag).
-// Ported from original/bash/05_quality_control.sh
-
 process CELLSNP_LITE {
     tag "$meta.library_id ($mode)"
     container "${params.container_cellsnp}"
     publishDir { "${params.outdir}/${meta.run_name}_outs/${mode == 'atac' ? "${meta.library_id}_ATAC" : meta.library_id}/vireo" }, mode: 'copy',
-               saveAs: { fn -> fn.contains('/') ? file(fn).name : null }
+               saveAs: { fn -> file(fn).name }
 
     input:
     tuple val(meta), path(bam), path(bai), path(barcodes)
-    val(mode)       // 'gex' or 'atac'
+    val(mode)
 
     output:
     tuple val(meta), path("cellsnp_${meta.library_id}/"), emit: vcf
@@ -39,10 +30,6 @@ process CELLSNP_LITE {
     """
 }
 
-// ─── VIREO ───────────────────────────────────────────────────────────────────
-// Probabilistic donor demultiplexing.
-// Ported from original/bash/05_quality_control.sh
-
 process VIREO {
     tag "$meta.library_id"
     container "${params.container_vireo}"
@@ -51,7 +38,7 @@ process VIREO {
 
     input:
     tuple val(meta), path(cellsnp_dir)
-    val(mode)   // 'gex' or 'atac'
+    val(mode)
 
     output:
     tuple val(meta), path("vireo_out/donor_ids.tsv"), emit: donor_ids

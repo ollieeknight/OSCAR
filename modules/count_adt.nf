@@ -1,11 +1,3 @@
-// ─── ASAP-seq ADT counting pipeline ──────────────────────────────────────────
-// ASAP-only. Triggered after CELLRANGER_ATAC for ASAP libraries.
-// Chain: FEATUREMAP → KALLISTO_INDEX → ASAP_TO_KITE → KALLISTO_BUS
-//        → BUSTOOLS_CORRECT → BUSTOOLS_SORT → BUSTOOLS_COUNT
-// Ported from original/bash/04_count.sh
-
-// ─── FEATUREMAP ──────────────────────────────────────────────────────────────
-
 process FEATUREMAP {
     tag "$meta.library_id"
     container "${params.container_asap}"
@@ -25,8 +17,6 @@ process FEATUREMAP {
     """
 }
 
-// ─── KALLISTO_INDEX ──────────────────────────────────────────────────────────
-
 process KALLISTO_INDEX {
     tag "$meta.library_id"
     container "${params.container_kallisto}"
@@ -42,9 +32,6 @@ process KALLISTO_INDEX {
     kallisto index -i FeaturesMismatch.idx -k 15 ${fa}
     """
 }
-
-// ─── ASAP_TO_KITE ────────────────────────────────────────────────────────────
-// Converts ATAC-barcode-geometry FASTQs → GEX-barcode-geometry FASTQs.
 
 process ASAP_TO_KITE {
     tag "$meta.library_id"
@@ -75,8 +62,6 @@ process ASAP_TO_KITE {
     """
 }
 
-// ─── KALLISTO_BUS ────────────────────────────────────────────────────────────
-
 process KALLISTO_BUS {
     tag "$meta.library_id"
     container "${params.container_kallisto}"
@@ -100,8 +85,6 @@ process KALLISTO_BUS {
     """
 }
 
-// ─── BUSTOOLS_CORRECT ────────────────────────────────────────────────────────
-
 process BUSTOOLS_CORRECT {
     tag "$meta.library_id"
     container "${params.container_bustools}"
@@ -122,8 +105,6 @@ process BUSTOOLS_CORRECT {
     """
 }
 
-// ─── BUSTOOLS_SORT ───────────────────────────────────────────────────────────
-
 process BUSTOOLS_SORT {
     tag "$meta.library_id"
     container "${params.container_bustools}"
@@ -143,8 +124,6 @@ process BUSTOOLS_SORT {
         ${corrected_bus}
     """
 }
-
-// ─── BUSTOOLS_COUNT ──────────────────────────────────────────────────────────
 
 process BUSTOOLS_COUNT {
     tag "$meta.library_id"

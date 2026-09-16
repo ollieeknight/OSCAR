@@ -1,10 +1,3 @@
-// ─── ATAC quality control ────────────────────────────────────────────────────
-// AMULET doublet detection, mgatk2 mitochondrial genotyping, MACS3 peak calling.
-
-// ─── AMULET ──────────────────────────────────────────────────────────────────
-// ATAC doublet detection from fragment overlaps.
-// Ported from original/bash/05_quality_control.sh
-
 process AMULET {
     tag "$meta.library_id"
     container "${params.container_amulet}"
@@ -25,8 +18,8 @@ process AMULET {
         ? '/opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed' \
         : '/opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_mm10.bed'
     """
-    fragments=\$(find -L ${outs_dir} -name 'fragments.tsv.gz'   | head -1)
-    singlecell=\$(find -L ${outs_dir} -name 'singlecell.csv'    | head -1)
+    fragments=\$(find -L ${outs_dir} -name 'fragments.tsv.gz'   | sort | head -1)
+    singlecell=\$(find -L ${outs_dir} -name 'singlecell.csv'    | sort | head -1)
 
     mkdir -p amulet_out
 
@@ -39,10 +32,6 @@ process AMULET {
         /opt/AMULET/
     """
 }
-
-// ─── MGATK2 ──────────────────────────────────────────────────────────────────
-// Mitochondrial genotyping for ATAC libraries.
-// Ported from original/bash/05_quality_control.sh
 
 process MGATK2 {
     tag "$meta.library_id"
@@ -69,14 +58,6 @@ process MGATK2 {
     """
 }
 
-// ─── MACS3 ───────────────────────────────────────────────────────────────────
-// Custom peak calling on ATAC fragment files.
-// Settings follow ENCODE scATAC recommendations:
-//   --nomodel --shift -75 --extsize 150 (nucleosome-free region model)
-//   --keep-dup all                       (cellranger-atac already deduplicates)
-//   --nolambda                           (disable local background; sparse libraries)
-// Ported from original/bash/04_count.sh; settings per the ENCODE ATAC pipeline
-
 process MACS3 {
     tag "$meta.library_id"
     container "${params.container_macs3}"
@@ -91,7 +72,7 @@ process MACS3 {
     script:
     def gsize = (meta.species == 'human') ? 'hs' : 'mm'
     """
-    fragments=\$(find -L ${outs_dir} -name 'fragments.tsv.gz' | head -1)
+    fragments=\$(find -L ${outs_dir} -name 'fragments.tsv.gz' | sort | head -1)
     if [ -z "\$fragments" ]; then
         echo "ERROR: fragments.tsv.gz not found in ${outs_dir}" >&2
         exit 1

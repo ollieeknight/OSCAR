@@ -1,14 +1,8 @@
 Bootstrap: docker
 From: pytorch/pytorch:2.5.1-cuda12.1-cudnn9-runtime
 
-%labels
-    org.opencontainers.image.source https://github.com/broadinstitute/CellBender
-    org.opencontainers.image.description "CellBender — ambient RNA removal (GPU)"
-
 %post
     export DEBIAN_FRONTEND=noninteractive
-    # Base image ships torch+CUDA already; --no-deps on torch keeps pip from
-    # replacing it with a CPU wheel. Pin to a release for reproducibility.
     pip install --no-cache-dir cellbender==0.4.0
     pip cache purge || true
 

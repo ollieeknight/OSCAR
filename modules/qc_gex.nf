@@ -1,18 +1,8 @@
-// ─── GEX quality control ─────────────────────────────────────────────────────
-// cellbender ambient RNA removal (GPU) → scrublet doublet detection.
-
-// ─── CELLBENDER ──────────────────────────────────────────────────────────────
-// Ambient RNA removal. GPU process. Emits the filtered matrix (called cells
-// only) so downstream doublet detection never sees empty droplets.
-// Ported from original/bash/05_quality_control.sh
-
 process CELLBENDER {
     tag "$meta.library_id"
     container "${params.container_cellbender}"
-    // output_posterior.h5 is ~475 MB and only feeds cellbender's own posterior
-    // re-regularization; nothing downstream reads it, so it stays in the work dir.
     publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}/cellbender" }, mode: 'copy',
-               saveAs: { fn -> file(fn).name == 'output_posterior.h5' ? null : file(fn).name }
+               saveAs: { fn -> file(fn).name }
 
     input:
     tuple val(meta), path(outs_dir)
@@ -24,7 +14,7 @@ process CELLBENDER {
 
     script:
     """
-    feature_matrix=\$(find -L ${outs_dir} -name 'raw_feature_bc_matrix.h5' | head -1)
+    feature_matrix=\$(find -L ${outs_dir} -name 'raw_feature_bc_matrix.h5' | sort | head -1)
     if [ -z "\$feature_matrix" ]; then
         echo "ERROR: raw_feature_bc_matrix.h5 not found in ${outs_dir}" >&2
         exit 1
@@ -40,10 +30,6 @@ process CELLBENDER {
         --checkpoint-mins 10000
     """
 }
-
-// ─── SCRUBLET ────────────────────────────────────────────────────────────────
-// GEX Doublet detection.
-// Follows the nf-core/scdownstream doublet detection step
 
 process SCRUBLET {
     tag "$meta.library_id"

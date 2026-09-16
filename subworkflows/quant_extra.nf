@@ -1,19 +1,16 @@
 include { VIRAL_DETECT; SIMPLEAF_VELOCITY } from '../modules/quant_extra'
 include { get_viral_whitelist; get_simpleaf_chemistry; get_velocity_chemistry } from '../lib/chemistry'
 
-// Supplementary quantification, both opt-in via --extras. Each branch is gated
-// on its own flag, so an empty --extras runs nothing here.
 
 workflow QUANT_EXTRA {
     take:
-        ch_gex_outs         // [library_id, metas, outs/] from COUNT_GEX
-        ch_gex_fastqs       // [meta, fastq_dir, [fqs]] raw GEX items, pre-grouping
-        ch_cellbender_bc    // [meta, barcodes] from QC_GEX
-        extras              // list of requested extras
-        run_name            // primary run name
+        ch_gex_outs
+        ch_gex_fastqs
+        ch_cellbender_bc
+        extras
+        run_name
 
     main:
-        // ── Viral detection ──────────────────────────────────────────────
         if ('viral' in extras) {
             ch_gex_outs
                 .filter { _library_id, metas, _outs -> metas[0].species == 'human' }
@@ -35,12 +32,7 @@ workflow QUANT_EXTRA {
             )
         }
 
-        // ── RNA velocity ─────────────────────────────────────────────────
-        // Joins GEX FASTQs with cellbender barcodes (ambient-corrected cell list).
         if ('velocity' in extras) {
-            // Uses the raw fastq_dir NFS strings (not staged files) — same pattern
-            // as CELLRANGER_MULTI. get_velocity_chemistry() errors on unregistered
-            // chemistries, so this is built only when velocity is actually requested.
             ch_gex_fastqs
                 .filter { meta, _fastq_dir, _fqs ->
                     meta.modality == 'GEX' && get_velocity_chemistry(meta.chemistry) != null
@@ -50,8 +42,12 @@ workflow QUANT_EXTRA {
                 }
                 .groupTuple(by: 0)
                 .map { library_id, metas, fastq_dirs, chems ->
-                    def meta = metas[0] + [library_id: library_id, run_name: run_name]
-                    [ library_id, meta, fastq_dirs.toUnique().join(','), chems[0] ]
+                    def sorted_metas = metas.toSorted { m -> m.toString() }
+                    def uniq_chems   = chems.toUnique()
+                    assert uniq_chems.size() == 1 :
+                        "library ${library_id} has conflicting velocity chemistries: ${uniq_chems}"
+                    def meta = sorted_metas[0] + [library_id: library_id, run_name: run_name]
+                    [ library_id, meta, fastq_dirs.toUnique().toSorted().join(','), uniq_chems[0] ]
                 }
                 .join(
                     ch_cellbender_bc.map { meta, bc -> [ meta.library_id, bc ] },

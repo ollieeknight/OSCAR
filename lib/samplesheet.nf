@@ -1,5 +1,3 @@
-// ─── Samplesheet parsing and validation ──────────────────────────────────────
-
 include { valid_chemistries } from './chemistry'
 include { resolve_index     } from './indexes'
 
@@ -13,8 +11,6 @@ def valid_assays()     { ['GEX', 'CITE', 'DOGMA', 'ATAC', 'Multiome', 'ASAP', 'F
 def valid_modalities() { ['GEX', 'ATAC', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR'] }
 def valid_index_types(){ ['SI', 'DI', 'NA'] }
 
-// Read a samplesheet into a list of [header: value] maps, skipping blank lines.
-// Shared by validation and parsing so both see identical rows.
 def read_samplesheet_rows(String path) {
     def lines = new File(path).readLines().findAll { line -> !is_blank_row(line) }
     if (lines.isEmpty()) return []
@@ -25,8 +21,6 @@ def read_samplesheet_rows(String path) {
     }
 }
 
-// True for empty lines and for comma-only spacer rows (',,,,,,,,,,'), which are
-// commonly used to visually separate experiments in a samplesheet.
 def is_blank_row(String line) {
     line.trim().isEmpty() || line.split(',', -1).every { v -> v.trim().isEmpty() }
 }
@@ -57,19 +51,12 @@ def preflight_samplesheet(String path) {
         if (!valid_index_types().contains(row.index_type?.trim()))
             error "ERROR: row ${i + 2}: unknown index_type '${row.index_type}'. Valid: SI, DI, NA"
 
-        // Chemistry must match a registered chemistry exactly — the registry in
-        // lib/chemistry.nf is the single source of truth.
         def chem = row.chemistry?.trim() ?: ''
         if (!valid_chem.contains(chem))
             error "ERROR: row ${i + 2}: unrecognised chemistry '${row.chemistry}'. Valid: ${valid_chem.join(', ')}"
     }
 }
 
-// Resolve the ADT feature-barcode CSV for one row.
-// Local-first, centralized fallback:
-//   1. {samplesheet_dir}/adt_files/{adt_file}.csv       (co-located with the run)
-//   2. {samplesheet_dir}/../adt_files/{adt_file}.csv    (shared across runs)
-//   3. {adt_files_dir}/{adt_file}.csv                   (centralized, optional)
 def resolve_adt_csv(String adt_file, String ss_path, adt_files_dir) {
     if (!adt_file) return null
 
@@ -87,7 +74,6 @@ def resolve_adt_csv(String adt_file, String ss_path, adt_files_dir) {
     return null
 }
 
-// Turn one samplesheet row into the meta map used throughout the pipeline.
 def parse_row(row, Map si_indexes, String ss_path, adt_files_dir) {
     def n_donors = (row.n_donors == null || row.n_donors.trim() in ['NA', '', 'na']) \
         ? 1 : row.n_donors.trim().toInteger()
@@ -114,7 +100,6 @@ def parse_row(row, Map si_indexes, String ss_path, adt_files_dir) {
     ]
 }
 
-// Parse a whole samplesheet into meta maps, tagging each with run_name.
 def parse_samplesheet(String ss_path, Map si_indexes, String run_name, adt_files_dir) {
     read_samplesheet_rows(ss_path).collect { row ->
         def meta = parse_row(row, si_indexes, ss_path, adt_files_dir)
@@ -123,13 +108,6 @@ def parse_samplesheet(String ss_path, Map si_indexes, String run_name, adt_files
     }
 }
 
-// Rows sharing a meta.id that disagree on a library-defining field.
-//
-// With --extra_bcl_dirs the same library is listed in every flowcell's
-// samplesheet, and only the first occurrence survives the meta.id dedup in
-// main.nf. A typo in a later samplesheet would otherwise be ignored silently
-// and the library counted under the wrong chemistry, species or reference.
-// Returns a list of human-readable messages, empty when the rows agree.
 def find_meta_conflicts(rows) {
     def fields = ['assay', 'modality', 'chemistry', 'species', 'index_type', 'index']
     rows.groupBy { r -> r.id }.findResults { id, group ->

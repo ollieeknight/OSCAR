@@ -3,17 +3,13 @@ include { GENOTYPE } from './genotype'
 
 workflow QC_ATAC {
     take:
-        ch_atac_outs   // [meta, outs_dir]
+        ch_atac_outs
 
     main:
         AMULET(ch_atac_outs)
         MGATK2(ch_atac_outs)
         MACS3(ch_atac_outs)
 
-        // Donor demultiplexing — human only: vireo needs a human SNP reference
-        // panel, so a mouse library never takes this path regardless of n_donors.
-        // Warn when a samplesheet asks for donors that cannot be resolved, rather
-        // than dropping the library silently.
         ch_atac_outs
             .filter { meta, _outs -> meta.n_donors > 1 && meta.species == 'human' }
             .set { ch_multi_donor }
@@ -35,8 +31,8 @@ workflow QC_ATAC {
         GENOTYPE(ch_snp_input, 'atac')
 
     emit:
-        amulet   = AMULET.out.summary        // [meta, MultipletSummary.txt]
-        mgatk    = MGATK2.out.results        // [meta, mgatk2_out/]
-        peaks    = MACS3.out.peaks           // [meta, peaks/]
-        vireo    = GENOTYPE.out    // [meta, donor_ids.tsv]
+        amulet   = AMULET.out.summary
+        mgatk    = MGATK2.out.results
+        peaks    = MACS3.out.peaks
+        vireo    = GENOTYPE.out
 }

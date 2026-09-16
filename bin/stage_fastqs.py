@@ -1,22 +1,10 @@
 #!/usr/bin/env python3
-"""Pair staged FASTQs by flowcell and rename them into per-modality lanes.
-
-Imported by tests; invoked by CELLRANGER_MULTI via `python3 -c` / PATH.
-
-Nextflow's `stageAs: "run_???/*"` gives every input file its own run_??? dir,
-so the dir name records input-list position, not which flowcell a file came
-from. Two flowcells routinely emit identically-named FASTQs, so neither the
-filename nor the dir can pair R1 with R2 -- only the read header can.
-"""
 import gzip
 import re
-import subprocess
 import sys
-from pathlib import Path
 
 
 def flowcell_of(fastq, _open=gzip.open):
-    """(instrument, run, flowcell) parsed from the first read header."""
     with _open(fastq, "rt") as fh:
         header = fh.readline().strip()
     fields = header.lstrip("@").split(":")
@@ -26,11 +14,6 @@ def flowcell_of(fastq, _open=gzip.open):
 
 
 def pair_reads(staged, header_of=flowcell_of):
-    """Pair each R1 with the R2 from the same flowcell.
-
-    Returns (pairs, unmatched). Pairs are ordered by original filename then
-    flowcell, so lane numbering is stable across resumes.
-    """
     def key(p):
         return (header_of(p), re.sub(r"_R[12]_", "_R_", p.name))
 
@@ -46,20 +29,20 @@ def pair_reads(staged, header_of=flowcell_of):
 
 
 def count_reads(r1, min_reads):
-    """Reads in the first `min_reads` records; cheap placeholder detection."""
-    result = subprocess.run(
-        f"zcat {r1} | head -n {min_reads * 4} | awk 'NR%4==1' | wc -l",
-        shell=True, capture_output=True, text=True,
-    )
-    return int(result.stdout.strip() or "0")
+    try:
+        count = 0
+        with gzip.open(r1, "rt") as fh:
+            for i, _ in enumerate(fh):
+                if i % 4 == 0:
+                    count += 1
+                if count >= min_reads:
+                    break
+        return count
+    except (OSError, EOFError):
+        return 0
 
 
 def stage_modality(staged, final_dir, min_reads, counter=count_reads):
-    """Rename paired FASTQs into final_dir as {sample}_S1_L00N_R[12]_001.
-
-    Returns (lanes_written, sample_id). Placeholder pairs below min_reads are
-    skipped without consuming a lane number.
-    """
     pairs, unmatched = pair_reads(staged)
     if unmatched:
         raise ValueError(f"unmatched reads: {unmatched}")

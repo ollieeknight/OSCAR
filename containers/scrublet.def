@@ -1,0 +1,39 @@
+Bootstrap: docker
+From: python:3.11-slim
+
+%post
+    export DEBIAN_FRONTEND=noninteractive
+
+    apt-get update -y && apt-get install -y --no-install-recommends \
+        build-essential \
+        && rm -rf /var/lib/apt/lists/*
+
+    pip install --no-cache-dir \
+        scanpy==1.10.4 \
+        scrublet==0.2.3 \
+        anndata==0.11.3 \
+        h5py==3.12.1 \
+        numpy==1.26.4 \
+        scipy==1.14.1 \
+        pandas==2.2.3 \
+        scikit-learn==1.5.2 \
+        python-igraph==0.11.8 \
+        leidenalg==0.10.2
+
+    apt-get purge -y build-essential && apt-get autoremove -y
+    pip cache purge || true
+
+%environment
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8
+    export OMP_NUM_THREADS=1
+    export OPENBLAS_NUM_THREADS=1
+    export MKL_NUM_THREADS=1
+
+%test
+    python -c "import scanpy, scrublet, h5py; print('scanpy', scanpy.__version__, '| scrublet', scrublet.__version__)"
+    python -c "import scanpy as sc; assert hasattr(sc.pp, 'scrublet'), 'sc.pp.scrublet missing'"
+    echo "scrublet container OK"
+
+%runscript
+    exec python "$@"
