@@ -36,7 +36,5 @@ OSCAR_FLEX_SAMPLES_EOF
         --csv       multi_config.csv \\
         --localcores ${task.cpus} \\
         --localmem  ${task.memory.toGiga()}
-
-    rm -rf "${library_id}/SC_MULTI_CS" "${library_id}/_"*
     """
 }

@@ -25,7 +25,5 @@ process CELLRANGER_ATAC {
         --sample    "${meta.id}" \\
         --localcores ${task.cpus} \\
         --localmem  ${task.memory.toGiga()}${extra_args}
-
-    rm -rf "${meta.library_id}_ATAC/SC_ATAC_COUNTER_CS" "${meta.library_id}_ATAC/_"*
     """
 }

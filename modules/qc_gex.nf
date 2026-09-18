@@ -48,8 +48,6 @@ process SCRUBLET {
     """
     export MPLCONFIGDIR=./tmp/mpl
     export NUMBA_CACHE_DIR=./tmp/numba
-    # scrublet exposes no thread flag, so its BLAS backend would otherwise take
-    # every core on the node regardless of what SLURM allocated.
     export OMP_NUM_THREADS=${task.cpus}
     export OPENBLAS_NUM_THREADS=${task.cpus}
     export MKL_NUM_THREADS=${task.cpus}

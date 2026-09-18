@@ -68,7 +68,6 @@ process SIMPLEAF_VELOCITY {
         exit 1
     fi
 
-    # Cellbender outputs barcodes with -1 suffix (CellRanger format); strip for simpleaf
     sed 's/-1\$//' ${barcodes} > barcodes_clean.txt
 
     export ALEVIN_FRY_HOME=\${PWD}/.alevin_fry_home
