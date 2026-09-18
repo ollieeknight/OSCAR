@@ -45,7 +45,6 @@ Everything cluster-specific is in `nextflow.config`:
 | `apptainer.cacheDir` | Where images are cached |
 | `apptainer.runOptions` | Bind mounts. Every path OSCAR reads or writes needs one |
 | `process.queue` | The normal SLURM partition |
-| `params.excluded_nodes` | Nodes to keep jobs off. Used by every process |
 | `ref_*`, `snp_vcf`, `atac_whitelist` | Reference locations |
 | `container_*` | Images. Most pull automatically |
 
