@@ -86,6 +86,28 @@ def summarise(per_lane):
     return rows
 
 
+def flowcell_overview(per_lane):
+    totals = defaultdict(int)
+    lanes_by_sample = defaultdict(list)
+    for lane in sorted(per_lane, key=lambda x: (len(x), x)):
+        for sample, reads in per_lane[lane].items():
+            totals[sample] += reads
+            lanes_by_sample[sample].append(lane)
+    grand_total = sum(totals.values())
+    rows = []
+    for sample, reads in sorted(totals.items(), key=lambda kv: -kv[1]):
+        pct = (100.0 * reads / grand_total) if grand_total else 0.0
+        rows.append(
+            {
+                "name": sample,
+                "read_number": reads,
+                "percent_of_flowcell": f"{pct:.4f}",
+                "lanes": ",".join(lanes_by_sample[sample]),
+            }
+        )
+    return rows
+
+
 def find_dropouts(per_lane, ratio=DEFAULT_DROPOUT_RATIO):
     warnings = []
     for lane in sorted(per_lane, key=lambda x: (len(x), x)):
@@ -174,6 +196,12 @@ def main(argv=None):
         f"{args.prefix}_demux_summary.csv",
         ["lane", "library", "reads", "percent_of_lane"],
         summary,
+    )
+
+    _write(
+        f"{args.prefix}_flow_cell_overview.csv",
+        ["name", "read_number", "percent_of_flowcell", "lanes"],
+        flowcell_overview(per_lane),
     )
 
     warnings = find_dropouts(per_lane, args.dropout_ratio)

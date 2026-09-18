@@ -64,6 +64,6 @@ def detect_sequencer(String bcl_path, String fallback) {
         log.warn "WARNING: Unrecognised instrument ID '${instrument_id}' in ${bcl_path}/RunInfo.xml; falling back to params.sequencer='${fallback}'"
         sequencer = fallback
     }
-    log.info "INFO: Detected instrument '${instrument_id}' → sequencer mode '${sequencer}' (i5 ${sequencer == 'novaseq_x' ? 'forward' : 'reverse-complement'})"
+    log.info "INFO: Flow cell '${instrument_id}' indicates a '${sequencer}' (i5 set to ${sequencer == 'novaseq_x' ? 'forward' : 'reverse-complement'})"
     return sequencer
 }

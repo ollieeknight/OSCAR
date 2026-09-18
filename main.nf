@@ -9,7 +9,6 @@ include { COUNT_ADT }      from './subworkflows/count_adt'
 include { QC_GEX }         from './subworkflows/qc_gex'
 include { QC_ATAC }        from './subworkflows/qc_atac'
 
-include { REPORT }         from './subworkflows/report'
 include { QUANT_EXTRA }    from './subworkflows/quant_extra'
 
 include { load_si_indexes; detect_sequencer } from './lib/indexes'
@@ -140,13 +139,11 @@ workflow {
             ? file(paths.bcl_dir).name.replaceAll(/_bcl$/, '')
             : 'run'
     }
-    log.info "INFO: run_name = '${primary_run_name}'"
 
     preflight_check(paths)
 
     def run_from = resolve_run_from()
     def extras   = resolve_extras()
-    log.info "INFO: run_from = '${run_from}'" + (extras ? ", extras = ${extras.join(', ')}" : "")
 
     def all_ss_paths = [paths.samplesheet] + paths.extra_samplesheets
     all_ss_paths.each { ss -> preflight_samplesheet(ss) }
@@ -315,10 +312,6 @@ workflow {
 
         COUNT_GEX(ch_gex_libraries)
         COUNT_ATAC(ch_atac_libraries)
-
-        if (run_from == 'bcl') {
-            REPORT(COUNT_GEX.out, DEMUX.out.fastp_reports, DEMUX.out.demux_mqc)
-        }
 
         ch_asap_atac_outs = COUNT_ATAC.out
             .filter { meta, _outs -> meta.assay == 'ASAP' }

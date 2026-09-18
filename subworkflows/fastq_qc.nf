@@ -1,4 +1,4 @@
-include { VALIDATE_FASTQ; FASTP } from '../modules/fastq_qc'
+include { FASTP } from '../modules/fastq_qc'
 
 workflow FASTQ_QC {
     take:
@@ -9,10 +9,7 @@ workflow FASTQ_QC {
 
         ch_fastqs
             .transpose(by: 2)
-            .map { meta, fq_dir, fastq -> [meta, fq_dir, fastq, fastq.name] }
-            .set { ch_to_validate }
-
-        VALIDATE_FASTQ(ch_to_validate)
+            .set { ch_to_group }
 
         ch_fastqs
             .flatMap { meta, fq_dir, fq_files ->
@@ -25,7 +22,7 @@ workflow FASTQ_QC {
 
         FASTP(ch_fastp_input)
 
-        VALIDATE_FASTQ.out.fastq
+        ch_to_group
             .map { meta, fq_dir, fastq -> [[meta.id, fq_dir], meta, fq_dir, fastq] }
             .groupTuple(by: 0)
             .map { key, metas, _fq_dirs, fastqs ->

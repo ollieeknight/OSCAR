@@ -267,7 +267,7 @@ process DEMUX_QC {
     output:
     tuple val(run_name), val(fastq_dir), path("${run_name}_demux_summary.csv"),  emit: summary
     tuple val(run_name), val(fastq_dir), path("${run_name}_demux_warnings.csv"), emit: warnings
-    tuple val(run_name), val(fastq_dir), path("${run_name}_demux_mqc.csv"), emit: mqc
+    tuple val(run_name), val(fastq_dir), path("${run_name}_flow_cell_overview.csv"), emit: flowcell_overview
 
     script:
     """
@@ -282,30 +282,5 @@ process DEMUX_QC {
         --prefix   ${run_name} \\
         --dropout-ratio ${params.demux_qc_dropout_ratio} \\
         --unknown-pct   ${params.demux_qc_unknown_pct}
-
-    # MultiQC custom-content: header comment block makes it a named section.
-    {
-        echo '# id: oscar_demux'
-        echo '# section_name: Demultiplexing (bcl-convert)'
-        echo '# description: "Reads per library from bcl-convert Demultiplex_Stats.csv, as a percent of each lane total (Undetermined included)."'
-        echo '# plot_type: table'
-        cat ${run_name}_demux_summary.csv
-    } > ${run_name}_demux_mqc.csv
-    """
-}
-
-process CELLRANGER_MQC {
-    tag "$run_name"
-    container "${params.container_multiqc}"
-
-    input:
-    tuple val(run_name), path(outs, stageAs: 'outs/*/')
-
-    output:
-    tuple val(run_name), path("${run_name}_cellranger_mqc.csv"), emit: mqc, optional: true
-
-    script:
-    """
-    cellranger_mqc.py --root outs --out ${run_name}_cellranger_mqc.csv
     """
 }

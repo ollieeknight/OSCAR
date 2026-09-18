@@ -22,37 +22,3 @@ process FASTP {
     """
 }
 
-
-process MULTIQC {
-    container "${params.container_multiqc}"
-    publishDir { "${fastq_dir}/multiqc" }, mode: 'copy'
-
-    input:
-    tuple val(run_name), val(fastq_dir), path(reports)
-
-    output:
-    path "multiqc_report.html",      emit: report
-    path "multiqc_report_data/",     emit: data
-
-    script:
-    def config = params.multiqc_config ? "--config ${params.multiqc_config}" : ''
-    """
-    multiqc ${config} --force --filename multiqc_report -o . .
-    """
-}
-
-process VALIDATE_FASTQ {
-    tag "$fastq_name"
-    container "${params.container_pigz}"
-
-    input:
-    tuple val(meta), val(fastq_dir), path(fastq), val(fastq_name)
-
-    output:
-    tuple val(meta), val(fastq_dir), path(fastq), emit: fastq
-
-    script:
-    """
-    pigz -t -f -p ${task.cpus} ${fastq}
-    """
-}

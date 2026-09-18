@@ -123,8 +123,8 @@ workflow DEMUX {
         FASTQ_QC(ch_fastqs)
 
     emit:
-        fastqs        = FASTQ_QC.out.fastqs
-        fastp_reports = FASTQ_QC.out.fastp_reports
-        demux_summary = DEMUX_QC.out.summary
-        demux_mqc     = DEMUX_QC.out.mqc
+        fastqs             = FASTQ_QC.out.fastqs
+        fastp_reports      = FASTQ_QC.out.fastp_reports
+        demux_summary      = DEMUX_QC.out.summary
+        flowcell_overview  = DEMUX_QC.out.flowcell_overview
 }
