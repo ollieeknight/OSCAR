@@ -45,16 +45,16 @@ process VIRAL_DETECT {
 process SIMPLEAF_VELOCITY {
     tag "$meta.library_id"
     container "${params.container_simpleaf}"
-    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}" },
+    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}/velocity" },
                mode: 'copy',
-               saveAs: { fn -> fn.startsWith('velocity/af_map/') ? null : fn }
+               saveAs: { fn -> file(fn).name }
 
     input:
     tuple val(meta), val(gex_fastq_dirs), val(simpleaf_chemistry), path(barcodes)
     path spliceu_index
 
     output:
-    tuple val(meta), path("velocity/"), emit: counts
+    tuple val(meta), path("velocity_out/*"), emit: counts
 
     script:
     """
@@ -84,5 +84,12 @@ process SIMPLEAF_VELOCITY {
         --resolution    cr-like \\
         --unfiltered-pl barcodes_clean.txt \\
         --output        velocity
+
+    mkdir -p velocity_out
+    mv velocity/af_quant/alevin/* velocity_out/
+    mv velocity/af_quant/quant.json velocity/af_quant/featureDump.txt \\
+       velocity/af_quant/gene_id_to_name.tsv velocity_out/
+    cat velocity/af_map/map_info.json > velocity_out/map_info.json
+    rm -rf velocity
     """
 }

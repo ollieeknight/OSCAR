@@ -61,13 +61,28 @@ import scanpy as sc
 import pandas as pd
 
 adata = sc.read_10x_h5('${cellbender_h5}')
-sc.pp.scrublet(adata, expected_doublet_rate=0.08)
+adata.var_names_make_unique()
+sc.pp.filter_cells(adata, min_counts=${params.scrublet_min_counts})
+
+rate = ${params.expected_doublet_rate}
+sc.pp.scrublet(adata, expected_doublet_rate=rate)
+
+# Scrublet's automatic threshold assumes a bimodal simulated-doublet
+# histogram. When it is unimodal the auto-pick lands in the tail and calls
+# almost nothing, so fall back to calling the expected rate by quantile.
+score = adata.obs['doublet_score']
+auto_thr = adata.uns['scrublet']['threshold']
+if (score > auto_thr).mean() < rate / 2:
+    thr = score.quantile(1 - rate)
+else:
+    thr = auto_thr
 
 df = pd.DataFrame({
-    'doublet_score': adata.obs['doublet_score'],
-    'is_gex_doublet': adata.obs['predicted_doublet'].astype(bool)
+    'doublet_score': score,
+    'is_gex_doublet': (score > thr).astype(bool)
 }, index=adata.obs_names)
 df.index.name = 'barcode'
+df.loc[df['doublet_score'].isna(), 'is_gex_doublet'] = False
 df.to_csv('scrublet_out/doublets.csv')
 PYEOF
     """

@@ -9,18 +9,18 @@ process CELLSNP_LITE {
     val(mode)
 
     output:
-    tuple val(meta), path("cellsnp_${meta.library_id}/"), emit: vcf
-    path "cellsnp_${meta.library_id}/*"
+    tuple val(meta), path("cellsnp/"), emit: vcf
+    path "cellsnp/*"
 
     script:
     def umi_flag   = (mode == 'atac') ? '--UMItag None' : ''
     """
-    mkdir -p cellsnp_${meta.library_id}
+    mkdir -p cellsnp
 
     cellsnp-lite \\
         -s  ${bam} \\
         -b  ${barcodes} \\
-        -O  cellsnp_${meta.library_id} \\
+        -O  cellsnp \\
         -R  ${params.snp_vcf} \\
         --minMAF   0.1 \\
         --minCOUNT 20 \\
