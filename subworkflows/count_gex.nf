@@ -1,7 +1,6 @@
 include { CELLRANGER_MULTI } from '../modules/count_gex'
 include { FLEX_PROBE_PREPARE; FLEX_SAMPLE_PREPARE
-          FLEX_BARCODE_EXTRACT; FLEX_WHITELIST_EXTRACT
-          CYTO_FLEX; CYTO_RENAME_SAMPLES } from '../modules/flex'
+          FLEX_REFS; CYTO_FLEX; CYTO_RENAME_SAMPLES } from '../modules/flex'
 include { build_multi_config_header; build_flex_samples_section } from '../lib/multi_config'
 
 workflow COUNT_GEX {
@@ -16,46 +15,24 @@ workflow COUNT_GEX {
 
         def needs_cr   = params.flex_backend in ['cellranger', 'both']
         def needs_cyto = params.flex_backend in ['cyto', 'both']
+        def std_probe  = file(params.flex_probe_set ?: 'NO_FILE')
 
-        def has_custom_probes = params.flex_probe_set_custom as boolean
+        if (params.flex_probe_set_custom || needs_cyto)
+            FLEX_PROBE_PREPARE(channel.value([std_probe, file(params.flex_probe_set_custom ?: 'NO_FILE')]))
 
-        def ch_probe_csv_cr
-        if (has_custom_probes) {
-            def std_probe  = params.flex_probe_set
-                ? file(params.flex_probe_set)        : file('NO_FILE')
-            def cust_probe = file(params.flex_probe_set_custom)
+        def ch_probe_csv_cr = params.flex_probe_set_custom
+            ? FLEX_PROBE_PREPARE.out.probe_csv_cr
+            : channel.value(std_probe)
 
-            FLEX_PROBE_PREPARE(channel.value([std_probe, cust_probe]))
-            ch_probe_csv_cr = FLEX_PROBE_PREPARE.out.probe_csv_cr
-        }
-        else {
-            ch_probe_csv_cr = params.flex_probe_set
-                ? channel.value(file(params.flex_probe_set))
-                : channel.value(file('NO_FILE'))
-        }
-
-        def ch_for_cr = needs_cr
-            ? ch_split.regular.mix(ch_split.flex)
-            : ch_split.regular
-
-        ch_for_cr
+        (needs_cr ? ch_split.regular.mix(ch_split.flex) : ch_split.regular)
             .combine(ch_probe_csv_cr)
             .map { lid, metas, refs, adt_csv,
                    gex_fqs, adt_fqs, hto_fqs, vdj_t, vdj_b, crispr, probe_csv ->
-                def probe_set = probe_csv.name == 'NO_FILE'
-                    ? null
-                    : probe_csv.toAbsolutePath().toString()
-                def header = build_multi_config_header(
-                    library_id: lid,
-                    metas:      metas,
-                    refs:       refs,
-                    probe_set:  probe_set,
-                    adt_csv:    adt_csv
-                )
-                def meta            = metas.find { m -> m.modality == 'GEX' } ?: metas[0]
-                def samples_section = build_flex_samples_section(meta, params.flex_samples_file)
+                def probe_set = probe_csv.name == 'NO_FILE' ? null : probe_csv.toAbsolutePath().toString()
+                def header    = build_multi_config_header(lid, metas, refs, probe_set, adt_csv)
+                def meta      = metas.find { m -> m.modality == 'GEX' } ?: metas[0]
 
-                [lid, meta.run_name, header, adt_csv, samples_section,
+                [lid, meta.run_name, header, adt_csv, build_flex_samples_section(meta, params.flex_samples_file),
                  gex_fqs, adt_fqs, hto_fqs, vdj_t, vdj_b, crispr]
             }
             .set { ch_cr_input }
@@ -63,38 +40,22 @@ workflow COUNT_GEX {
         CELLRANGER_MULTI(ch_cr_input)
 
         if (needs_cyto) {
-
-            if (!has_custom_probes) {
-                def std_only = params.flex_probe_set
-                    ? file(params.flex_probe_set) : file('NO_FILE')
-                FLEX_PROBE_PREPARE(channel.value([std_only, file('NO_FILE')]))
-            }
-
+            // toSortedList, not first(): arrival order would change the cache key.
             def ch_flex_chem = ch_split.flex
                 .map { _lid, metas, _refs, _adt, _gex, _adt_fqs, _hto_fqs, _vdj_t, _vdj_b, _crispr ->
                     metas.find { m -> m.modality == 'GEX' }?.chemistry ?: 'Flex-v2-R1'
                 }
                 .toSortedList()
-                .flatMap { chems -> chems.take(1) }   // not first(): arrival order would change the cache key
+                .flatMap { chems -> chems.take(1) }
 
-            def ch_cyto_preset = ch_flex_chem.map { chem ->
-                chem ==~ /Flex-v2.*/ ? 'gex-v2' : 'gex-v1'
-            }
+            def ch_cyto_preset = ch_flex_chem.map { chem -> chem ==~ /Flex-v2.*/ ? 'gex-v2' : 'gex-v1' }
 
-            FLEX_BARCODE_EXTRACT(ch_flex_chem)
-            FLEX_WHITELIST_EXTRACT(ch_flex_chem)
+            FLEX_REFS(ch_flex_chem)
 
-            def has_samples = params.flex_samples_file as boolean
-            def ch_cyto_barcodes
-
-            if (has_samples) {
-                FLEX_SAMPLE_PREPARE(
-                    channel.value(file(params.flex_samples_file)),
-                    FLEX_BARCODE_EXTRACT.out.barcodes
-                )
+            def ch_cyto_barcodes = channel.value(file('NO_FILE'))
+            if (params.flex_samples_file) {
+                FLEX_SAMPLE_PREPARE(channel.value(file(params.flex_samples_file)), FLEX_REFS.out.barcodes)
                 ch_cyto_barcodes = FLEX_SAMPLE_PREPARE.out.cyto_barcodes
-            } else {
-                ch_cyto_barcodes = channel.value(file('NO_FILE'))
             }
 
             ch_split.flex
@@ -103,7 +64,7 @@ workflow COUNT_GEX {
                 }
                 .combine(FLEX_PROBE_PREPARE.out.probe_tsv_cyto)
                 .combine(ch_cyto_barcodes)
-                .combine(FLEX_WHITELIST_EXTRACT.out.whitelist)
+                .combine(FLEX_REFS.out.whitelist)
                 .combine(ch_cyto_preset)
                 .map { lid, run_name, gex_fqs, probe_tsv, barcodes, whitelist, preset ->
                     [lid, run_name, probe_tsv, barcodes, whitelist, preset, gex_fqs]

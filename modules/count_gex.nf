@@ -17,7 +17,6 @@ process CELLRANGER_MULTI {
     tuple val(library_id), path("${library_id}/outs"), emit: outs
 
     script:
-    def min_reads = 10000
     """
     cat > config_header.txt << 'OSCAR_CR_HEADER_EOF'
 ${config_header}
@@ -27,9 +26,7 @@ OSCAR_CR_HEADER_EOF
 ${flex_samples_content}
 OSCAR_FLEX_SAMPLES_EOF
 
-    stage_multi_fastqs.py \\
-        --library-id ${library_id} \\
-        --min-reads  ${min_reads}
+    stage_multi_fastqs.py --min-reads 10000
 
     cellranger multi \\
         --id        "${library_id}" \\

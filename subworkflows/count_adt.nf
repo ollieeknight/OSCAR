@@ -8,11 +8,8 @@ workflow COUNT_ADT {
     main:
         ch_adt_csv = ch_asap_adt
             .map { _atac_meta, _atac_outs, adt_meta, adt_fastqs ->
-                if (!adt_meta.adt_csv_path) {
-                    error "Library '${adt_meta.library_id}' has ASAP ADT/HTO modalities but no feature barcode CSV was resolved. " +
-                          "Check that 'adt_file' is set in the samplesheet and either place " +
-                          "{samplesheet_dir}/adt_files/{adt_file}.csv or pass --adt_files_dir."
-                }
+                if (!adt_meta.adt_csv_path)
+                    error "Library '${adt_meta.library_id}' has ADT/HTO but no adt_file CSV; set adt_file and --adt_files_dir"
                 [ adt_meta, file(adt_meta.adt_csv_path), adt_fastqs ]
             }
 

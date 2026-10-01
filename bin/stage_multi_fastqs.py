@@ -16,7 +16,7 @@ MODALITY_FEATURE = {
 }
 
 
-def stage(library_id, min_reads):
+def stage(min_reads):
     with open("config_header.txt") as fh:
         config_header = fh.read().strip()
 
@@ -54,19 +54,15 @@ def stage(library_id, min_reads):
     with open("multi_config.csv", "w") as fh:
         fh.write(cfg + "\n")
 
-    print("[cellranger_multi] Config written:", file=sys.stderr)
-    with open("multi_config.csv") as fh:
-        print(fh.read(), file=sys.stderr)
+    print(cfg, file=sys.stderr)
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--library-id", required=True,
-                    help="library id embedded in the multi config")
     ap.add_argument("--min-reads", type=int, required=True,
                     help="lanes with fewer reads than this are skipped")
     args = ap.parse_args()
-    stage(args.library_id, args.min_reads)
+    stage(args.min_reads)
 
 
 if __name__ == "__main__":

@@ -15,12 +15,10 @@ workflow QUANT_EXTRA {
             ch_gex_outs
                 .filter { _library_id, metas, _outs -> metas[0].species == 'human' }
                 .map { library_id, metas, outs ->
-                    def meta   = metas[0] + [library_id: library_id]
-                    def bam    = file("${outs}/unassigned_alignments.bam")
-                    def bai    = file("${outs}/unassigned_alignments.bam.bai")
-                    def wl     = file(get_viral_whitelist(meta.chemistry, params.tenx_barcodes_dir))
-                    def schem  = get_simpleaf_chemistry(meta.chemistry)
-                    [meta, bam, bai, wl, schem]
+                    def chem = metas[0].chemistry
+                    [[library_id: library_id, run_name: metas[0].run_name],
+                     file("${outs}/unassigned_alignments.bam"), file("${outs}/unassigned_alignments.bam.bai"),
+                     file(get_viral_whitelist(chem, params.tenx_barcodes_dir)), get_simpleaf_chemistry(chem)]
                 }
                 .set { ch_viral_input }
 
@@ -37,33 +35,19 @@ workflow QUANT_EXTRA {
                 .filter { meta, _fastq_dir, _fqs ->
                     meta.modality == 'GEX' && get_velocity_chemistry(meta.chemistry) != null
                 }
-                .map { meta, fastq_dir, _fqs ->
-                    [ meta.library_id, meta, fastq_dir, get_velocity_chemistry(meta.chemistry) ]
-                }
+                .map { meta, fastq_dir, fqs -> [meta.library_id, meta, [fastq_dir, fqs.findAll { f -> f.name =~ /_R[12]_/ }]] }
                 .groupTuple(by: 0)
-                .map { library_id, metas, fastq_dirs, chems ->
-                    def sorted_metas = metas.toSorted { m -> m.toString() }
-                    def uniq_chems   = chems.toUnique()
-                    assert uniq_chems.size() == 1 :
-                        "library ${library_id} has conflicting velocity chemistries: ${uniq_chems}"
-                    def meta = sorted_metas[0] + [library_id: library_id, run_name: run_name]
-                    [ library_id, meta, fastq_dirs.toUnique().toSorted().join(','), uniq_chems[0] ]
+                // Every GEX row of a library shares species and chemistry; main checks samplesheets agree.
+                .map { library_id, metas, runs ->
+                    def m = metas[0]
+                    [library_id, [library_id: library_id, run_name: run_name], get_velocity_chemistry(m.chemistry),
+                     file(m.species == 'human' ? params.spliceu_index_human : params.spliceu_index_mouse),
+                     runs.toSorted { r -> r[0] }.collectMany { r -> r[1].toSorted { f -> f.name } }]
                 }
-                .join(
-                    ch_cellbender_bc.map { meta, bc -> [ meta.library_id, bc ] },
-                    by: 0
-                )
-                .multiMap { _library_id, meta, fastq_dirs, chemistry, barcodes ->
-                    def is_human = meta.species == 'human'
-                    def idx = file(is_human ? params.spliceu_index_human : params.spliceu_index_mouse)
-                    input: [ meta, fastq_dirs, chemistry, barcodes ]
-                    index: idx
-                }
-                .set { ch_velocity_split }
+                .join(ch_cellbender_bc.map { meta, bc -> [meta.library_id, bc] })
+                .map { row -> row.tail() }
+                .set { ch_velocity_input }
 
-            SIMPLEAF_VELOCITY(
-                ch_velocity_split.input,
-                ch_velocity_split.index
-            )
+            SIMPLEAF_VELOCITY(ch_velocity_input)
         }
 }

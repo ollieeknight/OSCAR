@@ -6,33 +6,19 @@ workflow QC_ATAC {
         ch_atac_outs
 
     main:
-        AMULET(ch_atac_outs)
-        MGATK2(ch_atac_outs)
-        MACS3(ch_atac_outs)
+        // Only the fields QC uses, so other samplesheet edits do not rerun mgatk2.
+        ch_input = ch_atac_outs.map { meta, outs -> [meta.subMap(['library_id', 'run_name', 'species']), meta.n_donors, outs] }
+        ch_qc    = ch_input.map { meta, _n, outs -> [meta, outs] }
 
-        ch_atac_outs
-            .filter { meta, _outs -> meta.n_donors > 1 && meta.species == 'human' }
-            .set { ch_multi_donor }
+        AMULET(ch_qc)
+        MGATK2(ch_qc)
+        MACS3(ch_qc)
 
-        ch_atac_outs
-            .filter { meta, _outs -> meta.n_donors > 1 && meta.species != 'human' }
-            .subscribe { meta, _outs ->
-                log.warn "WARN: '${meta.library_id}' declares n_donors=${meta.n_donors} but species='${meta.species}'; genotyping is human-only, skipping donor demultiplexing"
-            }
-
-        ch_snp_input = ch_multi_donor
-            .map { meta, outs ->
-                def bam      = file("${outs}/possorted_bam.bam")
-                def bai      = file("${outs}/possorted_bam.bam.bai")
-                def barcodes = file("${outs}/filtered_peak_bc_matrix/barcodes.tsv")
-                [ meta, bam, bai, barcodes ]
-            }
-
-        GENOTYPE(ch_snp_input, 'atac')
-
-    emit:
-        amulet   = AMULET.out.summary
-        mgatk    = MGATK2.out.results
-        peaks    = MACS3.out.peaks
-        vireo    = GENOTYPE.out
+        GENOTYPE(
+            ch_input.map { meta, n_donors, outs ->
+                [meta, n_donors, file("${outs}/possorted_bam.bam"), file("${outs}/possorted_bam.bam.bai"),
+                 file("${outs}/filtered_peak_bc_matrix/barcodes.tsv")]
+            },
+            'atac'
+        )
 }

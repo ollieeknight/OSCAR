@@ -18,35 +18,21 @@ process FLEX_PROBE_PREPARE {
     """
 }
 
-process FLEX_BARCODE_EXTRACT {
+process FLEX_REFS {
     container "${params.container_cellranger}"
 
     input:
     val(chemistry)
 
     output:
-    path "probe_barcodes.txt", emit: barcodes
-
-    script:
-    def bc_file = get_flex_barcode_file(chemistry)
-    """
-    cp /opt/cellranger-10.0.0/lib/python/cellranger/barcodes/translation/${bc_file} probe_barcodes.txt
-    """
-}
-
-process FLEX_WHITELIST_EXTRACT {
-    container "${params.container_cellranger}"
-
-    input:
-    val(chemistry)
-
-    output:
+    path "probe_barcodes.txt",  emit: barcodes
     path "cb_whitelist.txt.gz", emit: whitelist
 
     script:
-    def wl_file = get_flex_whitelist_file(chemistry)
+    def barcodes = '/opt/cellranger-10.0.0/lib/python/cellranger/barcodes'
     """
-    cp /opt/cellranger-10.0.0/lib/python/cellranger/barcodes/${wl_file} cb_whitelist.txt.gz
+    cp ${barcodes}/translation/${get_flex_barcode_file(chemistry)} probe_barcodes.txt
+    cp ${barcodes}/${get_flex_whitelist_file(chemistry)} cb_whitelist.txt.gz
     """
 }
 
@@ -84,20 +70,12 @@ process CYTO_FLEX {
     tuple val(library_id), val(run_name), path("${library_id}_cyto"), emit: counts
 
     script:
-    def min_reads = 10000
+    def probes_arg = cyto_probe_barcodes.name == 'NO_FILE' ? '' : "-p ${cyto_probe_barcodes}"
     """
-    stage_cyto_fastqs.py --min-reads ${min_reads}
-
-    FASTQ_PAIRS=\$(cat fastq_pairs.txt)
-
-    PROBES_ARG=""
-    if [ "${cyto_probe_barcodes}" != "NO_FILE" ]; then
-        PROBES_ARG="-p ${cyto_probe_barcodes}"
-    fi
+    stage_cyto_fastqs.py --min-reads 10000
 
     cyto workflow gex \\
-        -c ${probe_tsv_cyto} \\
-        \${PROBES_ARG} \\
+        -c ${probe_tsv_cyto} ${probes_arg} \\
         -w ${cb_whitelist} \\
         --preset ${cyto_preset} \\
         -o ${library_id}_cyto \\
@@ -106,7 +84,7 @@ process CYTO_FLEX {
         --memory-limit ${params.flex_cyto_memory_limit} \\
         -T ${task.cpus} \\
         -f \\
-        \${FASTQ_PAIRS}
+        \$(cat fastq_pairs.txt)
     """
 }
 

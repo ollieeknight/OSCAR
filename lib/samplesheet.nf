@@ -27,11 +27,11 @@ def is_blank_row(String line) {
 
 def preflight_samplesheet(String path) {
     def lines = new File(path).readLines()
-    if (lines.isEmpty()) error "ERROR: samplesheet is empty: ${path}"
+    if (lines.isEmpty()) error "samplesheet is empty: ${path}"
 
     def headers = lines[0].split(',').collect { h -> h.trim() }
     def missing = samplesheet_required_columns() - headers
-    if (missing) error "ERROR: samplesheet missing columns: ${missing.join(', ')}"
+    if (missing) error "samplesheet missing columns: ${missing.join(', ')}"
 
     def valid_chem = valid_chemistries()
 
@@ -39,20 +39,20 @@ def preflight_samplesheet(String path) {
         if (is_blank_row(line)) return
         def vals = line.split(',', -1).collect { v -> v.trim() }
         if (vals.size() != headers.size())
-            error "ERROR: samplesheet row ${i + 2}: expected ${headers.size()} fields, got ${vals.size()}"
+            error "samplesheet row ${i + 2}: expected ${headers.size()} fields, got ${vals.size()}"
         def row = [headers, vals].transpose().collectEntries()
 
         if (!valid_assays().contains(row.assay))
-            error "ERROR: row ${i + 2}: unknown assay '${row.assay}'. Valid: ${valid_assays().join(', ')}"
+            error "row ${i + 2}: unknown assay '${row.assay}'. Valid: ${valid_assays().join(', ')}"
         if (!valid_modalities().contains(row.modality))
-            error "ERROR: row ${i + 2}: unknown modality '${row.modality}'. Valid: ${valid_modalities().join(', ')}"
+            error "row ${i + 2}: unknown modality '${row.modality}'. Valid: ${valid_modalities().join(', ')}"
         if (!['human', 'mouse'].any { s -> s.equalsIgnoreCase(row.species) })
-            error "ERROR: row ${i + 2}: unknown species '${row.species}'. Valid: human, mouse"
+            error "row ${i + 2}: unknown species '${row.species}'. Valid: human, mouse"
         if (!valid_index_types().contains(row.index_type))
-            error "ERROR: row ${i + 2}: unknown index_type '${row.index_type}'. Valid: SI, DI, NA"
+            error "row ${i + 2}: unknown index_type '${row.index_type}'. Valid: SI, DI, NA"
 
         if (!valid_chem.contains(row.chemistry))
-            error "ERROR: row ${i + 2}: unrecognised chemistry '${row.chemistry}'. Valid: ${valid_chem.join(', ')}"
+            error "row ${i + 2}: unrecognised chemistry '${row.chemistry}'. Valid: ${valid_chem.join(', ')}"
     }
 }
 
@@ -67,9 +67,7 @@ def resolve_adt_csv(String adt_file, String ss_path, adt_files_dir) {
     if (parent_csv.exists()) return parent_csv.canonicalPath
     if (adt_files_dir)       return file("${adt_files_dir}/${adt_file}.csv").toAbsolutePath().toString()
 
-    log.warn "WARNING: ADT file '${adt_file}.csv' not found at '${ss_dir}/adt_files/' and --adt_files_dir is not set. " +
-             "This library will FAIL at cellranger multi (missing [feature] reference). " +
-             "Pass --adt_files_dir or place the CSV at '${ss_dir}/adt_files/${adt_file}.csv'."
+    log.warn "'${adt_file}.csv' not in ${ss_dir}/adt_files/ and --adt_files_dir unset; its library will fail at cellranger multi"
     return null
 }
 

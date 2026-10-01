@@ -33,29 +33,32 @@ process KALLISTO_INDEX {
     """
 }
 
+// asap_to_kite pairs each -ff folder with one -sp prefix, so FASTQs are linked into sets/<flowcell>/<sample>/:
+// flowcells reuse file names, and ADT and HTO are separate samples.
 process ASAP_TO_KITE {
     tag "$meta.library_id"
     container "${params.container_asap}"
 
     input:
-    tuple val(meta), path(adt_fastqs)
+    tuple val(meta), path(adt_fastqs, stageAs: 'fastqs/run_???/*')
 
     output:
     tuple val(meta), path("kite_converted/"), emit: converted_fastqs
 
     script:
-    def fastq_dirs = adt_fastqs instanceof List \
-        ? adt_fastqs.collect { fq -> fq.parent }.unique().join(',') \
-        : adt_fastqs.parent.toString()
-    def sample_names = adt_fastqs instanceof List \
-        ? adt_fastqs.collect { fq -> fq.simpleName.replaceAll(/_S[0-9]+.*/, '') }.unique().join(',') \
-        : adt_fastqs.simpleName.replaceAll(/_S[0-9]+.*/, '')
     """
-    mkdir -p kite_converted/"${meta.library_id}_ADT"
+    for fq in fastqs/*/*.fastq.gz; do
+        flowcell=\$(gzip -dc "\$fq" | head -n1 | cut -d: -f3)
+        sample=\$(basename "\$fq" | sed -E 's/_S[0-9]+_.*//')
+        mkdir -p "sets/\$flowcell/\$sample"
+        ln -s "\$PWD/\$fq" "sets/\$flowcell/\$sample/"
+    done
+    sets=(sets/*/*)
+    samples=("\${sets[@]##*/}")
 
     asap_to_kite \\
-        -ff "${fastq_dirs}" \\
-        -sp "${sample_names}" \\
+        -ff "\$(IFS=,; echo "\${sets[*]}")" \\
+        -sp "\$(IFS=,; echo "\${samples[*]}")" \\
         -of kite_converted/"${meta.library_id}_ADT" \\
         -on "${meta.library_id}_ADT" \\
         -c  ${task.cpus}
@@ -81,7 +84,8 @@ process KALLISTO_BUS {
         -o bus_output \\
         -x 0,0,16:0,16,26:1,0,0 \\
         -t ${task.cpus} \\
-        ${converted_dir}/${meta.library_id}_ADT/*
+        ${converted_dir}/${meta.library_id}_ADT/${meta.library_id}_ADT_R1.fastq.gz \\
+        ${converted_dir}/${meta.library_id}_ADT/${meta.library_id}_ADT_R2.fastq.gz
     """
 }
 

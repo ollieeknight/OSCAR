@@ -10,13 +10,12 @@ process CELLRANGER_ATAC {
     tuple val(meta), path("${meta.library_id}_ATAC/outs"), emit: outs
 
     script:
-    def min_reads  = 10000
     def reference  = meta.species == 'human' ? params.ref_human : params.ref_mouse
     def extra_args = (meta.assay == 'DOGMA') ? "\\\n        --chemistry ARC-v1" : ''
     """
     stage_atac_fastqs.py \\
         --sample-id  ${meta.id} \\
-        --min-reads  ${min_reads}
+        --min-reads  10000
 
     cellranger-atac count \\
         --id        "${meta.library_id}_ATAC" \\

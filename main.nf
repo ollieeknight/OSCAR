@@ -9,43 +9,43 @@ include { QC_ATAC }        from './subworkflows/qc_atac'
 
 include { QUANT_EXTRA }    from './subworkflows/quant_extra'
 
-include { load_si_indexes; detect_sequencer } from './lib/indexes'
+include { load_si_indexes; detect_sequencer; run_name_for } from './lib/indexes'
 include { preflight_samplesheet; read_samplesheet_rows; parse_samplesheet; find_meta_conflicts } from './lib/samplesheet'
 
 
 def preflight_check(Map paths) {
-    if (!paths.samplesheet) error "ERROR: --samplesheet is required"
-    if (!file(paths.samplesheet).exists()) error "ERROR: samplesheet not found: ${paths.samplesheet}"
+    if (!paths.samplesheet) error "--samplesheet is required"
+    if (!file(paths.samplesheet).exists()) error "samplesheet not found: ${paths.samplesheet}"
 
     def run_from = resolve_run_from()
     if (run_from == 'bcl') {
-        if (!paths.bcl_dir) error "ERROR: --bcl_dir is required when --run_from bcl"
-        if (!file(paths.bcl_dir).exists()) error "ERROR: bcl_dir not found: ${paths.bcl_dir}"
+        if (!paths.bcl_dir) error "--bcl_dir is required when --run_from bcl"
+        if (!file(paths.bcl_dir).exists()) error "bcl_dir not found: ${paths.bcl_dir}"
     }
     if (run_from == 'fastq') {
-        if (!paths.fastq_dir) error "ERROR: --fastq_dir is required when --run_from fastq"
+        if (!paths.fastq_dir) error "--fastq_dir is required when --run_from fastq"
         paths.fastq_dir.each { d ->
-            if (!file(d).exists()) error "ERROR: fastq_dir not found: ${d}"
+            if (!file(d).exists()) error "fastq_dir not found: ${d}"
         }
     }
     if (run_from == 'cellranger' && !paths.outs_dir)
-        error "ERROR: --outs_dir is required when --run_from cellranger"
+        error "--outs_dir is required when --run_from cellranger"
 
     def extras = resolve_extras()
     if ('viral' in extras) {
         if (!params.viral_piscem_index || !file(params.viral_piscem_index).exists())
-            error "ERROR: --extras viral requires viral_piscem_index: ${params.viral_piscem_index}"
+            error "--extras viral requires viral_piscem_index: ${params.viral_piscem_index}"
         if (!params.viral_t2g || !file(params.viral_t2g).exists())
-            error "ERROR: --extras viral requires viral_t2g: ${params.viral_t2g}"
+            error "--extras viral requires viral_t2g: ${params.viral_t2g}"
         if (!(params.bamtofastq_bin ==~ /^https?:.*/) && !file(params.bamtofastq_bin).exists())
-            error "ERROR: --extras viral requires bamtofastq_bin: ${params.bamtofastq_bin}"
+            error "--extras viral requires bamtofastq_bin: ${params.bamtofastq_bin}"
     }
     if ('velocity' in extras) {
         def spliceu = [human: params.spliceu_index_human, mouse: params.spliceu_index_mouse]
         def missing = spliceu.findAll { _sp, idx -> !idx || !file(idx).exists() }
         if (missing.size() == spliceu.size())
-            error "ERROR: --extras velocity requires a spliceu index: ${spliceu.values().join(', ')}"
-        missing.each { sp, idx -> log.warn "WARNING: --extras velocity: no ${sp} spliceu index (${idx}), ${sp} libraries will fail" }
+            error "--extras velocity requires a spliceu index: ${spliceu.values().join(', ')}"
+        missing.each { sp, idx -> log.warn "--extras velocity: no ${sp} spliceu index (${idx}), ${sp} libraries will fail" }
     }
 }
 
@@ -53,7 +53,7 @@ def preflight_check(Map paths) {
 def resolve_run_from() {
     def rf = (params.run_from ?: 'bcl').toString().toLowerCase()
     if (!['bcl', 'fastq', 'cellranger'].contains(rf))
-        error "ERROR: --run_from must be 'bcl', 'fastq' or 'cellranger' (got: '${params.run_from}')"
+        error "--run_from must be 'bcl', 'fastq' or 'cellranger' (got: '${params.run_from}')"
     return rf
 }
 
@@ -61,7 +61,7 @@ def resolve_extras() {
     def extras = (params.extras ?: '').toString().tokenize(',')*.trim()*.toLowerCase().findAll { e -> e }
     def unknown = extras - ['velocity', 'viral']
     if (unknown)
-        error "ERROR: unknown --extras: ${unknown.join(', ')} (valid: velocity, viral)"
+        error "unknown --extras: ${unknown.join(', ')} (valid: velocity, viral)"
     return extras
 }
 
@@ -69,27 +69,33 @@ def preflight_flex(String ss_path) {
     if (!read_samplesheet_rows(ss_path).any { row -> row.assay == 'Flex' }) return
 
     if (!(params.flex_backend in ['cellranger', 'cyto', 'both']))
-        error "ERROR: --flex_backend must be 'cellranger', 'cyto', or 'both' (got '${params.flex_backend}')"
+        error "--flex_backend must be 'cellranger', 'cyto', or 'both' (got '${params.flex_backend}')"
 
     def uses_cr   = params.flex_backend in ['cellranger', 'both']
     def uses_cyto = params.flex_backend in ['cyto', 'both']
 
     if (uses_cr) {
         if (!params.flex_probe_set)
-            error "ERROR: Flex run requires --flex_probe_set (standard 10x probe set CSV) when flex_backend includes cellranger."
+            error "Flex run requires --flex_probe_set (standard 10x probe set CSV) when flex_backend includes cellranger."
         if (!file(params.flex_probe_set).exists())
-            error "ERROR: --flex_probe_set not found: ${params.flex_probe_set}"
+            error "--flex_probe_set not found: ${params.flex_probe_set}"
     }
     if (params.flex_probe_set_custom && !file(params.flex_probe_set_custom).exists())
-        error "ERROR: --flex_probe_set_custom not found: ${params.flex_probe_set_custom}"
+        error "--flex_probe_set_custom not found: ${params.flex_probe_set_custom}"
     if (params.flex_samples_file && !file(params.flex_samples_file).exists())
-        error "ERROR: --flex_samples_file not found: ${params.flex_samples_file}"
+        error "--flex_samples_file not found: ${params.flex_samples_file}"
 
     if (uses_cyto) {
+        if (!params.flex_probe_set && !params.flex_probe_set_custom)
+            error "--flex_backend cyto needs --flex_probe_set or --flex_probe_set_custom"
         if (!params.container_cyto || !file(params.container_cyto).exists())
-            error "ERROR: cyto container not found at '${params.container_cyto}'. " +
+            error "cyto container not found at '${params.container_cyto}'. " +
                   "Build it: apptainer build ${params.container_cyto} OSCAR/containers/cyto.def"
     }
+}
+
+def counts_with_multi(meta) {
+    (meta.modality in ['GEX', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR'] && meta.assay != 'ASAP') || meta.assay == 'Flex'
 }
 
 def refs_for(meta) {
@@ -126,9 +132,7 @@ workflow {
 
     def primary_run_name = params.run_name
     if (!primary_run_name || primary_run_name == 'null') {
-        primary_run_name = paths.bcl_dir
-            ? file(paths.bcl_dir).name.replaceAll(/_bcl$/, '')
-            : 'run'
+        primary_run_name = paths.bcl_dir ? run_name_for(file(paths.bcl_dir)) : 'run'
     }
 
     preflight_check(paths)
@@ -142,25 +146,26 @@ workflow {
 
     def si_indexes_fallback = load_si_indexes(projectDir.toString(), params.sequencer)
     if (run_from != 'bcl')
-        log.info "INFO: No BCL dir, using params.sequencer='${params.sequencer}' for i5 orientation"
+        log.info "No BCL dir, using params.sequencer='${params.sequencer}' for i5 orientation"
 
     def all_rows = all_ss_paths.collectMany { ss_path ->
         parse_samplesheet(ss_path, si_indexes_fallback, primary_run_name, paths.adt_files_dir)
     }
-    channel.fromList(all_rows).set { ch_meta }
+    def conflicts = find_meta_conflicts(all_rows)
+    if (conflicts)
+        error "samplesheets disagree about the same library:\n  " + conflicts.join("\n  ")
+    // A library listed in several samplesheets is counted once, from the first sheet's row.
+    channel.fromList(all_rows.unique(false) { m -> m.id }).set { ch_meta }
 
 
     if (run_from == 'cellranger') {
         ch_meta
-            .filter { meta ->
-                (meta.modality in ['GEX', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR'] \
-                    && meta.assay != 'ASAP') || meta.assay == 'Flex'
-            }
+            .filter { meta -> counts_with_multi(meta) }
             .map { meta -> [meta.library_id, meta] }
             .groupTuple(by: 0)
             .map { lid, metas -> [lid, metas, file("${paths.outs_dir}/${lid}/outs")] }
             .filter { _lid, _metas, outs -> outs.exists() }
-            .ifEmpty { error "ERROR: no cellranger outs found under ${paths.outs_dir}, expected ${paths.outs_dir}/<library_id>/outs" }
+            .ifEmpty { error "no cellranger outs found under ${paths.outs_dir}, expected ${paths.outs_dir}/<library_id>/outs" }
             .set { ch_gex_outs }
 
         ch_meta
@@ -173,13 +178,11 @@ workflow {
             .set { ch_atac_routed }
 
         ch_atac_routed.missing.subscribe { meta, outs ->
-            log.warn "WARN: no cellranger-atac outs for '${meta.library_id}' at ${outs}, skipping ATAC QC"
+            log.warn "no cellranger-atac outs for '${meta.library_id}' at ${outs}, skipping ATAC QC"
         }
 
-        ch_atac_routed.found.set { ch_atac_outs }
-
         QC_GEX(ch_gex_outs)
-        QC_ATAC(ch_atac_outs)
+        QC_ATAC(ch_atac_routed.found)
 
     } else {
         if (run_from == 'fastq') {
@@ -196,7 +199,7 @@ workflow {
                     [meta, fastq_dir, fqs]
                 }
                 .filter { _meta, _fastq_dir, fqs -> !fqs.isEmpty() }
-                .ifEmpty { error "ERROR: no FASTQs matched any library under ${paths.fastq_dir}, expected files named <sample_id>_S<n>_*.fastq.gz" }
+                .ifEmpty { error "no FASTQs matched any library under ${paths.fastq_dir}, expected files named <sample_id>_S<n>_*.fastq.gz" }
                 .set { ch_fastqs }
         } else {
             def bcl_paths = [paths.bcl_dir]
@@ -205,41 +208,26 @@ workflow {
                 bcl_paths += paths.extra_bcl_dirs
                 if (paths.extra_samplesheets) {
                     if (paths.extra_samplesheets.size() != paths.extra_bcl_dirs.size())
-                        error "ERROR: --extra_samplesheets count (${paths.extra_samplesheets.size()}) must match --extra_bcl_dirs (${paths.extra_bcl_dirs.size()})"
+                        error "--extra_samplesheets count (${paths.extra_samplesheets.size()}) must match --extra_bcl_dirs (${paths.extra_bcl_dirs.size()})"
                     bcl_ss += paths.extra_samplesheets
                 } else {
                     bcl_ss += paths.extra_bcl_dirs.collect { _b -> paths.samplesheet }
                 }
             }
 
-            def meta_bcl_pairs = []
-            def bcl_rows       = []
-            [bcl_paths, bcl_ss].transpose().each { bcl_path, ss_path ->
+            def meta_bcl_pairs = [bcl_paths, bcl_ss].transpose().collectMany { bcl_path, ss_path ->
                 def flowcell_dir = file(bcl_path)
-                def bcl_si  = load_si_indexes(projectDir.toString(), detect_sequencer(bcl_path, params.sequencer))
-                def run_nm  = flowcell_dir.name.replaceAll(/_bcl$/, '')
-                parse_samplesheet(ss_path, bcl_si, run_nm, paths.adt_files_dir).each { meta ->
-                    meta_bcl_pairs << [meta, flowcell_dir]
-                    bcl_rows       << meta
-                }
+                def bcl_si       = load_si_indexes(projectDir.toString(), detect_sequencer(bcl_path, params.sequencer))
+                parse_samplesheet(ss_path, bcl_si, run_name_for(flowcell_dir), paths.adt_files_dir).collect { meta -> [meta, flowcell_dir] }
             }
-            def conflicts = find_meta_conflicts(bcl_rows)
-            if (conflicts)
-                error "ERROR: samplesheets disagree about the same library:\n  " + conflicts.join("\n  ")
 
-            def seen_ids    = [] as Set
-            def unique_rows = bcl_rows.findAll { m -> seen_ids.add(m.id) }
-            channel.fromList(unique_rows).set { ch_meta }
-            channel.fromList(meta_bcl_pairs).set { ch_meta_bcl }
-
-            DEMUX(ch_meta_bcl)
+            DEMUX(channel.fromList(meta_bcl_pairs))
             ch_fastqs = DEMUX.out
         }
 
         ch_fastqs
             .branch { meta, _fastq_dir, _fqs ->
-                gex:      (meta.modality in ['GEX', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR'] \
-                          && meta.assay != 'ASAP') || meta.assay == 'Flex'
+                gex:      counts_with_multi(meta)
                 atac:     meta.modality == 'ATAC'
                 asap_adt: meta.assay == 'ASAP' && meta.modality in ['ADT', 'HTO']
                 skip:     true
@@ -247,7 +235,7 @@ workflow {
             .set { ch_routed }
 
         ch_routed.skip.subscribe { meta, _fastq_dir, _fqs ->
-            log.warn "WARN: '${meta.id}' (assay=${meta.assay}, modality=${meta.modality}) matched no counting route, not counted"
+            log.warn "'${meta.id}' (assay=${meta.assay}, modality=${meta.modality}) matched no counting route, not counted"
         }
 
         ch_routed.gex
@@ -306,7 +294,7 @@ workflow {
         QUANT_EXTRA(
             COUNT_GEX.out,
             ch_gex_for_velocity,
-            QC_GEX.out.barcodes,
+            QC_GEX.out,
             extras,
             primary_run_name
         )

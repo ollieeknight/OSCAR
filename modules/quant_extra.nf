@@ -50,23 +50,15 @@ process SIMPLEAF_VELOCITY {
                saveAs: { fn -> file(fn).name }
 
     input:
-    tuple val(meta), val(gex_fastq_dirs), val(simpleaf_chemistry), path(barcodes)
-    path spliceu_index
+    tuple val(meta), val(simpleaf_chemistry), path(spliceu_index), path(gex_fastqs, stageAs: 'fastqs/run_???/*'), path(barcodes)
 
     output:
     tuple val(meta), path("velocity_out/*"), emit: counts
 
     script:
     """
-    r1=\$(find ${gex_fastq_dirs.replace(',', ' ')} \\
-              -name '${meta.id}*_R1_*.fastq.gz' 2>/dev/null | sort | paste -sd',')
-    r2=\$(find ${gex_fastq_dirs.replace(',', ' ')} \\
-              -name '${meta.id}*_R2_*.fastq.gz' 2>/dev/null | sort | paste -sd',')
-
-    if [ -z "\$r1" ] || [ -z "\$r2" ]; then
-        echo "ERROR: no FASTQs found for ${meta.id} in: ${gex_fastq_dirs}" >&2
-        exit 1
-    fi
+    r1=\$(ls fastqs/*/*_R1_*.fastq.gz | paste -sd',')
+    r2=\$(ls fastqs/*/*_R2_*.fastq.gz | paste -sd',')
 
     sed 's/-1\$//' ${barcodes} > barcodes_clean.txt
 
@@ -89,7 +81,7 @@ process SIMPLEAF_VELOCITY {
     mv velocity/af_quant/alevin/* velocity_out/
     mv velocity/af_quant/quant.json velocity/af_quant/featureDump.txt \\
        velocity/af_quant/gene_id_to_name.tsv velocity_out/
-    cat velocity/af_map/map_info.json > velocity_out/map_info.json
+    mv velocity/af_map/map_info.json velocity_out/
     rm -rf velocity
     """
 }

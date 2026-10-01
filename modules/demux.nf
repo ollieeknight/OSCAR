@@ -1,90 +1,50 @@
 include { get_chemistry_family } from '../lib/chemistry'
 
-def get_override_cycles(assay, chemistry, index_type, modality, num_reads, index_seqs = null, index_len = 10) {
+// CITE/GEX masks depend only on index type and chemistry family; VDJ needs a 5' chemistry.
+def get_override_cycles(Map sp, int num_reads) {
     def masks = [
-        'SI_SC3Pv2_GEX':        [3: 'Y26N*;I8N*;Y98N*',           4: 'Y26N*;I8N*;N*;Y98N*'],
-        'SI_SC3Pv2_ADT':        [3: 'Y26N*;I8N*;Y98N*',           4: 'Y26N*;I8N*;N*;Y98N*'],
-        'SI_SC3Pv2_HTO':        [3: 'Y26N*;I8N*;Y98N*',           4: 'Y26N*;I8N*;N*;Y98N*'],
-        'SI_SC3Pv3_GEX':        [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
-        'SI_SC3Pv3_ADT':        [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
-        'SI_SC3Pv3_HTO':        [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
-        'SI_SC3Pv4_GEX':        [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
-        'SI_SC3Pv4_ADT':        [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
-        'SI_SC3Pv4_HTO':        [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
-        'SI_SC5P_GEX':          [3: 'Y26N*;I8N*;Y90N*',           4: 'Y26N*;I8N*;N*;Y90N*'],
-        'SI_SC5P_ADT':          [3: 'Y26N*;I8N*;Y90N*',           4: 'Y26N*;I8N*;N*;Y90N*'],
-        'SI_SC5P_HTO':          [3: 'Y26N*;I8N*;Y90N*',           4: 'Y26N*;I8N*;N*;Y90N*'],
-        'SI_SC5P_VDJ':          [3: 'Y26N*;I8N*;Y90N*',           4: 'Y26N*;I8N*;N*;Y90N*'],
-        'SI_DOGMA_ARCv1_ADT':   [3: 'Y24N*;I8N*;Y90N*',           4: 'Y24N*;I8N*;N*;Y90N*'],
-        'SI_DOGMA_ARCv1_HTO':   [3: 'Y28N*;I8N*;Y90N*',           4: 'Y28N*;I8N*;N*;Y90N*'],
-        'DI_SC3Pv2_GEX':        [4: 'Y26N*;I8N*;N*;Y98N*'],
-        'DI_SC3Pv2_ADT':        [4: 'Y26N*;I8N*;N*;Y98N*'],
-        'DI_SC3Pv2_HTO':        [4: 'Y26N*;I8N*;N*;Y98N*'],
-        'DI_SC3Pv3_GEX':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
-        'DI_SC3Pv3_ADT':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
-        'DI_SC3Pv3_HTO':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
-        'DI_SC3Pv4_GEX':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
-        'DI_SC3Pv4_ADT':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
-        'DI_SC3Pv4_HTO':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
-        'DI_SC5P_GEX':          [4: 'Y26N*;I10N*;I10N*;Y90N*'],
-        'DI_SC5P_ADT':          [4: 'Y26N*;I10N*;I10N*;Y90N*'],
-        'DI_SC5P_HTO':          [4: 'Y26N*;I10N*;I10N*;Y90N*'],
-        'DI_SC5P_VDJ':          [4: 'Y26N*;I10N*;I10N*;Y90N*'],
-        'DI_SC5Pv3_GEX':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
-        'DI_SC5Pv3_ADT':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
-        'DI_SC5Pv3_HTO':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
-        'DI_SC5Pv3_VDJ':        [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'SI_SC3Pv2':              [3: 'Y26N*;I8N*;Y98N*',  4: 'Y26N*;I8N*;N*;Y98N*'],
+        'SI_SC3Pv3':              [3: 'Y28N*;I8N*;Y90N*',  4: 'Y28N*;I8N*;N*;Y90N*'],
+        'SI_SC3Pv4':              [3: 'Y28N*;I8N*;Y90N*',  4: 'Y28N*;I8N*;N*;Y90N*'],
+        'SI_SC5P':                [3: 'Y26N*;I8N*;Y90N*',  4: 'Y26N*;I8N*;N*;Y90N*'],
+        'DI_SC3Pv2':              [4: 'Y26N*;I8N*;N*;Y98N*'],
+        'DI_SC3Pv3':              [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'DI_SC3Pv4':              [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'DI_SC5P':                [4: 'Y26N*;I10N*;I10N*;Y90N*'],
+        'DI_SC5Pv3':              [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'SI_DOGMA_ARCv1_ADT':     [3: 'Y24N*;I8N*;Y90N*',  4: 'Y24N*;I8N*;N*;Y90N*'],
+        'SI_DOGMA_ARCv1_HTO':     [3: 'Y28N*;I8N*;Y90N*',  4: 'Y28N*;I8N*;N*;Y90N*'],
         'DI_Multiome_ARCv1_GEX':  [4: 'Y28N*;I10N*;I10N*;Y90N*'],
         'DI_Multiome_ARCv1_ATAC': [4: '50N*;I8N*;Y24N*;Y49N*'],
-        'DI_DOGMA_ARCv1_GEX':   [4: 'Y28N*;I10N*;I10N*;Y90N*'],
-        'DI_DOGMA_ARCv1_ATAC':  [4: 'Y100N*;I8N*;Y24N*;Y100N*'],
-        'DI_DOGMA_ARCv1_ADT':   [4: 'Y28N*;I8N*;N*;Y90N*'],
-        'DI_DOGMA_ARCv1_HTO':   [4: 'Y28N*;I8N*;N*;Y90N*'],
-        'DI_ATAC_ATAC':         [4: 'Y50N*;I8N*;Y16N*;Y50N*'],
-        'DI_ASAP_ATAC':         [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
-        'DI_ASAP_ADT':          [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
-        'DI_ASAP_HTO':          [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
-        'DI_Flex-v2_GEX':       [4: 'Y*;I10;I10;Y*'],
+        'DI_DOGMA_ARCv1_GEX':     [4: 'Y28N*;I10N*;I10N*;Y90N*'],
+        'DI_DOGMA_ARCv1_ATAC':    [4: 'Y100N*;I8N*;Y24N*;Y100N*'],
+        'DI_DOGMA_ARCv1_ADT':     [4: 'Y28N*;I8N*;N*;Y90N*'],
+        'DI_DOGMA_ARCv1_HTO':     [4: 'Y28N*;I8N*;N*;Y90N*'],
+        'DI_ATAC_ATAC':           [4: 'Y50N*;I8N*;Y16N*;Y50N*'],
+        'DI_ASAP_ATAC':           [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
+        'DI_ASAP_ADT':            [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
+        'DI_ASAP_HTO':            [4: 'Y100N*;I8N*;Y16N*;Y100N*'],
+        'DI_Flex-v2_GEX':         [4: 'Y*;I10;I10;Y*'],
     ]
 
-    def mod_key = modality.replaceAll(/^VDJ-[TB]$/, 'VDJ').replaceAll(/^CRISPR$/, 'GEX')
-    def key
-    if (assay in ['CITE', 'GEX']) {
-        def family = get_chemistry_family(chemistry)
-        key = (family in ['SC3Pv2', 'SC3Pv3', 'SC3Pv4', 'SC5P', 'SC5Pv3'])
-            ? "${index_type}_${family}_${mod_key}"
+    def mod = sp.modality.replaceAll(/^VDJ-[TB]$/, 'VDJ').replaceAll(/^CRISPR$/, 'GEX')
+    def family = sp.assay in ['CITE', 'GEX'] ? get_chemistry_family(sp.chemistry) : null
+    def key = family && (mod in ['GEX', 'ADT', 'HTO'] || (mod == 'VDJ' && family.startsWith('SC5P'))) ? "${sp.index_type}_${family}"
+            : sp.assay in ['CITE', 'GEX'] ? null
+            : sp.assay == 'Flex'          ? 'DI_Flex-v2_GEX'
+            : sp.assay == 'Multiome'      ? "DI_Multiome_ARCv1_${mod}"
+            : sp.assay == 'DOGMA'         ? (sp.modality == 'ATAC' ? 'DI_DOGMA_ARCv1_ATAC' : "${sp.index_type}_DOGMA_ARCv1_${mod}")
+            : sp.assay == 'ASAP'          ? "DI_ASAP_${mod}"
+            : sp.assay == 'ATAC'          ? 'DI_ATAC_ATAC'
             : null
-    } else if (assay == 'Flex') {
-        key = "DI_Flex-v2_GEX"
-    } else if (assay == 'Multiome') {
-        key = "DI_Multiome_ARCv1_${mod_key}"
-    } else if (assay == 'DOGMA') {
-        key = (modality == 'ATAC') ? "DI_DOGMA_ARCv1_ATAC" : "${index_type}_DOGMA_ARCv1_${mod_key}"
-    } else if (assay == 'ASAP') {
-        key = "DI_ASAP_${mod_key}"
-    } else if (assay == 'ATAC') {
-        key = "DI_ATAC_ATAC"
-    } else {
-        key = null
-    }
+    def oc = masks[key?.toString()]
+    if (!oc)
+        error "Cannot determine OverrideCycles: assay=${sp.assay} chem=${sp.chemistry} index_type=${sp.index_type} modality=${sp.modality} (key=${key})"
+    oc = oc[num_reads]
+    if (!oc) return null
 
-    if (!key || !masks.containsKey(key))
-        error "Cannot determine OverrideCycles: assay=${assay} chem=${chemistry} index_type=${index_type} modality=${modality} num_reads=${num_reads} (key=${key})"
-
-    def mask_entry = masks[key]
-    if (!mask_entry.containsKey(num_reads))
-        return null
-
-    def oc = mask_entry[num_reads]
-
-    if (index_len == 8) {
-        oc = oc.replaceAll(/I10N\*/, 'I8N2')
-    }
-
-    if (num_reads == 4 && index_seqs != null && !index_seqs.is_dual) {
-        oc = apply_si_on_di_correction(oc, index_seqs.rows[0].i7.length())
-    }
-
+    if (sp.index_len == 8) oc = oc.replaceAll(/I10N\*/, 'I8N2')
+    if (num_reads == 4 && !sp.is_dual) oc = apply_si_on_di_correction(oc, sp.index_len)
     return oc
 }
 
@@ -113,15 +73,15 @@ process GENERATE_SAMPLESHEET {
     container "${params.container_bclconvert}"
 
     input:
-    tuple val(demux_key), path(bcl_dir), val(bcl_parent), val(is_dual), val(sample_specs)
+    tuple val(demux_key), path(bcl_dir), val(fastq_dir), val(is_dual), val(sample_specs)
 
     output:
-    tuple val(demux_key), path(bcl_dir), val(bcl_parent), path("SampleSheet.csv"), emit: samplesheet
+    tuple val(demux_key), path(bcl_dir), val(fastq_dir), path("SampleSheet.csv"), emit: samplesheet
 
     script:
     def specs = sample_specs.collect { sp ->
-        def oc4 = get_override_cycles(sp.assay, sp.chemistry, sp.index_type, sp.modality, 4, [is_dual: sp.is_dual, rows: [[i7: sp.i7]]], sp.index_len)
-        def oc3 = get_override_cycles(sp.assay, sp.chemistry, sp.index_type, sp.modality, 3, [is_dual: sp.is_dual, rows: [[i7: sp.i7]]], sp.index_len) ?: oc4
+        def oc4 = get_override_cycles(sp, 4)
+        def oc3 = get_override_cycles(sp, 3) ?: oc4
         [id: sp.id, i7: sp.i7, i5: sp.i5 ?: '', is_dual: sp.is_dual, oc4: oc4, oc3: oc3]
     }
     def per_sample = specs.collect { sp -> "${sp.oc4}|${sp.oc3}" }.unique().size() > 1
@@ -196,48 +156,39 @@ SPECEOF
     """
 }
 
+// Clears FASTQs from an earlier demux so the published folder holds only this run's files.
 process CLEAN_FASTQ_DIR {
-    tag "$bcl_name"
+    tag "$fastq_dir"
     executor 'local'
 
     input:
-    tuple val(bcl_name), val(bcl_parent)
+    val(fastq_dir)
 
     output:
-    tuple val(bcl_name), val(true), emit: done
+    val(fastq_dir), emit: done
 
     script:
-    def run = bcl_name.replaceAll(/_bcl.*$/, '')
     """
-    mkdir -p "${bcl_parent}/${run}_fastq"
-    rm -f "${bcl_parent}/${run}_fastq"/*.fastq.gz
+    mkdir -p "${fastq_dir}"
+    rm -f "${fastq_dir}"/*.fastq.gz
     """
 }
-
 
 process BCLCONVERT {
     tag "$demux_key L$lane"
     container "${params.container_bclconvert}"
-    publishDir {
-        def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
-        "${bcl_parent}/${run}_fastq"
-    }, mode: 'copy', pattern: "fastqs/*.fastq.gz", saveAs: { fn -> file(fn).name }
-
-    publishDir {
-        def run = bcl_dir.name.replaceAll(/_bcl.*$/, '')
-        "${bcl_parent}/${run}_fastq/Reports/${demux_key}_L${lane}"
-    }, mode: 'copy', pattern: "fastqs/Reports/*", saveAs: { fn -> file(fn).name }
+    publishDir { fastq_dir }, mode: 'copy', pattern: "fastqs/*.fastq.gz", saveAs: { fn -> file(fn).name }
+    publishDir { "${fastq_dir}/Reports/${demux_key}_L${lane}" }, mode: 'copy', pattern: "fastqs/Reports/*", saveAs: { fn -> file(fn).name }
 
     input:
-    tuple val(demux_key), path(bcl_dir), val(bcl_parent), path(samplesheet), val(lane)
+    tuple val(demux_key), path(bcl_dir), val(fastq_dir), path(samplesheet), val(lane)
 
     output:
-    tuple val(demux_key), val(bcl_dir.name), val(bcl_parent), path("fastqs/*.fastq.gz"), emit: fastqs
-    tuple val(demux_key), val(bcl_dir.name), val(bcl_parent), val(lane), path("fastqs/Reports/Demultiplex_Stats.csv"), path("fastqs/Reports/Top_Unknown_Barcodes.csv"), emit: reports
+    tuple val(demux_key), val(fastq_dir), path("fastqs/*.fastq.gz"), emit: fastqs
+    tuple val(fastq_dir), path("fastqs/Reports/Demultiplex_Stats.csv"), path("fastqs/Reports/Top_Unknown_Barcodes.csv"), emit: reports
 
     script:
     def n_tiles      = Math.max(1, (task.cpus / 8).toInteger())
-    def n_convert    = Math.max(1, (task.cpus / 8).toInteger())
     def n_compress   = Math.max(1, (task.cpus / 2).toInteger())
     def n_decompress = Math.max(1, (task.cpus / 4).toInteger())
     """
@@ -247,7 +198,7 @@ process BCLCONVERT {
         --sample-sheet                     ${samplesheet} \\
         --bcl-only-lane                    ${lane} \\
         --bcl-num-parallel-tiles           ${n_tiles} \\
-        --bcl-num-conversion-threads       ${n_convert} \\
+        --bcl-num-conversion-threads       ${n_tiles} \\
         --bcl-num-compression-threads      ${n_compress} \\
         --bcl-num-decompression-threads    ${n_decompress}
     """

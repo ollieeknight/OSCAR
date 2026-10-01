@@ -8,8 +8,6 @@ process AMULET {
     tuple val(meta), path(outs_dir)
 
     output:
-    tuple val(meta), path("amulet_out/MultipletSummary.txt"),         emit: summary
-    tuple val(meta), path("amulet_out/MultipletBarcodes.txt"),        emit: barcodes
     path "amulet_out/*"
 
     script:
@@ -42,7 +40,7 @@ process MGATK2 {
     tuple val(meta), path(outs_dir)
 
     output:
-    tuple val(meta), path("mgatk2/"), emit: results
+    path "mgatk2/"
 
     script:
     def bam       = "${outs_dir}/possorted_bam.bam"
@@ -67,7 +65,7 @@ process MACS3 {
     tuple val(meta), path(outs_dir)
 
     output:
-    tuple val(meta), path("peaks/"), emit: peaks
+    path "peaks/"
 
     script:
     def gsize = (meta.species == 'human') ? 'hs' : 'mm'

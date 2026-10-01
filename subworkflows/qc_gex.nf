@@ -6,36 +6,26 @@ workflow QC_GEX {
         ch_gex_outs
 
     main:
+        // Only the fields QC uses, so other samplesheet edits do not rerun cellbender.
         ch_gex_outs
-            .map { library_id, metas, outs -> [ metas[0] + [library_id: library_id], outs ] }
+            .map { library_id, metas, outs ->
+                [[library_id: library_id, run_name: metas[0].run_name, species: metas[0].species], metas[0].n_donors, outs]
+            }
             .set { ch_input }
 
-        CELLBENDER(ch_input)
+        CELLBENDER(ch_input.map { meta, _n, outs -> [meta, outs] })
         SCRUBLET(CELLBENDER.out.h5)
 
         ch_input
-            .filter { meta, _outs -> meta.n_donors > 1 && meta.species == 'human' }
-            .set { ch_multi_donor }
-
-        ch_input
-            .filter { meta, _outs -> meta.n_donors > 1 && meta.species != 'human' }
-            .subscribe { meta, _outs ->
-                log.warn "WARN: '${meta.library_id}' declares n_donors=${meta.n_donors} but species='${meta.species}'; genotyping is human-only, skipping donor demultiplexing"
+            .join(CELLBENDER.out.barcodes)
+            .map { meta, n_donors, outs, barcodes ->
+                def bam = "${outs}/per_sample_outs/${meta.library_id}/sample_alignments.bam"
+                [meta, n_donors, file(bam), file("${bam}.bai"), barcodes]
             }
-
-        ch_snp_input = ch_multi_donor
-            .join(CELLBENDER.out.barcodes, by: 0)
-            .map { meta, outs, barcodes ->
-                def bam = file("${outs}/per_sample_outs/${meta.library_id}/sample_alignments.bam")
-                def bai = file("${outs}/per_sample_outs/${meta.library_id}/sample_alignments.bam.bai")
-                [ meta, bam, bai, barcodes ]
-            }
+            .set { ch_snp_input }
 
         GENOTYPE(ch_snp_input, 'gex')
 
     emit:
-        cellbender = CELLBENDER.out.h5
-        barcodes   = CELLBENDER.out.barcodes
-        doublets   = SCRUBLET.out.doublets
-        vireo      = GENOTYPE.out
+        CELLBENDER.out.barcodes
 }

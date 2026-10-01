@@ -2,7 +2,7 @@ process CELLSNP_LITE {
     tag "$meta.library_id ($mode)"
     container "${params.container_cellsnp}"
     publishDir { "${params.outdir}/${meta.run_name}_outs/${mode == 'atac' ? "${meta.library_id}_ATAC" : meta.library_id}/vireo" }, mode: 'copy',
-               saveAs: { fn -> file(fn).name }
+               pattern: 'cellsnp/*', saveAs: { fn -> file(fn).name }
 
     input:
     tuple val(meta), path(bam), path(bai), path(barcodes)
@@ -37,11 +37,10 @@ process VIREO {
                saveAs: { fn -> file(fn).name }
 
     input:
-    tuple val(meta), path(cellsnp_dir)
+    tuple val(meta), path(cellsnp_dir), val(n_donors)
     val(mode)
 
     output:
-    tuple val(meta), path("vireo_out/donor_ids.tsv"), emit: donor_ids
     path "vireo_out/*"
 
     script:
@@ -50,7 +49,7 @@ process VIREO {
     vireo \\
         -c ${cellsnp_dir} \\
         -o vireo_out \\
-        -N ${meta.n_donors} \\
+        -N ${n_donors} \\
         -p ${task.cpus} \\
         --randSeed 42
     """

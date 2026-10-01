@@ -56,7 +56,6 @@ process SCRUBLET {
     mkdir -p scrublet_out
 
     python << 'PYEOF'
-import os
 import scanpy as sc
 import pandas as pd
 
@@ -79,10 +78,9 @@ else:
 
 df = pd.DataFrame({
     'doublet_score': score,
-    'is_gex_doublet': (score > thr).astype(bool)
+    'is_gex_doublet': score > thr
 }, index=adata.obs_names)
 df.index.name = 'barcode'
-df.loc[df['doublet_score'].isna(), 'is_gex_doublet'] = False
 df.to_csv('scrublet_out/doublets.csv')
 PYEOF
     """

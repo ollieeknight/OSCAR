@@ -41,13 +41,13 @@ def resolve_index(String index, Map si_indexes) {
 def detect_sequencer(String bcl_path, String fallback) {
     def runinfo = new File("${bcl_path}/RunInfo.xml")
     if (!runinfo.exists()) {
-        log.warn "WARNING: RunInfo.xml not found in ${bcl_path}; falling back to params.sequencer='${fallback}'"
+        log.warn "RunInfo.xml not found in ${bcl_path}; falling back to params.sequencer='${fallback}'"
         return fallback
     }
     def text = runinfo.text
     def m    = text =~ /<Instrument>([^<]+)<\/Instrument>/
     if (!m) {
-        log.warn "WARNING: <Instrument> tag not found in ${bcl_path}/RunInfo.xml; falling back to params.sequencer='${fallback}'"
+        log.warn "<Instrument> tag not found in ${bcl_path}/RunInfo.xml; falling back to params.sequencer='${fallback}'"
         return fallback
     }
     def instrument_id = m[0][1].trim()
@@ -55,9 +55,17 @@ def detect_sequencer(String bcl_path, String fallback) {
                   : ['A', 'NB', 'NS', 'MN'].any { p -> instrument_id.startsWith(p) }  ? 'novaseq6000'
                   : null
     if (!sequencer) {
-        log.warn "WARNING: Unrecognised instrument ID '${instrument_id}' in ${bcl_path}/RunInfo.xml; falling back to params.sequencer='${fallback}'"
+        log.warn "Unrecognised instrument ID '${instrument_id}' in ${bcl_path}/RunInfo.xml; falling back to params.sequencer='${fallback}'"
         sequencer = fallback
     }
-    log.info "INFO: Flow cell '${instrument_id}' indicates a '${sequencer}' (i5 set to ${sequencer == 'novaseq_x' ? 'forward' : 'reverse-complement'})"
+    log.info "Flow cell '${instrument_id}' indicates a '${sequencer}' (i5 set to ${sequencer == 'novaseq_x' ? 'forward' : 'reverse-complement'})"
     return sequencer
+}
+
+def run_name_for(bcl_dir) {
+    bcl_dir.name.replaceAll(/_bcl$/, '')
+}
+
+def fastq_dir_for(bcl_dir) {
+    "${bcl_dir.parent}/${run_name_for(bcl_dir)}_fastq".toString()
 }
