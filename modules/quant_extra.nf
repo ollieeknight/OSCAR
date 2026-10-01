@@ -1,17 +1,16 @@
 process VIRAL_DETECT {
     tag "$meta.library_id"
     container "${params.container_simpleaf}"
-    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}" },
-               mode: 'copy'
+    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}" }, mode: 'copy'
 
     input:
     tuple val(meta), path(bam), path(bai), path(whitelist), val(simpleaf_chemistry)
-    path  viral_index
-    path  viral_t2g
-    path  bamtofastq_bin
+    path viral_index
+    path viral_t2g
+    path bamtofastq_bin
 
     output:
-    tuple val(meta), path("viral/"), emit: counts
+    path "viral/"
 
     script:
     """
@@ -45,22 +44,23 @@ process VIRAL_DETECT {
 process SIMPLEAF_VELOCITY {
     tag "$meta.library_id"
     container "${params.container_simpleaf}"
-    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}/velocity" },
-               mode: 'copy',
+    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}/velocity" }, mode: 'copy',
                saveAs: { fn -> file(fn).name }
 
     input:
     tuple val(meta), val(simpleaf_chemistry), path(spliceu_index), path(gex_fastqs, stageAs: 'fastqs/run_???/*'), path(barcodes)
 
     output:
-    tuple val(meta), path("velocity_out/*"), emit: counts
+    path "velocity/af_quant/alevin/*"
+    path "velocity/af_quant/{quant.json,featureDump.txt,gene_id_to_name.tsv}"
+    path "velocity/af_map/map_info.json"
 
     script:
     """
     r1=\$(ls fastqs/*/*_R1_*.fastq.gz | paste -sd',')
     r2=\$(ls fastqs/*/*_R2_*.fastq.gz | paste -sd',')
 
-    sed 's/-1\$//' ${barcodes} > barcodes_clean.txt
+    sed 's/-1\$//' ${barcodes} > barcodes.txt
 
     export ALEVIN_FRY_HOME=\${PWD}/.alevin_fry_home
     mkdir -p "\${ALEVIN_FRY_HOME}"
@@ -74,14 +74,7 @@ process SIMPLEAF_VELOCITY {
         --chemistry     ${simpleaf_chemistry} \\
         --t2g-map       ${spliceu_index}/t2g_3col.tsv \\
         --resolution    cr-like \\
-        --unfiltered-pl barcodes_clean.txt \\
+        --unfiltered-pl barcodes.txt \\
         --output        velocity
-
-    mkdir -p velocity_out
-    mv velocity/af_quant/alevin/* velocity_out/
-    mv velocity/af_quant/quant.json velocity/af_quant/featureDump.txt \\
-       velocity/af_quant/gene_id_to_name.tsv velocity_out/
-    mv velocity/af_map/map_info.json velocity_out/
-    rm -rf velocity
     """
 }

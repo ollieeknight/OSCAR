@@ -8,25 +8,19 @@ process AMULET {
     tuple val(meta), path(outs_dir)
 
     output:
-    path "amulet_out/*"
+    path "amulet/*"
 
     script:
-    def autosomes = (meta.species == 'human') ? '/opt/AMULET/human_autosomes.txt' : '/opt/AMULET/mouse_autosomes.txt'
-    def restriction = (meta.species == 'human') \
-        ? '/opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_hg38.bed' \
-        : '/opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_mm10.bed'
+    def genome = meta.species == 'human' ? 'hg38' : 'mm10'
     """
-    fragments=\$(find -L ${outs_dir} -name 'fragments.tsv.gz'   | sort | head -1)
-    singlecell=\$(find -L ${outs_dir} -name 'singlecell.csv'    | sort | head -1)
-
-    mkdir -p amulet_out
+    mkdir -p amulet
 
     AMULET.sh \\
-        "\$fragments" \\
-        "\$singlecell" \\
-        ${autosomes} \\
-        ${restriction} \\
-        amulet_out \\
+        ${outs_dir}/fragments.tsv.gz \\
+        ${outs_dir}/singlecell.csv \\
+        /opt/AMULET/${meta.species}_autosomes.txt \\
+        /opt/AMULET/RestrictionRepeatLists/restrictionlist_repeats_segdups_rmsk_${genome}.bed \\
+        amulet \\
         /opt/AMULET/
     """
 }
@@ -43,16 +37,14 @@ process MGATK2 {
     path "mgatk2/"
 
     script:
-    def bam       = "${outs_dir}/possorted_bam.bam"
-    def barcodes  = "${outs_dir}/filtered_peak_bc_matrix/barcodes.tsv"
     """
     mkdir -p mgatk2
 
     mgatk2 run \\
-        -i  ${bam} \\
-        -o  mgatk2 \\
-        -b  ${barcodes} \\
-        -c  ${task.cpus}
+        -i ${outs_dir}/possorted_bam.bam \\
+        -o mgatk2 \\
+        -b ${outs_dir}/filtered_peak_bc_matrix/barcodes.tsv \\
+        -c ${task.cpus}
     """
 }
 
@@ -68,26 +60,18 @@ process MACS3 {
     path "peaks/"
 
     script:
-    def gsize = (meta.species == 'human') ? 'hs' : 'mm'
     """
-    fragments=\$(find -L ${outs_dir} -name 'fragments.tsv.gz' | sort | head -1)
-    if [ -z "\$fragments" ]; then
-        echo "ERROR: fragments.tsv.gz not found in ${outs_dir}" >&2
-        exit 1
-    fi
-
-    mkdir -p peaks
     macs3 callpeak \\
-        -t <(zcat "\$fragments" | grep -v '^#' | cut -f1-3) \\
+        -t <(zcat ${outs_dir}/fragments.tsv.gz | grep -v '^#' | cut -f1-3) \\
         -f BED \\
         -n ${meta.library_id} \\
-        -g ${gsize} \\
+        -g ${meta.species == 'human' ? 'hs' : 'mm'} \\
         --nomodel \\
         --shift -75 \\
         --extsize 150 \\
         --keep-dup all \\
         --nolambda \\
         -q ${params.macs3_qvalue} \\
-        --outdir peaks/
+        --outdir peaks
     """
 }

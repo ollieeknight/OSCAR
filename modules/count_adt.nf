@@ -6,30 +6,14 @@ process FEATUREMAP {
     tuple val(meta), path(adt_csv)
 
     output:
-    tuple val(meta), path("FeaturesMismatch.t2g"), path("FeaturesMismatch.fa"), emit: index_files
+    tuple val(meta), path("features.t2g"), path("features.fa"), emit: features
 
     script:
     """
     featuremap ${adt_csv} \\
-        --t2g FeaturesMismatch.t2g \\
-        --fa  FeaturesMismatch.fa  \\
+        --t2g features.t2g \\
+        --fa  features.fa \\
         --header --quiet
-    """
-}
-
-process KALLISTO_INDEX {
-    tag "$meta.library_id"
-    container "${params.container_kallisto}"
-
-    input:
-    tuple val(meta), path(t2g), path(fa)
-
-    output:
-    tuple val(meta), path(t2g), path("FeaturesMismatch.idx"), emit: index
-
-    script:
-    """
-    kallisto index -i FeaturesMismatch.idx -k 15 ${fa}
     """
 }
 
@@ -43,12 +27,12 @@ process ASAP_TO_KITE {
     tuple val(meta), path(adt_fastqs, stageAs: 'fastqs/run_???/*')
 
     output:
-    tuple val(meta), path("kite_converted/"), emit: converted_fastqs
+    tuple val(meta), path("kite/"), emit: fastqs
 
     script:
     """
     for fq in fastqs/*/*.fastq.gz; do
-        flowcell=\$(gzip -dc "\$fq" | head -n1 | cut -d: -f3)
+        flowcell=\$(head -n1 <(gzip -dc "\$fq") | cut -d: -f3)
         sample=\$(basename "\$fq" | sed -E 's/_S[0-9]+_.*//')
         mkdir -p "sets/\$flowcell/\$sample"
         ln -s "\$PWD/\$fq" "sets/\$flowcell/\$sample/"
@@ -59,8 +43,8 @@ process ASAP_TO_KITE {
     asap_to_kite \\
         -ff "\$(IFS=,; echo "\${sets[*]}")" \\
         -sp "\$(IFS=,; echo "\${samples[*]}")" \\
-        -of kite_converted/"${meta.library_id}_ADT" \\
-        -on "${meta.library_id}_ADT" \\
+        -of kite \\
+        -on ADT \\
         -c  ${task.cpus}
     """
 }
@@ -70,84 +54,48 @@ process KALLISTO_BUS {
     container "${params.container_kallisto}"
 
     input:
-    tuple val(meta), path(t2g), path(idx), path(converted_dir)
+    tuple val(meta), path(t2g), path(fa), path(kite_dir)
 
     output:
-    tuple val(meta), path(t2g), path("bus_output/"), emit: bus
+    tuple val(meta), path(t2g), path("bus/"), emit: bus
 
     script:
     """
-    mkdir -p bus_output
+    kallisto index -i features.idx -k 15 ${fa}
 
     kallisto bus \\
-        -i ${idx} \\
-        -o bus_output \\
+        -i features.idx \\
+        -o bus \\
         -x 0,0,16:0,16,26:1,0,0 \\
         -t ${task.cpus} \\
-        ${converted_dir}/${meta.library_id}_ADT/${meta.library_id}_ADT_R1.fastq.gz \\
-        ${converted_dir}/${meta.library_id}_ADT/${meta.library_id}_ADT_R2.fastq.gz
+        ${kite_dir}/ADT_R1.fastq.gz \\
+        ${kite_dir}/ADT_R2.fastq.gz
     """
 }
 
-process BUSTOOLS_CORRECT {
+process BUSTOOLS {
     tag "$meta.library_id"
     container "${params.container_bustools}"
+    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}_ATAC/ADT" }, mode: 'copy'
 
     input:
     tuple val(meta), path(t2g), path(bus_dir)
     path(whitelist)
 
     output:
-    tuple val(meta), path(t2g), path(bus_dir), path("output_corrected.bus"), emit: corrected
+    path "cells_x_genes*"
 
     script:
     """
-    bustools correct \\
-        -w ${whitelist} \\
-        ${bus_dir}/output.bus \\
-        -o output_corrected.bus
-    """
-}
+    bustools correct -w ${whitelist} -p ${bus_dir}/output.bus \\
+        | bustools sort -t ${task.cpus} -m ${task.memory.toGiga()}G -o sorted.bus -
 
-process BUSTOOLS_SORT {
-    tag "$meta.library_id"
-    container "${params.container_bustools}"
-
-    input:
-    tuple val(meta), path(t2g), path(bus_dir), path(corrected_bus)
-
-    output:
-    tuple val(meta), path(t2g), path(bus_dir), path("output_sorted.bus"), emit: sorted
-
-    script:
-    """
-    bustools sort \\
-        -t ${task.cpus} \\
-        -m ${task.memory.toGiga()}G \\
-        -o output_sorted.bus \\
-        ${corrected_bus}
-    """
-}
-
-process BUSTOOLS_COUNT {
-    tag "$meta.library_id"
-    container "${params.container_bustools}"
-    publishDir { "${params.outdir}/${meta.run_name}_outs/${meta.library_id}_ATAC/ADT" }, mode: 'copy'
-
-    input:
-    tuple val(meta), path(t2g), path(bus_dir), path(sorted_bus)
-
-    output:
-    tuple val(meta), path("cells_x_genes*"), emit: counts
-
-    script:
-    """
     bustools count \\
         -o cells_x_genes \\
         --genecounts \\
         -g ${t2g} \\
         -e ${bus_dir}/matrix.ec \\
         -t ${bus_dir}/transcripts.txt \\
-        ${sorted_bus}
+        sorted.bus
     """
 }

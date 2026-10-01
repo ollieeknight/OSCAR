@@ -4,25 +4,23 @@ process CELLRANGER_ATAC {
     publishDir { "${params.outdir}/${meta.run_name}_outs" }, mode: 'copy'
 
     input:
-    tuple val(meta), path(atac_fastqs, stageAs: "fastqs/atac/run_???/*")
+    tuple val(meta), path(atac_fastqs, stageAs: 'fastqs/atac/run_???/*')
 
     output:
     tuple val(meta), path("${meta.library_id}_ATAC/outs"), emit: outs
 
     script:
-    def reference  = meta.species == 'human' ? params.ref_human : params.ref_mouse
-    def extra_args = (meta.assay == 'DOGMA') ? "\\\n        --chemistry ARC-v1" : ''
+    def reference = meta.species == 'human' ? params.ref_human : params.ref_mouse
+    def chemistry = meta.assay == 'DOGMA' ? '--chemistry ARC-v1' : ''
     """
-    stage_atac_fastqs.py \\
-        --sample-id  ${meta.id} \\
-        --min-reads  10000
+    stage_fastqs.py atac
 
     cellranger-atac count \\
-        --id        "${meta.library_id}_ATAC" \\
-        --reference "${reference}" \\
-        --fastqs    \$(cat fastq_dir.txt) \\
-        --sample    "${meta.id}" \\
+        --id         ${meta.library_id}_ATAC \\
+        --reference  ${reference} \\
+        --fastqs     staged/atac \\
+        --sample     ${meta.id} \\
         --localcores ${task.cpus} \\
-        --localmem  ${task.memory.toGiga()}${extra_args}
+        --localmem   ${task.memory.toGiga()} ${chemistry}
     """
 }

@@ -7,7 +7,7 @@ process FASTP {
     tuple val(run_name), val(fastq_dir), val(fastq_name), path(fastq)
 
     output:
-    tuple val(run_name), val(fastq_dir), path("${run_name}_${fastq_name}.{json,html}"), emit: report
+    path "${run_name}_${fastq_name}.{json,html}"
 
     script:
     """

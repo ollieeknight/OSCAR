@@ -97,9 +97,8 @@ out-of-memory, walltime, and the signals a killed child raises. Anything else
 fails immediately rather than burning a slot.
 
 Single-threaded tools are given one CPU on purpose. Check before raising one:
-`macs3`, `AMULET`, `bustools correct` and `bustools count` take no thread
-argument, and `scrublet` has its BLAS threads capped to `task.cpus` in the
-process itself.
+`macs3` and `AMULET` take no thread argument, and `scrublet` has its BLAS
+threads capped to `task.cpus` in the process itself.
 
 ## The generators
 

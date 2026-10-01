@@ -1,5 +1,3 @@
-include { get_flex_barcode_file; get_flex_whitelist_file } from '../lib/chemistry'
-
 process FLEX_PROBE_PREPARE {
     container "${params.container_python}"
 
@@ -18,30 +16,12 @@ process FLEX_PROBE_PREPARE {
     """
 }
 
-process FLEX_REFS {
-    container "${params.container_cellranger}"
-
-    input:
-    val(chemistry)
-
-    output:
-    path "probe_barcodes.txt",  emit: barcodes
-    path "cb_whitelist.txt.gz", emit: whitelist
-
-    script:
-    def barcodes = '/opt/cellranger-10.0.0/lib/python/cellranger/barcodes'
-    """
-    cp ${barcodes}/translation/${get_flex_barcode_file(chemistry)} probe_barcodes.txt
-    cp ${barcodes}/${get_flex_whitelist_file(chemistry)} cb_whitelist.txt.gz
-    """
-}
-
 process FLEX_SAMPLE_PREPARE {
     container "${params.container_python}"
 
     input:
-    path samples_file
-    path probe_barcodes_ref
+    path(samples_file)
+    path(probe_barcodes_ref)
 
     output:
     path "cyto_probe_barcodes.txt", emit: cyto_barcodes
@@ -59,25 +39,21 @@ process CYTO_FLEX {
     container "${params.container_cyto}"
 
     input:
-    tuple val(library_id), val(run_name),
-          path(probe_tsv_cyto),
-          path(cyto_probe_barcodes),
-          path(cb_whitelist),
-          val(cyto_preset),
-          path(gex_fastqs, stageAs: "fastqs/gex/run_???/*")
+    tuple val(library_id), val(run_name), path(gex_fastqs, stageAs: 'fastqs/gex/run_???/*'),
+          path(probe_tsv), path(probe_barcodes), path(whitelist), val(preset)
 
     output:
     tuple val(library_id), val(run_name), path("${library_id}_cyto"), emit: counts
 
     script:
-    def probes_arg = cyto_probe_barcodes.name == 'NO_FILE' ? '' : "-p ${cyto_probe_barcodes}"
+    def probes_arg = probe_barcodes.name == 'NO_FILE' ? '' : "-p ${probe_barcodes}"
     """
-    stage_cyto_fastqs.py --min-reads 10000
+    stage_fastqs.py cyto
 
     cyto workflow gex \\
-        -c ${probe_tsv_cyto} ${probes_arg} \\
-        -w ${cb_whitelist} \\
-        --preset ${cyto_preset} \\
+        -c ${probe_tsv} ${probes_arg} \\
+        -w ${whitelist} \\
+        --preset ${preset} \\
         -o ${library_id}_cyto \\
         -F mtx \\
         --no-filter \\
@@ -98,7 +74,7 @@ process CYTO_RENAME_SAMPLES {
     tuple val(library_id), val(run_name), path(cyto_out, stageAs: 'raw/*'), path(samples_file)
 
     output:
-    tuple val(library_id), path("${library_id}_cyto"), emit: counts
+    path "${library_id}_cyto"
 
     script:
     """

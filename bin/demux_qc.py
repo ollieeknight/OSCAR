@@ -4,27 +4,32 @@ import argparse
 import csv
 import sys
 from collections import defaultdict
+from statistics import median
 from pathlib import Path
 
 
-def _rows(path):
+def read_csv(path):
     with open(path, newline="") as fh:
         return list(csv.DictReader(fh))
 
 
+def lanes(per_lane):
+    return sorted(per_lane, key=lambda x: (len(x), x))
+
+
 # Column names are bcl-convert's Reports/Demultiplex_Stats.csv and Top_Unknown_Barcodes.csv.
-def read_demultiplex_stats(path):
+def read_demultiplex_stats(paths):
     per_lane = defaultdict(dict)
-    for row in _rows(path):
+    for row in (row for path in paths for row in read_csv(path)):
         lane, sample = row["Lane"], row["SampleID"]
         per_lane[lane][sample] = per_lane[lane].get(sample, 0) + int(row["# Reads"])
     return dict(per_lane)
 
 
-def read_top_unknown(path):
+def read_top_unknown(paths):
     # index2 is absent on single-index runs.
     return [(row["Lane"], row["index"], row.get("index2") or "", int(row["# Reads"]))
-            for row in _rows(path)]
+            for path in paths for row in read_csv(path)]
 
 
 def load_kit_indexes(indexes_dir):
@@ -44,17 +49,9 @@ def load_kit_indexes(indexes_dir):
     return table
 
 
-def _median(values):
-    s = sorted(values)
-    if not s:
-        return 0
-    mid = len(s) // 2
-    return s[mid] if len(s) % 2 else (s[mid - 1] + s[mid]) / 2
-
-
 def summarise(per_lane):
     rows = []
-    for lane in sorted(per_lane, key=lambda x: (len(x), x)):
+    for lane in lanes(per_lane):
         counts = per_lane[lane]
         total = sum(counts.values())
         for sample, reads in sorted(counts.items(), key=lambda kv: -kv[1]):
@@ -68,7 +65,7 @@ def summarise(per_lane):
 def flowcell_overview(per_lane):
     totals = defaultdict(int)
     lanes_by_sample = defaultdict(list)
-    for lane in sorted(per_lane, key=lambda x: (len(x), x)):
+    for lane in lanes(per_lane):
         for sample, reads in per_lane[lane].items():
             totals[sample] += reads
             lanes_by_sample[sample].append(lane)
@@ -89,11 +86,11 @@ def flowcell_overview(per_lane):
 
 def find_dropouts(per_lane, ratio):
     warnings = []
-    for lane in sorted(per_lane, key=lambda x: (len(x), x)):
+    for lane in lanes(per_lane):
         declared = {s: n for s, n in per_lane[lane].items() if s.lower() != "undetermined"}
         if len(declared) < 2:
             continue
-        med = _median(list(declared.values()))
+        med = median(declared.values())
         if med <= 0:
             continue
         for sample, reads in sorted(declared.items(), key=lambda kv: kv[1]):
@@ -145,7 +142,7 @@ def find_undeclared(unknown, per_lane, kit_indexes, min_pct):
     return sorted(warnings, key=lambda w: -w["reads"])
 
 
-def _write(path, fieldnames, rows):
+def write_csv(path, fieldnames, rows):
     with open(path, "w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=fieldnames)
         w.writeheader()
@@ -154,8 +151,8 @@ def _write(path, fieldnames, rows):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--stats", required=True, help="Demultiplex_Stats.csv")
-    ap.add_argument("--unknown", required=True, help="Top_Unknown_Barcodes.csv")
+    ap.add_argument("--stats", nargs="+", required=True, help="Demultiplex_Stats.csv files")
+    ap.add_argument("--unknown", nargs="+", required=True, help="Top_Unknown_Barcodes.csv files")
     ap.add_argument("--indexes", required=True, help="assets/indexes directory")
     ap.add_argument("--prefix", required=True, help="output file prefix (run name)")
     ap.add_argument("--dropout-ratio", type=float, required=True)
@@ -164,13 +161,13 @@ def main():
 
     per_lane = read_demultiplex_stats(args.stats)
     summary = summarise(per_lane)
-    _write(
+    write_csv(
         f"{args.prefix}_demux_summary.csv",
         ["lane", "library", "reads", "percent_of_lane"],
         summary,
     )
 
-    _write(
+    write_csv(
         f"{args.prefix}_flow_cell_overview.csv",
         ["name", "read_number", "percent_of_flowcell", "lanes"],
         flowcell_overview(per_lane),
@@ -182,7 +179,7 @@ def main():
         load_kit_indexes(args.indexes),
         args.unknown_pct,
     )
-    _write(
+    write_csv(
         f"{args.prefix}_demux_warnings.csv",
         ["lane", "type", "library", "index", "reads", "percent_of_lane", "detail"],
         warnings,

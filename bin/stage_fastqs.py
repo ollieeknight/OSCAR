@@ -1,7 +1,24 @@
 #!/usr/bin/env python3
+"""Stage FASTQs for cellranger multi, cellranger-atac or cyto.
+
+Nextflow stages inputs as fastqs/<modality>/run_NNN/*. Read sets with fewer than
+--min-reads reads are dropped; the rest are renamed to <sample>_S1_L<n>_<read>_001.
+"""
+
+import argparse
 import gzip
 import re
 import sys
+from pathlib import Path
+
+MULTI_FEATURES = {
+    "gex":    "Gene Expression",
+    "adt":    "Antibody Capture",
+    "hto":    "Antibody Capture",
+    "vdj_t":  "VDJ-T",
+    "vdj_b":  "VDJ-B",
+    "crispr": "CRISPR Guide Capture",
+}
 
 
 def flowcell_of(fastq):
@@ -9,55 +26,88 @@ def flowcell_of(fastq):
         header = fh.readline().strip()
     fields = header.lstrip("@").split(":")
     if len(fields) < 4:
-        raise ValueError(f"unreadable FASTQ header in {fastq}: {header!r}")
-    return tuple(fields[0:3])
+        sys.exit(f"ERROR: unreadable FASTQ header in {fastq}: {header!r}")
+    return tuple(fields[:3])
 
 
-def pair_reads(staged):
-    def key(p):
-        return (flowcell_of(p), re.sub(r"_R[12]_", "_R_", p.name))
-
-    r1 = {key(p): p for p in staged if re.search(r"_R1_", p.name)}
-    r2 = {key(p): p for p in staged if re.search(r"_R2_", p.name)}
-
-    unmatched = [r1[k].name for k in sorted(r1) if k not in r2]
-    unmatched += [r2[k].name for k in sorted(r2) if k not in r1]
-
-    pairs = [(r1[k], r2[k]) for k in sorted(r1, key=lambda k: (k[1], k[0]))
-             if k in r2]
-    return pairs, unmatched
-
-
-def count_reads(r1, min_reads):
+def count_reads(fastq, limit):
     try:
-        count = 0
-        with gzip.open(r1, "rt") as fh:
-            for i, _ in enumerate(fh):
-                if i % 4 == 0:
-                    count += 1
-                if count >= min_reads:
-                    break
-        return count
+        with gzip.open(fastq, "rt") as fh:
+            return sum(1 for i, _ in zip(range(limit * 4), fh) if i % 4 == 0)
     except (OSError, EOFError):
         return 0
 
 
-def stage_modality(staged, final_dir, min_reads):
-    pairs, unmatched = pair_reads(staged)
-    if unmatched:
-        raise ValueError(f"unmatched reads: {unmatched}")
-    if not pairs:
-        return 0, None
+def read_sets(modality, reads, min_reads):
+    """Group a modality's FASTQs by flowcell and lane, keeping sets with enough reads."""
+    sets = {}
+    for p in Path("fastqs", modality).glob("run_*/*"):
+        m = re.search(r"_(R[123])_", p.name)
+        if m and m.group(1) in reads:
+            key = (flowcell_of(p), re.sub(r"_R[123]_", "_R_", p.name))
+            sets.setdefault(key, {})[m.group(1)] = p
 
-    final_dir.mkdir(parents=True, exist_ok=True)
-    lane, sample_id = 0, None
-    for r1, r2 in pairs:
-        n = count_reads(r1, min_reads)
+    kept = []
+    for key in sorted(sets):
+        missing = [r for r in reads if r not in sets[key]]
+        if missing:
+            sys.exit(f"ERROR: {key[1]} has no {'/'.join(missing)}")
+        n = count_reads(sets[key][reads[0]], min_reads)
         if n < min_reads:
-            print(f"[stage_fastqs] skip {r1.parent.name}: {n} reads", file=sys.stderr)
-            continue
-        lane += 1
-        sample_id = re.sub(r"_S\d+.*", "", r1.name)
-        r1.rename(final_dir / f"{sample_id}_S1_L{lane:03d}_R1_001.fastq.gz")
-        r2.rename(final_dir / f"{sample_id}_S1_L{lane:03d}_R2_001.fastq.gz")
-    return lane, sample_id
+            print(f"skip {key[1]} from flowcell {key[0][2]}: {n} reads (<{min_reads})", file=sys.stderr)
+        else:
+            kept.append(sets[key])
+    return kept
+
+
+def rename(sets, out_dir):
+    out_dir.mkdir(parents=True)
+    sample = re.sub(r"_S\d+_.*", "", next(iter(sets[0].values())).name)
+    for lane, reads in enumerate(sets, 1):
+        for read, p in reads.items():
+            p.rename(out_dir / f"{sample}_S1_L{lane:03d}_{read}_001.fastq.gz")
+    return sample
+
+
+def multi(min_reads):
+    libraries = []
+    for modality, feature in MULTI_FEATURES.items():
+        sets = read_sets(modality, ["R1", "R2"], min_reads)
+        if sets:
+            out_dir = Path.cwd() / "staged" / modality
+            libraries.append(f"{rename(sets, out_dir)},{out_dir},{feature}")
+
+    config = Path("config_header.txt").read_text().strip()
+    if libraries:
+        config += "\n\n[libraries]\nfastq_id,fastqs,feature_types\n" + "\n".join(libraries)
+    samples = Path("flex_samples.txt").read_text().strip()
+    if samples:
+        config += "\n\n" + samples
+    Path("multi_config.csv").write_text(config + "\n")
+    print(config, file=sys.stderr)
+
+
+def atac(min_reads):
+    sets = read_sets("atac", ["R1", "R2", "R3"], min_reads)
+    if not sets:
+        sys.exit("ERROR: no ATAC read sets passed the read threshold")
+    rename(sets, Path("staged/atac"))
+
+
+def cyto(min_reads):
+    sets = read_sets("gex", ["R1", "R2"], min_reads)
+    if not sets:
+        sys.exit("ERROR: no GEX read pairs passed the read threshold")
+    Path("fastq_pairs.txt").write_text(" ".join(f"{s['R1']} {s['R2']}" for s in sets))
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("target", choices=["multi", "atac", "cyto"])
+    ap.add_argument("--min-reads", type=int, default=10000)
+    args = ap.parse_args()
+    {"multi": multi, "atac": atac, "cyto": cyto}[args.target](args.min_reads)
+
+
+if __name__ == "__main__":
+    main()

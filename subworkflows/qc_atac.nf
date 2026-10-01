@@ -3,7 +3,7 @@ include { GENOTYPE } from './genotype'
 
 workflow QC_ATAC {
     take:
-        ch_atac_outs
+        ch_atac_outs   // [meta, outs]
 
     main:
         // Only the fields QC uses, so other samplesheet edits do not rerun mgatk2.

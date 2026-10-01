@@ -13,25 +13,21 @@ process CELLSNP_LITE {
     path "cellsnp/*"
 
     script:
-    def umi_flag   = (mode == 'atac') ? '--UMItag None' : ''
     """
-    mkdir -p cellsnp
-
     cellsnp-lite \\
-        -s  ${bam} \\
-        -b  ${barcodes} \\
-        -O  cellsnp \\
-        -R  ${params.snp_vcf} \\
+        -s ${bam} \\
+        -b ${barcodes} \\
+        -O cellsnp \\
+        -R ${params.snp_vcf} \\
         --minMAF   0.1 \\
         --minCOUNT 20 \\
         --gzip \\
-        -p  ${task.cpus} \\
-        ${umi_flag}
+        -p ${task.cpus} ${mode == 'atac' ? '--UMItag None' : ''}
     """
 }
 
 process VIREO {
-    tag "$meta.library_id"
+    tag "$meta.library_id ($mode)"
     container "${params.container_vireo}"
     publishDir { "${params.outdir}/${meta.run_name}_outs/${mode == 'atac' ? "${meta.library_id}_ATAC" : meta.library_id}/vireo" }, mode: 'copy',
                saveAs: { fn -> file(fn).name }
@@ -41,14 +37,14 @@ process VIREO {
     val(mode)
 
     output:
-    path "vireo_out/*"
+    path "vireo/*"
 
     script:
     """
-    mkdir -p vireo_out
+    mkdir -p vireo
     vireo \\
         -c ${cellsnp_dir} \\
-        -o vireo_out \\
+        -o vireo \\
         -N ${n_donors} \\
         -p ${task.cpus} \\
         --randSeed 42
