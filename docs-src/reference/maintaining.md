@@ -16,14 +16,15 @@ matter, each reached through a symlink in the home directory:
 The same home directory also has `~/genome` and `~/wes` pointing into the
 sequencing store. Those belong to other pipelines.
 
-`nextflow.config` writes these as real paths, not symlinks, so they resolve for
-SLURM jobs regardless of whose account runs them. Taking OSCAR over means
-getting group access to the storage, then changing `/home/knighto` in
-`apptainer.runOptions` to your own home.
+`nextflow.config` writes the storage areas as real paths, not symlinks, so they
+resolve for SLURM jobs regardless of whose account runs them. Taking OSCAR over
+means getting group access to the storage, then replacing `/home/knighto` with
+your own home in `apptainer.runOptions`, `atac_whitelist`, `tenx_barcodes_dir`,
+`viral_piscem_index`, `viral_t2g` and `spliceu_index_*`.
 
-OSCAR itself lives at `~/work/bin/OSCAR`, alongside the other lab pipelines and
-the tools they need: `nextflow`, `apptainer`, `cellranger-10.0.0` and
-`cellranger-atac-2.2.0`. Run it from there rather than cloning your own copy,
+OSCAR itself lives at `~/work/bin/OSCAR`, alongside the other lab pipelines.
+`nextflow`, `apptainer`, `cellranger-10.0.0` and `cellranger-atac-2.2.0` are
+in `~/bin`. Run OSCAR from there rather than cloning your own copy,
 so everyone runs the same commit. Counting itself happens in containers; the
 local cellranger installs only supply `atac_whitelist` and
 `tenx_barcodes_dir`.
@@ -56,7 +57,7 @@ exists. Build once and point `container_cyto` and `container_cellbender` at the
 results:
 
 ```bash
-apptainer build ~/scratch/apptainer_cache/cyto.sif containers/cyto.def
+apptainer build ~/scratch/apptainer_cache/cyto_sc1.sif containers/cyto.def
 apptainer build ~/scratch/apptainer_cache/cellbender_sc1.sif containers/cellbender.def
 ```
 
@@ -66,7 +67,7 @@ The filenames must match `container_cyto` and `container_cellbender`.
 
 1. Parse the metadata CSV, validate it, expand index kit codes to sequences.
 2. Demultiplex BCL to FASTQ with bcl-convert, one job per demux group per lane.
-3. QC every FASTQ: fastp on reads, `pigz -t` on the rest, then MultiQC.
+3. Check read counts per lane for dropouts and undeclared indexes, and run fastp on reads.
 4. Count each library with the tool its assay needs.
 5. Run whichever QC applies to the library's modalities.
 
@@ -83,7 +84,6 @@ ASAP; kallisto/bustools for ASAP antibody libraries.
 | `lib/` | Pure functions: chemistry, index kits, samplesheet parsing |
 | `modules/` | One process per tool |
 | `subworkflows/` | Process chains |
-| `tests/` | Self-checks that run without a cluster |
 | `assets/` | Index kit CSVs, reference build scripts, examples |
 | `docs-src/` | This site's source |
 | `original/` | Legacy bash implementation, reference only |
@@ -122,13 +122,9 @@ relative paths into the built site, so renaming a page means editing them.
 
 ```bash
 nextflow lint main.nf lib modules subworkflows nextflow.config
-bash tests/run_all.sh
 ```
 
-The first parses every file. The second runs the self-checks: index kits,
-chemistry lookup, samplesheet parsing, OverrideCycles generation, FASTQ staging
-and routing, demux QC, the cellranger MultiQC table, publish layout, and a
-`main.nf` compile check. Neither needs a cluster.
+This parses every file and needs no cluster.
 
 GitHub Actions builds this site on every push to `main` touching `docs-src/` or
 `mkdocs.yml`. Pull requests build without deploying, and `mkdocs build

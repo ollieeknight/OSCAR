@@ -78,7 +78,6 @@ process MACS3 {
         exit 1
     fi
 
-    # Stream fragments to BED format directly using process substitution (prevents writing large temp files to disk)
     mkdir -p peaks
     macs3 callpeak \\
         -t <(zcat "\$fragments" | grep -v '^#' | cut -f1-3) \\

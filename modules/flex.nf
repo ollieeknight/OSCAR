@@ -71,10 +71,9 @@ process FLEX_SAMPLE_PREPARE {
 process CYTO_FLEX {
     tag "$library_id"
     container "${params.container_cyto}"
-    publishDir { "${params.outdir}/${metas[0].run_name}_outs" }, mode: 'copy'
 
     input:
-    tuple val(library_id), val(metas),
+    tuple val(library_id), val(run_name),
           path(probe_tsv_cyto),
           path(cyto_probe_barcodes),
           path(cb_whitelist),
@@ -82,7 +81,7 @@ process CYTO_FLEX {
           path(gex_fastqs, stageAs: "fastqs/gex/run_???/*")
 
     output:
-    tuple val(library_id), val(metas), path("${library_id}_cyto"), emit: counts
+    tuple val(library_id), val(run_name), path("${library_id}_cyto"), emit: counts
 
     script:
     def min_reads = 10000
@@ -111,19 +110,23 @@ process CYTO_FLEX {
     """
 }
 
+// Renames a copy: moving inside the staged input would edit CYTO_FLEX's cached output.
 process CYTO_RENAME_SAMPLES {
     tag "$library_id"
+    container "${params.container_python}"
+    publishDir { "${params.outdir}/${run_name}_outs" }, mode: 'copy'
 
     input:
-    tuple val(library_id), val(metas), path(cyto_out), path(samples_file)
+    tuple val(library_id), val(run_name), path(cyto_out, stageAs: 'raw/*'), path(samples_file)
 
     output:
-    tuple val(library_id), val(metas), path(cyto_out), emit: counts
+    tuple val(library_id), path("${library_id}_cyto"), emit: counts
 
     script:
     """
+    cp -rL ${cyto_out} ${library_id}_cyto
     cyto_rename_samples.py \\
         --samples-file ${samples_file} \\
-        --cyto-out     ${cyto_out}
+        --cyto-out     ${library_id}_cyto
     """
 }

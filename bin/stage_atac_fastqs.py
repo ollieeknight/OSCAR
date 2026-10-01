@@ -56,7 +56,7 @@ def stage(sample_id, min_reads):
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__)
+    ap = argparse.ArgumentParser()
     ap.add_argument("--sample-id", required=True,
                     help="sample id to embed in the renamed FASTQ filenames")
     ap.add_argument("--min-reads", type=int, required=True,

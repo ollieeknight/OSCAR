@@ -51,7 +51,7 @@ def prepare(standard_probe_csv, custom_probe_csv):
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__)
+    ap = argparse.ArgumentParser()
     ap.add_argument("--standard-probe-csv", required=True,
                     help="standard 10x probe CSV, or NO_FILE")
     ap.add_argument("--custom-probe-csv", required=True,

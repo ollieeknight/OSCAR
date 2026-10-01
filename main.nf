@@ -1,7 +1,5 @@
 #!/usr/bin/env nextflow
 
-nextflow.enable.dsl = 2
-
 include { DEMUX }          from './subworkflows/demux'
 include { COUNT_GEX }      from './subworkflows/count_gex'
 include { COUNT_ATAC }     from './subworkflows/count_atac'
@@ -12,7 +10,7 @@ include { QC_ATAC }        from './subworkflows/qc_atac'
 include { QUANT_EXTRA }    from './subworkflows/quant_extra'
 
 include { load_si_indexes; detect_sequencer } from './lib/indexes'
-include { preflight_samplesheet; parse_samplesheet; find_meta_conflicts } from './lib/samplesheet'
+include { preflight_samplesheet; read_samplesheet_rows; parse_samplesheet; find_meta_conflicts } from './lib/samplesheet'
 
 
 def preflight_check(Map paths) {
@@ -47,7 +45,7 @@ def preflight_check(Map paths) {
         def missing = spliceu.findAll { _sp, idx -> !idx || !file(idx).exists() }
         if (missing.size() == spliceu.size())
             error "ERROR: --extras velocity requires a spliceu index: ${spliceu.values().join(', ')}"
-        missing.each { sp, idx -> log.warn "WARNING: --extras velocity: no ${sp} spliceu index (${idx}) — ${sp} libraries will fail" }
+        missing.each { sp, idx -> log.warn "WARNING: --extras velocity: no ${sp} spliceu index (${idx}), ${sp} libraries will fail" }
     }
 }
 
@@ -68,14 +66,7 @@ def resolve_extras() {
 }
 
 def preflight_flex(String ss_path) {
-    def lines = new File(ss_path).readLines().findAll { line -> !line.trim().isEmpty() }
-    def headers = lines[0].split(',').collect { h -> h.trim() }
-    def has_flex = lines.tail().any { line ->
-        def vals = line.split(',', -1)
-        def row = [headers, vals].transpose().collectEntries()
-        row.assay?.trim()?.equalsIgnoreCase('Flex')
-    }
-    if (!has_flex) return
+    if (!read_samplesheet_rows(ss_path).any { row -> row.assay == 'Flex' }) return
 
     if (!(params.flex_backend in ['cellranger', 'cyto', 'both']))
         error "ERROR: --flex_backend must be 'cellranger', 'cyto', or 'both' (got '${params.flex_backend}')"
@@ -151,7 +142,7 @@ workflow {
 
     def si_indexes_fallback = load_si_indexes(projectDir.toString(), params.sequencer)
     if (run_from != 'bcl')
-        log.info "INFO: No BCL dir available — using params.sequencer='${params.sequencer}' for i5 orientation"
+        log.info "INFO: No BCL dir, using params.sequencer='${params.sequencer}' for i5 orientation"
 
     def all_rows = all_ss_paths.collectMany { ss_path ->
         parse_samplesheet(ss_path, si_indexes_fallback, primary_run_name, paths.adt_files_dir)
@@ -169,7 +160,7 @@ workflow {
             .groupTuple(by: 0)
             .map { lid, metas -> [lid, metas, file("${paths.outs_dir}/${lid}/outs")] }
             .filter { _lid, _metas, outs -> outs.exists() }
-            .ifEmpty { error "ERROR: no cellranger outs found under ${paths.outs_dir} — expected ${paths.outs_dir}/<library_id>/outs" }
+            .ifEmpty { error "ERROR: no cellranger outs found under ${paths.outs_dir}, expected ${paths.outs_dir}/<library_id>/outs" }
             .set { ch_gex_outs }
 
         ch_meta
@@ -182,7 +173,7 @@ workflow {
             .set { ch_atac_routed }
 
         ch_atac_routed.missing.subscribe { meta, outs ->
-            log.warn "WARN: no cellranger-atac outs for '${meta.library_id}' at ${outs} — skipping ATAC QC"
+            log.warn "WARN: no cellranger-atac outs for '${meta.library_id}' at ${outs}, skipping ATAC QC"
         }
 
         ch_atac_routed.found.set { ch_atac_outs }
@@ -205,7 +196,7 @@ workflow {
                     [meta, fastq_dir, fqs]
                 }
                 .filter { _meta, _fastq_dir, fqs -> !fqs.isEmpty() }
-                .ifEmpty { error "ERROR: no FASTQs matched any library under ${paths.fastq_dir} — expected files named <sample_id>_S<n>_*.fastq.gz" }
+                .ifEmpty { error "ERROR: no FASTQs matched any library under ${paths.fastq_dir}, expected files named <sample_id>_S<n>_*.fastq.gz" }
                 .set { ch_fastqs }
         } else {
             def bcl_paths = [paths.bcl_dir]
@@ -242,7 +233,7 @@ workflow {
             channel.fromList(meta_bcl_pairs).set { ch_meta_bcl }
 
             DEMUX(ch_meta_bcl)
-            ch_fastqs = DEMUX.out.fastqs
+            ch_fastqs = DEMUX.out
         }
 
         ch_fastqs
@@ -256,57 +247,33 @@ workflow {
             .set { ch_routed }
 
         ch_routed.skip.subscribe { meta, _fastq_dir, _fqs ->
-            log.warn "WARN: '${meta.id}' (assay=${meta.assay}, modality=${meta.modality}) matched no counting route — not counted"
+            log.warn "WARN: '${meta.id}' (assay=${meta.assay}, modality=${meta.modality}) matched no counting route, not counted"
         }
 
         ch_routed.gex
             .tap { ch_gex_for_velocity }
-            .map { meta, _fastq_dir, fqs ->
-                def files = (fqs instanceof List ? fqs : [fqs]).toSorted { f -> f.name }
-                [meta.library_id, [modality: meta.modality, meta: meta, files: files]]
-            }
+            .map { meta, fastq_dir, fqs -> [meta.library_id, [meta: meta, dir: fastq_dir, files: fqs.toSorted { f -> f.name }]] }
             .groupTuple(by: 0)
             .map { lid, entries ->
-                def mod_data = [:].withDefault { [meta: null, entries: [], files: []] }
-                entries.each { e ->
-                    if (!mod_data[e.modality].meta) mod_data[e.modality].meta = e.meta
-                    mod_data[e.modality].entries << e
+                // Sort by flowcell so the chosen meta and file order are the same on every -resume.
+                def by_mod  = entries.toSorted { e -> e.dir }.groupBy { e -> e.meta.modality }
+                def metas   = by_mod.values().collect { es -> es[0].meta + [run_name: primary_run_name] }.toSorted { m -> m.id }
+                def meta    = metas.find { m -> m.modality == 'GEX' } ?: metas[0]
+                def adt_csv = metas.collect { m -> m.adt_csv_path }.find { p -> p }
+                def fqs     = ['GEX', 'ADT', 'HTO', 'VDJ-T', 'VDJ-B', 'CRISPR'].collect { mod ->
+                    by_mod[mod]?.collectMany { e -> e.files } ?: [file('NO_FILE')]
                 }
-                mod_data.each { _mod, d ->
-                    d.entries = d.entries.toSorted { e -> e.files[0].toUriString() }
-                    d.files   = d.entries.collectMany { e -> e.files }
-                }
 
-                def all_metas = []
-                mod_data.each { _mod, d -> all_metas << d.meta }
-                all_metas = all_metas.toSorted { m -> m.id }
-                all_metas = all_metas.collect { m -> m + [run_name: primary_run_name] }
-
-                def meta         = all_metas.find { m -> m.modality == 'GEX' } ?: all_metas[0]
-                def adt_csv_path = all_metas.collect { m -> m.adt_csv_path }.find { p -> p }
-                def adt_csv      = adt_csv_path ? file(adt_csv_path) : file('NO_FILE')
-
-                [lid, all_metas, refs_for(meta), adt_csv,
-                 (mod_data['GEX']?.files)    ?: [file('NO_FILE')],
-                 (mod_data['ADT']?.files)    ?: [file('NO_FILE')],
-                 (mod_data['HTO']?.files)    ?: [file('NO_FILE')],
-                 (mod_data['VDJ-T']?.files)  ?: [file('NO_FILE')],
-                 (mod_data['VDJ-B']?.files)  ?: [file('NO_FILE')],
-                 (mod_data['CRISPR']?.files) ?: [file('NO_FILE')]]
+                [lid, metas, refs_for(meta), adt_csv ? file(adt_csv) : file('NO_FILE')] + fqs
             }
             .set { ch_gex_libraries }
 
         ch_routed.atac
-            .map { meta, _fastq_dir, fqs ->
-                def files = (fqs instanceof List ? fqs : [fqs]).toSorted { f -> f.name }
-                [meta.library_id, [meta: meta, files: files]]
-            }
+            .map { meta, fastq_dir, fqs -> [meta.library_id, [meta: meta, dir: fastq_dir, files: fqs.toSorted { f -> f.name }]] }
             .groupTuple(by: 0)
             .map { _lid, entries ->
-                def meta = entries[0].meta + [run_name: primary_run_name]
-
-                def all_files = entries.toSorted { e -> e.files[0].toUriString() }.collectMany { e -> e.files }
-                [meta, all_files]
+                def sorted = entries.toSorted { e -> e.dir }
+                [sorted[0].meta + [run_name: primary_run_name], sorted.collectMany { e -> e.files }]
             }
             .set { ch_atac_libraries }
 
@@ -318,9 +285,12 @@ workflow {
             .map    { meta, outs -> [meta.library_id, meta, outs] }
 
         ch_asap_adt_fastqs = ch_routed.asap_adt
-            .map { meta, _fastq_dirs, fqs -> [meta.library_id, meta, fqs] }
+            .map { meta, fastq_dir, fqs -> [meta.library_id, [meta: meta, dir: fastq_dir, files: fqs]] }
             .groupTuple(by: 0)
-            .map { lid, metas, fq_lists -> [lid, metas[0], fq_lists.flatten()] }
+            .map { lid, entries ->
+                def sorted = entries.toSorted { e -> "${e.dir}|${e.meta.id}" }
+                [lid, sorted[0].meta, sorted.collectMany { e -> e.files }.toSorted { f -> f.name }]
+            }
 
         COUNT_ADT(
             ch_asap_atac_outs

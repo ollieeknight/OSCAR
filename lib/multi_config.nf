@@ -40,12 +40,7 @@ def build_multi_config_header(Map opts) {
     lines.join('\n')
 }
 
+// preflight_flex has already checked that samples_file exists.
 def build_flex_samples_section(Map meta, samples_file) {
-    if (meta.assay != 'Flex' || !samples_file) return ''
-    def sf = file(samples_file)
-    if (!sf.exists()) {
-        log.warn "WARNING: --flex_samples_file not found: ${samples_file} — [samples] section will be omitted (singleplex only)"
-        return ''
-    }
-    '\n\n[samples]\n' + sf.text.trim()
+    meta.assay == 'Flex' && samples_file ? '\n\n[samples]\n' + file(samples_file).text.trim() : ''
 }

@@ -12,7 +12,7 @@ def rename(samples_file, cyto_out):
     counts_dir   = cyto_out / "counts"
 
     if samples_path.name == "NO_FILE" or not counts_dir.exists():
-        print("[cyto_rename] no samples file or no counts dir — skipping rename")
+        print("[cyto_rename] no samples file or no counts dir, skipping rename")
     else:
         mapping = {}
         with open(samples_path) as f:
@@ -25,13 +25,13 @@ def rename(samples_file, cyto_out):
             if bc_dir.name in mapping:
                 target = bc_dir.parent / mapping[bc_dir.name]
                 shutil.move(str(bc_dir), str(target))
-                print(f"[cyto_rename] {bc_dir.name} → {mapping[bc_dir.name]}")
+                print(f"[cyto_rename] {bc_dir.name} -> {mapping[bc_dir.name]}")
             else:
-                print(f"[cyto_rename] no mapping for {bc_dir.name} — left as-is")
+                print(f"[cyto_rename] no mapping for {bc_dir.name}, left as-is")
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__)
+    ap = argparse.ArgumentParser()
     ap.add_argument("--samples-file", required=True,
                     help="CSV mapping sample_id to probe_barcode_ids, or NO_FILE")
     ap.add_argument("--cyto-out", required=True,

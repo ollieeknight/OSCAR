@@ -4,49 +4,41 @@ def chemistry_registry() {
             family:    'SC3Pv2',
             whitelist: '737K-august-2016.txt',
             simpleaf:  '10xv2',
-            velocity:  '10xv2',
         ],
         'SC3Pv3': [
             family:    'SC3Pv3',
             whitelist: '3M-february-2018_TRU.txt.gz',
             simpleaf:  '10xv3',
-            velocity:  '10xv3',
         ],
         'SC3Pv4': [
             family:    'SC3Pv4',
             whitelist: '3M-3pgex-may-2023_TRU.txt.gz',
             simpleaf:  '10xv4-3p',
-            velocity:  '10xv4-3p',
         ],
         'SC5P': [
             family:    'SC5P',
             whitelist: '3M-5pgex-jan-2023.txt.gz',
             simpleaf:  '10xv2-5p',
-            velocity:  '10xv2-5p',
         ],
         'SC5P-R2': [
             family:    'SC5P',
             whitelist: '3M-5pgex-jan-2023.txt.gz',
             simpleaf:  '10xv2-5p',
-            velocity:  '10xv2-5p',
         ],
         'SC5Pv3': [
             family:    'SC5Pv3',
             whitelist: '3M-5pgex-jan-2023.txt.gz',
             simpleaf:  '10xv3-5p',
-            velocity:  '10xv3-5p',
         ],
         'ARCv1': [
             family:    'ARCv1',
             whitelist: '737K-arc-v1.txt.gz',
             simpleaf:  '10xv3',
-            velocity:  '10xv3',
         ],
         'ARC-v1': [
             family:    'ARCv1',
             whitelist: '737K-arc-v1.txt.gz',
             simpleaf:  '10xv3',
-            velocity:  '10xv3',
         ],
         'Flex-v2-R1': [
             family:    'Flex-v2',
@@ -90,12 +82,14 @@ def get_viral_whitelist(String chemistry, barcodes_dir) {
 
 def get_simpleaf_chemistry(String chemistry) {
     def s = chemistry_info(chemistry).simpleaf
-    if (!s) error "VIRAL_DETECT: no simpleaf chemistry registered for '${chemistry}'"
+    if (!s) error "No simpleaf chemistry registered for '${chemistry}'"
     return s
 }
 
+// Flex reads are probe-based, so there are no unspliced reads to count.
 def get_velocity_chemistry(String chemistry) {
-    return chemistry_registry()[chemistry]?.velocity
+    def info = chemistry_registry()[chemistry]
+    info?.family == 'Flex-v2' ? null : info?.simpleaf
 }
 
 def get_flex_barcode_file(String chemistry) {

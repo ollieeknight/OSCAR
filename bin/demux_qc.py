@@ -6,46 +6,25 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-DEFAULT_DROPOUT_RATIO = 100.0
-DEFAULT_UNKNOWN_PCT = 1.0
-
 
 def _rows(path):
-    with open(path, newline="", encoding="utf-8-sig") as fh:
-        return [r for r in csv.DictReader(fh) if any(v.strip() for v in r.values() if v)]
+    with open(path, newline="") as fh:
+        return list(csv.DictReader(fh))
 
 
-def _int(value):
-    return int(str(value).strip().replace(",", "") or 0)
-
-
-def _col(row, *names):
-    for n in names:
-        if n in row and row[n] not in (None, ""):
-            return row[n]
-    return None
-
-
+# Column names are bcl-convert's Reports/Demultiplex_Stats.csv and Top_Unknown_Barcodes.csv.
 def read_demultiplex_stats(path):
     per_lane = defaultdict(dict)
     for row in _rows(path):
-        sample = _col(row, "SampleID", "Sample_ID", "Sample ID")
-        if sample is None:
-            continue
-        lane = str(_col(row, "Lane") or "1")
-        reads = _int(_col(row, "# Reads", "Reads", "NumberOfReads") or 0)
-        per_lane[lane][sample] = per_lane[lane].get(sample, 0) + reads
+        lane, sample = row["Lane"], row["SampleID"]
+        per_lane[lane][sample] = per_lane[lane].get(sample, 0) + int(row["# Reads"])
     return dict(per_lane)
 
 
 def read_top_unknown(path):
-    out = []
-    for row in _rows(path):
-        lane = str(_col(row, "Lane") or "1")
-        i7 = (_col(row, "index", "Index", "Barcode") or "").strip()
-        i5 = (_col(row, "index2", "Index2") or "").strip()
-        out.append((lane, i7, i5, _int(_col(row, "# Reads", "Reads", "Count") or 0)))
-    return out
+    # index2 is absent on single-index runs.
+    return [(row["Lane"], row["index"], row.get("index2") or "", int(row["# Reads"]))
+            for row in _rows(path)]
 
 
 def load_kit_indexes(indexes_dir):
@@ -108,7 +87,7 @@ def flowcell_overview(per_lane):
     return rows
 
 
-def find_dropouts(per_lane, ratio=DEFAULT_DROPOUT_RATIO):
+def find_dropouts(per_lane, ratio):
     warnings = []
     for lane in sorted(per_lane, key=lambda x: (len(x), x)):
         declared = {s: n for s, n in per_lane[lane].items() if s.lower() != "undetermined"}
@@ -128,22 +107,15 @@ def find_dropouts(per_lane, ratio=DEFAULT_DROPOUT_RATIO):
                         "reads": reads,
                         "percent_of_lane": "",
                         "detail": (
-                            f"declared library has {reads} reads, "
-                            f"{med / reads:.0f}x below lane median {med:.0f} "
-                            f"-- likely wrong index in metadata.csv or failed library"
-                        )
-                        if reads
-                        else (
-                            f"declared library has 0 reads "
-                            f"(lane median {med:.0f}) "
-                            f"-- likely wrong index in metadata.csv or failed library"
+                            f"declared library has {reads} reads against a lane median of {med:.0f}"
+                            f" -- likely wrong index in metadata.csv or failed library"
                         ),
                     }
                 )
     return warnings
 
 
-def find_undeclared(unknown, per_lane, kit_indexes, min_pct=DEFAULT_UNKNOWN_PCT):
+def find_undeclared(unknown, per_lane, kit_indexes, min_pct):
     warnings = []
     for lane, i7, i5, reads in unknown:
         total = sum(per_lane.get(lane, {}).values())
@@ -180,15 +152,15 @@ def _write(path, fieldnames, rows):
         w.writerows(rows)
 
 
-def main(argv=None):
-    ap = argparse.ArgumentParser(description=__doc__)
+def main():
+    ap = argparse.ArgumentParser()
     ap.add_argument("--stats", required=True, help="Demultiplex_Stats.csv")
-    ap.add_argument("--unknown", help="Top_Unknown_Barcodes.csv")
-    ap.add_argument("--indexes", help="assets/indexes directory")
+    ap.add_argument("--unknown", required=True, help="Top_Unknown_Barcodes.csv")
+    ap.add_argument("--indexes", required=True, help="assets/indexes directory")
     ap.add_argument("--prefix", required=True, help="output file prefix (run name)")
-    ap.add_argument("--dropout-ratio", type=float, default=DEFAULT_DROPOUT_RATIO)
-    ap.add_argument("--unknown-pct", type=float, default=DEFAULT_UNKNOWN_PCT)
-    args = ap.parse_args(argv)
+    ap.add_argument("--dropout-ratio", type=float, required=True)
+    ap.add_argument("--unknown-pct", type=float, required=True)
+    args = ap.parse_args()
 
     per_lane = read_demultiplex_stats(args.stats)
     summary = summarise(per_lane)
@@ -204,14 +176,12 @@ def main(argv=None):
         flowcell_overview(per_lane),
     )
 
-    warnings = find_dropouts(per_lane, args.dropout_ratio)
-    if args.unknown and args.indexes and Path(args.unknown).exists():
-        warnings += find_undeclared(
-            read_top_unknown(args.unknown),
-            per_lane,
-            load_kit_indexes(args.indexes),
-            args.unknown_pct,
-        )
+    warnings = find_dropouts(per_lane, args.dropout_ratio) + find_undeclared(
+        read_top_unknown(args.unknown),
+        per_lane,
+        load_kit_indexes(args.indexes),
+        args.unknown_pct,
+    )
     _write(
         f"{args.prefix}_demux_warnings.csv",
         ["lane", "type", "library", "index", "reads", "percent_of_lane", "detail"],
@@ -224,8 +194,7 @@ def main(argv=None):
             f"{w['library'] or w['index']}: {w['detail']}",
             file=sys.stderr,
         )
-    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

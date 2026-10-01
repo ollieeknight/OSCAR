@@ -55,7 +55,7 @@ workflow COUNT_GEX {
                 def meta            = metas.find { m -> m.modality == 'GEX' } ?: metas[0]
                 def samples_section = build_flex_samples_section(meta, params.flex_samples_file)
 
-                [lid, metas, header, adt_csv, samples_section,
+                [lid, meta.run_name, header, adt_csv, samples_section,
                  gex_fqs, adt_fqs, hto_fqs, vdj_t, vdj_b, crispr]
             }
             .set { ch_cr_input }
@@ -72,10 +72,10 @@ workflow COUNT_GEX {
 
             def ch_flex_chem = ch_split.flex
                 .map { _lid, metas, _refs, _adt, _gex, _adt_fqs, _hto_fqs, _vdj_t, _vdj_b, _crispr ->
-                    def ml = []; metas.each { m -> ml << m }
-                    (ml.find { m -> m.modality == 'GEX' }?.chemistry ?: 'Flex-v2-R1')
+                    metas.find { m -> m.modality == 'GEX' }?.chemistry ?: 'Flex-v2-R1'
                 }
-                .first()
+                .toSortedList()
+                .flatMap { chems -> chems.take(1) }   // not first(): arrival order would change the cache key
 
             def ch_cyto_preset = ch_flex_chem.map { chem ->
                 chem ==~ /Flex-v2.*/ ? 'gex-v2' : 'gex-v1'
@@ -99,28 +99,25 @@ workflow COUNT_GEX {
 
             ch_split.flex
                 .map { lid, metas, _refs, _adt, gex_fqs, _adt_fqs, _hto_fqs, _vdj_t, _vdj_b, _crispr ->
-                    [lid, metas, gex_fqs]
+                    [lid, metas[0].run_name, gex_fqs]
                 }
                 .combine(FLEX_PROBE_PREPARE.out.probe_tsv_cyto)
                 .combine(ch_cyto_barcodes)
                 .combine(FLEX_WHITELIST_EXTRACT.out.whitelist)
                 .combine(ch_cyto_preset)
-                .map { lid, metas, gex_fqs, probe_tsv, barcodes, whitelist, preset ->
-                    [lid, metas, probe_tsv, barcodes, whitelist, preset, gex_fqs]
+                .map { lid, run_name, gex_fqs, probe_tsv, barcodes, whitelist, preset ->
+                    [lid, run_name, probe_tsv, barcodes, whitelist, preset, gex_fqs]
                 }
                 .set { ch_cyto_input }
 
             CYTO_FLEX(ch_cyto_input)
 
-            def ch_samples_file = has_samples
-                ? channel.value(file(params.flex_samples_file))
-                : channel.value(file('NO_FILE'))
-
             CYTO_RENAME_SAMPLES(
-                CYTO_FLEX.out.counts.combine(ch_samples_file)
+                CYTO_FLEX.out.counts.combine(channel.value(file(params.flex_samples_file ?: 'NO_FILE')))
             )
         }
 
     emit:
-        CELLRANGER_MULTI.out.outs
+        // metas stay out of CELLRANGER_MULTI's inputs so editing n_donors or adt_file does not recount.
+        ch_libraries.map { entry -> [entry[0], entry[1]] }.join(CELLRANGER_MULTI.out.outs)
 }

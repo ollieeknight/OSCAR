@@ -32,7 +32,7 @@ def stage(min_reads):
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__)
+    ap = argparse.ArgumentParser()
     ap.add_argument("--min-reads", type=int, required=True,
                     help="pairs with fewer reads than this are skipped")
     args = ap.parse_args()

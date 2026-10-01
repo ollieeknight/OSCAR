@@ -42,17 +42,16 @@ def preflight_samplesheet(String path) {
             error "ERROR: samplesheet row ${i + 2}: expected ${headers.size()} fields, got ${vals.size()}"
         def row = [headers, vals].transpose().collectEntries()
 
-        if (!valid_assays().any { a -> a.equalsIgnoreCase(row.assay) })
+        if (!valid_assays().contains(row.assay))
             error "ERROR: row ${i + 2}: unknown assay '${row.assay}'. Valid: ${valid_assays().join(', ')}"
         if (!valid_modalities().contains(row.modality))
             error "ERROR: row ${i + 2}: unknown modality '${row.modality}'. Valid: ${valid_modalities().join(', ')}"
         if (!['human', 'mouse'].any { s -> s.equalsIgnoreCase(row.species) })
             error "ERROR: row ${i + 2}: unknown species '${row.species}'. Valid: human, mouse"
-        if (!valid_index_types().contains(row.index_type?.trim()))
+        if (!valid_index_types().contains(row.index_type))
             error "ERROR: row ${i + 2}: unknown index_type '${row.index_type}'. Valid: SI, DI, NA"
 
-        def chem = row.chemistry?.trim() ?: ''
-        if (!valid_chem.contains(chem))
+        if (!valid_chem.contains(row.chemistry))
             error "ERROR: row ${i + 2}: unrecognised chemistry '${row.chemistry}'. Valid: ${valid_chem.join(', ')}"
     }
 }
@@ -74,26 +73,25 @@ def resolve_adt_csv(String adt_file, String ss_path, adt_files_dir) {
     return null
 }
 
+// read_samplesheet_rows has already trimmed every value.
 def parse_row(row, Map si_indexes, String ss_path, adt_files_dir) {
-    def n_donors = (row.n_donors == null || row.n_donors.trim() in ['NA', '', 'na']) \
-        ? 1 : row.n_donors.trim().toInteger()
-    def index    = row.index.trim()
-    def raw_adt  = row.adt_file?.trim()
-    def adt_file = (raw_adt == null || raw_adt.toUpperCase() == 'NA' || raw_adt == '') ? null : raw_adt
+    def library_id = "${row.assay}_${row.experiment_id}_exp${row.historical_number}_lib${row.replicate}".toString()
+    def n_donors   = row.n_donors.toUpperCase() in ['NA', ''] ? 1 : row.n_donors.toInteger()
+    def adt_file   = row.adt_file.toUpperCase() in ['NA', ''] ? null : row.adt_file
 
     [
-        id:                "${row.assay}_${row.experiment_id}_exp${row.historical_number}_lib${row.replicate}_${row.modality}",
-        library_id:        "${row.assay}_${row.experiment_id}_exp${row.historical_number}_lib${row.replicate}",
-        assay:             row.assay.trim(),
-        experiment_id:     row.experiment_id.trim(),
-        historical_number: row.historical_number.trim(),
-        replicate:         row.replicate.trim(),
-        modality:          row.modality.trim(),
-        chemistry:         row.chemistry.trim(),
-        index_type:        row.index_type.trim(),
-        index:             index,
-        index_seqs:        resolve_index(index, si_indexes),
-        species:           row.species.trim().toLowerCase(),
+        id:                "${library_id}_${row.modality}".toString(),
+        library_id:        library_id,
+        assay:             row.assay,
+        experiment_id:     row.experiment_id,
+        historical_number: row.historical_number,
+        replicate:         row.replicate,
+        modality:          row.modality,
+        chemistry:         row.chemistry,
+        index_type:        row.index_type,
+        index:             row.index,
+        index_seqs:        resolve_index(row.index, si_indexes),
+        species:           row.species.toLowerCase(),
         n_donors:          n_donors,
         adt_file:          adt_file,
         adt_csv_path:      resolve_adt_csv(adt_file, ss_path, adt_files_dir)

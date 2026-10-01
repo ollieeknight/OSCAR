@@ -5,8 +5,13 @@ workflow COUNT_ATAC {
         ch_atac_libraries
 
     main:
-        CELLRANGER_ATAC(ch_atac_libraries)
+        // Only the fields cellranger-atac uses, so editing n_donors or adt_file does not recount.
+        CELLRANGER_ATAC(ch_atac_libraries.map { meta, fqs ->
+            [meta.subMap(['id', 'library_id', 'assay', 'species', 'run_name']), fqs]
+        })
 
     emit:
-        CELLRANGER_ATAC.out.outs
+        ch_atac_libraries.map { meta, _fqs -> [meta.library_id, meta] }
+            .join(CELLRANGER_ATAC.out.outs.map { m, outs -> [m.library_id, outs] })
+            .map { _lid, meta, outs -> [meta, outs] }
 }

@@ -60,7 +60,7 @@ def stage(library_id, min_reads):
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__)
+    ap = argparse.ArgumentParser()
     ap.add_argument("--library-id", required=True,
                     help="library id embedded in the multi config")
     ap.add_argument("--min-reads", type=int, required=True,

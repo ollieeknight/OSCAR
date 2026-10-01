@@ -1,5 +1,5 @@
 include { GENERATE_SAMPLESHEET; BCLCONVERT; CLEAN_FASTQ_DIR; DEMUX_QC } from '../modules/demux'
-include { FASTQ_QC } from './fastq_qc'
+include { FASTP } from '../modules/fastq_qc'
 
 workflow DEMUX {
     take:
@@ -51,7 +51,7 @@ workflow DEMUX {
                     if (seen.containsKey(bc) && seen[bc] != sp.id)
                         error "Demux group ${key}: index ${bc} is used by both " +
                               "'${seen[bc]}' and '${sp.id}'. Two libraries in one lane " +
-                              "cannot share a barcode — check metadata.csv."
+                              "cannot share a barcode. Check metadata.csv."
                     seen[bc] = sp.id
                 }
 
@@ -59,10 +59,13 @@ workflow DEMUX {
             }
             .set { ch_demux_input }
 
-        GENERATE_SAMPLESHEET(ch_demux_input)
+        // metas stay out of demux inputs so editing one library's metadata does not re-demultiplex its lane group.
+        GENERATE_SAMPLESHEET(ch_demux_input.map { key, _metas, bcl_dir, bcl_parent, is_dual, specs ->
+            [key, bcl_dir, bcl_parent, is_dual, specs]
+        })
 
         GENERATE_SAMPLESHEET.out.samplesheet
-            .flatMap { demux_key, metas, bcl_dir, bcl_parent, samplesheet ->
+            .flatMap { demux_key, bcl_dir, bcl_parent, samplesheet ->
                 def base_calls = new File("${bcl_dir}/Data/Intensities/BaseCalls")
                 def present_lanes = base_calls.listFiles()
                     ?.findAll { d -> d.isDirectory() && d.name =~ /^L\d+$/ }
@@ -73,37 +76,37 @@ workflow DEMUX {
                     ?.sort()
                 if (!present_lanes)
                     error "No lanes with cbcl data found in ${bcl_dir}/Data/Intensities/BaseCalls/"
-                present_lanes.collect { lane -> [bcl_dir.name, demux_key, metas, bcl_dir, bcl_parent, samplesheet, lane] }
+                present_lanes.collect { lane -> [bcl_dir.name, demux_key, bcl_dir, bcl_parent, samplesheet, lane] }
             }
             .combine(CLEAN_FASTQ_DIR.out.done, by: 0)
-            .map { _bcl_name, demux_key, metas, bcl_dir, bcl_parent, samplesheet, lane, _cleaned ->
-                [demux_key, metas, bcl_dir, bcl_parent, samplesheet, lane]
+            .map { _bcl_name, demux_key, bcl_dir, bcl_parent, samplesheet, lane, _cleaned ->
+                [demux_key, bcl_dir, bcl_parent, samplesheet, lane]
             }
             .set { ch_bclconvert_input }
 
         BCLCONVERT(ch_bclconvert_input)
 
         BCLCONVERT.out.reports
-            .map { _demux_key, _metas, bcl_name, bcl_parent, _lane, stats, unknown ->
+            .map { _demux_key, bcl_name, bcl_parent, _lane, stats, unknown ->
                 def run = bcl_name.replaceAll(/_bcl.*$/, '')
                 [run, "${bcl_parent}/${run}_fastq", stats, unknown]
             }
             .groupTuple(by: [0, 1])
             .map { run, fq_dir, stats, unknown ->
                 [run, fq_dir,
-                 stats.toSorted { s -> s.name },
-                 unknown.toSorted { u -> u.name }]
+                 // Every file is named Demultiplex_Stats.csv; sort on the full path.
+                 stats.toSorted { s -> s.toString() },
+                 unknown.toSorted { u -> u.toString() }]
             }
             .set { ch_demux_qc }
 
         DEMUX_QC(ch_demux_qc, channel.value(file("${projectDir}/assets/indexes")))
 
         BCLCONVERT.out.fastqs
-            .groupTuple(by: [0, 2])
-            .flatMap { demux_key, metas_per_lane, bcl_name, bcl_parents, fq_file_lists ->
-                def by_lane = metas_per_lane.toSorted { m -> m.toString() }
-                def metas   = by_lane[0]
-                def fqs     = fq_file_lists.toSorted { l -> l.toString() }.flatten()
+            .groupTuple(by: [0, 1])
+            .join(ch_demux_input.map { key, metas, _bcl_dir, _bcl_parent, _is_dual, _specs -> [key, metas] })
+            .flatMap { demux_key, bcl_name, bcl_parents, fq_file_lists, metas ->
+                def fqs     = fq_file_lists.flatten().toSorted { f -> f.name }
                 def run     = bcl_name.replaceAll(/_bcl.*$/, '')
                 def fq_dir  = "${bcl_parents[0]}/${run}_fastq".toString()
 
@@ -120,11 +123,12 @@ workflow DEMUX {
             }
             .set { ch_fastqs }
 
-        FASTQ_QC(ch_fastqs)
+        // Index reads and near-empty files are not worth a fastp report.
+        FASTP(ch_fastqs.flatMap { meta, fq_dir, fqs ->
+            fqs.findAll { f -> f.name =~ /_R[0-9]+_/ && f.size() > 1024 * 1024 }
+               .collect { f -> [meta.run_name, fq_dir, f.name.replaceAll(/\.fastq\.gz$/, ''), f] }
+        })
 
     emit:
-        fastqs             = FASTQ_QC.out.fastqs
-        fastp_reports      = FASTQ_QC.out.fastp_reports
-        demux_summary      = DEMUX_QC.out.summary
-        flowcell_overview  = DEMUX_QC.out.flowcell_overview
+        ch_fastqs
 }

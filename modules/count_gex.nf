@@ -1,10 +1,10 @@
 process CELLRANGER_MULTI {
     tag "$library_id"
     container "${params.container_cellranger}"
-    publishDir { "${params.outdir}/${metas[0].run_name}_outs" }, mode: 'copy'
+    publishDir { "${params.outdir}/${run_name}_outs" }, mode: 'copy'
 
     input:
-    tuple val(library_id), val(metas), val(config_header), path(adt_csv),
+    tuple val(library_id), val(run_name), val(config_header), path(adt_csv),
           val(flex_samples_content),
           path(gex_fastqs,    stageAs: "fastqs/gex/run_???/*"),
           path(adt_fastqs,    stageAs: "fastqs/adt/run_???/*"),
@@ -14,7 +14,7 @@ process CELLRANGER_MULTI {
           path(crispr_fastqs, stageAs: "fastqs/crispr/run_???/*")
 
     output:
-    tuple val(library_id), val(metas), path("${library_id}/outs"), emit: outs
+    tuple val(library_id), path("${library_id}/outs"), emit: outs
 
     script:
     def min_reads = 10000

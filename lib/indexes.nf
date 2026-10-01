@@ -51,16 +51,10 @@ def detect_sequencer(String bcl_path, String fallback) {
         return fallback
     }
     def instrument_id = m[0][1].trim()
-    def sequencer
-    if      (instrument_id.startsWith('VH'))  sequencer = 'novaseq_x'
-    else if (instrument_id.startsWith('NDX')) sequencer = 'novaseq_x'
-    else if (instrument_id.startsWith('A'))   sequencer = 'novaseq6000'
-    else if (instrument_id.startsWith('LH'))  sequencer = 'novaseq_x'
-    else if (instrument_id.startsWith('NB'))  sequencer = 'novaseq6000'
-    else if (instrument_id.startsWith('NS'))  sequencer = 'novaseq6000'
-    else if (instrument_id.startsWith('MN'))  sequencer = 'novaseq6000'
-    else if (instrument_id.startsWith('FS'))  sequencer = 'novaseq_x'
-    else {
+    def sequencer = ['VH', 'NDX', 'LH', 'FS'].any { p -> instrument_id.startsWith(p) } ? 'novaseq_x'
+                  : ['A', 'NB', 'NS', 'MN'].any { p -> instrument_id.startsWith(p) }  ? 'novaseq6000'
+                  : null
+    if (!sequencer) {
         log.warn "WARNING: Unrecognised instrument ID '${instrument_id}' in ${bcl_path}/RunInfo.xml; falling back to params.sequencer='${fallback}'"
         sequencer = fallback
     }

@@ -27,7 +27,7 @@ Documentation: **[ollieeknight.github.io/OSCAR](https://ollieeknight.github.io/O
 | DOGMA | GEX, ATAC, ADT, HTO | cellranger multi, cellranger-atac |
 | ASAP | ATAC, ADT, HTO | cellranger-atac, kallisto/bustools |
 
-Beyond counting: fastp and MultiQC on reads, cellbender and scrublet on GEX,
+Beyond counting: fastp on reads, cellbender and scrublet on GEX,
 AMULET, mgatk2 and MACS3 on ATAC, cellsnp-lite and vireo for multi-donor
 libraries. Viral detection and RNA velocity are off by default; turn them on
 with `--extras viral,velocity`.
@@ -49,11 +49,9 @@ to point them elsewhere.
 
 ```bash
 nextflow lint main.nf lib modules subworkflows nextflow.config
-bash tests/run_all.sh
 ```
 
-The first parses every file, the second runs every self-check. Neither needs a
-cluster, containers, or sequencing data.
+This parses every file. It needs no cluster, containers, or sequencing data.
 
 ## Citation and licence
 

@@ -20,7 +20,7 @@ workflow QC_GEX {
         ch_input
             .filter { meta, _outs -> meta.n_donors > 1 && meta.species != 'human' }
             .subscribe { meta, _outs ->
-                log.warn "WARN: '${meta.library_id}' declares n_donors=${meta.n_donors} but species='${meta.species}' — genotyping is human-only, skipping donor demultiplexing"
+                log.warn "WARN: '${meta.library_id}' declares n_donors=${meta.n_donors} but species='${meta.species}'; genotyping is human-only, skipping donor demultiplexing"
             }
 
         ch_snp_input = ch_multi_donor

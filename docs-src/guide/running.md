@@ -9,12 +9,12 @@ nextflow run main.nf -profile slurm \
 ```
 
 Results land beside the flowcell: FASTQs and read QC in `{run}_fastq`, counts
-and QC in `{run}_outs`, both siblings of `{run}_bcl`. Open
-`{run}_fastq/multiqc/multiqc_report.html` first.
+and QC in `{run}_outs`, both siblings of `{run}_bcl`. Check
+`{run}_fastq/{run}_demux_warnings.csv` first.
 
 ```
 {outdir}/
-├── {run_name}_fastq/multiqc/multiqc_report.html
+├── {run_name}_fastq/{run_name}_demux_warnings.csv
 └── {run_name}_outs/
     ├── {library_id}/outs/        GEX, CITE, Flex, Multiome, DOGMA
     └── {library_id}_ATAC/outs/   ATAC, Multiome, DOGMA, ASAP
@@ -83,7 +83,6 @@ Demux QC warnings are advisory and never fail a run.
 
 ```bash
 nextflow lint main.nf lib modules subworkflows nextflow.config
-bash tests/run_all.sh
 ```
 
-Neither needs a cluster, containers, or sequencing data.
+It needs no cluster, containers, or sequencing data.

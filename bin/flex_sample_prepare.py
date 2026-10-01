@@ -32,7 +32,7 @@ def prepare(probe_barcodes_ref, samples_file):
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__)
+    ap = argparse.ArgumentParser()
     ap.add_argument("--probe-barcodes-ref", required=True,
                     help="10x probe barcode reference file")
     ap.add_argument("--samples-file", required=True,

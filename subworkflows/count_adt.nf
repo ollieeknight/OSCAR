@@ -13,10 +13,9 @@ workflow COUNT_ADT {
                           "Check that 'adt_file' is set in the samplesheet and either place " +
                           "{samplesheet_dir}/adt_files/{adt_file}.csv or pass --adt_files_dir."
                 }
-                def adt_csv = file(adt_meta.adt_csv_path)
-                [ adt_meta, adt_csv, adt_fastqs ]
+                [ adt_meta, file(adt_meta.adt_csv_path), adt_fastqs ]
             }
-            
+
         FEATUREMAP(ch_adt_csv.map { meta, adt_csv, _fqs -> [ meta, adt_csv ] })
 
         KALLISTO_INDEX(FEATUREMAP.out.index_files)
@@ -27,11 +26,7 @@ workflow COUNT_ADT {
             ch_adt_csv.map { meta, _adt_csv, fqs -> [ meta, fqs ] }
         )
 
-        ch_bus_input = KALLISTO_INDEX.out.index
-            .join(ASAP_TO_KITE.out.converted_fastqs, by: 0)
-
-            .map { meta, t2g, idx, converted -> [ meta, t2g, idx, converted ] }
-        KALLISTO_BUS(ch_bus_input)
+        KALLISTO_BUS(KALLISTO_INDEX.out.index.join(ASAP_TO_KITE.out.converted_fastqs, by: 0))
 
         BUSTOOLS_CORRECT(KALLISTO_BUS.out.bus, ch_whitelist)
 

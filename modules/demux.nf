@@ -113,10 +113,10 @@ process GENERATE_SAMPLESHEET {
     container "${params.container_bclconvert}"
 
     input:
-    tuple val(demux_key), val(metas), path(bcl_dir), val(bcl_parent), val(is_dual), val(sample_specs)
+    tuple val(demux_key), path(bcl_dir), val(bcl_parent), val(is_dual), val(sample_specs)
 
     output:
-    tuple val(demux_key), val(metas), path(bcl_dir), val(bcl_parent), path("SampleSheet.csv"), emit: samplesheet
+    tuple val(demux_key), path(bcl_dir), val(bcl_parent), path("SampleSheet.csv"), emit: samplesheet
 
     script:
     def specs = sample_specs.collect { sp ->
@@ -155,7 +155,7 @@ SPECEOF
     done < sample_specs.tsv
 
     # Global OverrideCycles only when every row agrees; per-sample column
-    # otherwise. Never both — bcl-convert rejects a setting given twice.
+    # otherwise. Never both: bcl-convert rejects a setting given twice.
     per_sample=${per_sample}
     override_cycles=\$(head -n1 row_masks.txt)
 
@@ -229,11 +229,11 @@ process BCLCONVERT {
     }, mode: 'copy', pattern: "fastqs/Reports/*", saveAs: { fn -> file(fn).name }
 
     input:
-    tuple val(demux_key), val(metas), path(bcl_dir), val(bcl_parent), path(samplesheet), val(lane)
+    tuple val(demux_key), path(bcl_dir), val(bcl_parent), path(samplesheet), val(lane)
 
     output:
-    tuple val(demux_key), val(metas), val(bcl_dir.name), val(bcl_parent), path("fastqs/*.fastq.gz"), emit: fastqs
-    tuple val(demux_key), val(metas), val(bcl_dir.name), val(bcl_parent), val(lane), path("fastqs/Reports/Demultiplex_Stats.csv"), path("fastqs/Reports/Top_Unknown_Barcodes.csv"), emit: reports
+    tuple val(demux_key), val(bcl_dir.name), val(bcl_parent), path("fastqs/*.fastq.gz"), emit: fastqs
+    tuple val(demux_key), val(bcl_dir.name), val(bcl_parent), val(lane), path("fastqs/Reports/Demultiplex_Stats.csv"), path("fastqs/Reports/Top_Unknown_Barcodes.csv"), emit: reports
 
     script:
     def n_tiles      = Math.max(1, (task.cpus / 8).toInteger())
@@ -241,8 +241,6 @@ process BCLCONVERT {
     def n_compress   = Math.max(1, (task.cpus / 2).toInteger())
     def n_decompress = Math.max(1, (task.cpus / 4).toInteger())
     """
-    rm -rf fastqs/
-
     bcl-convert \\
         --bcl-input-directory              ${bcl_dir} \\
         --output-directory                 fastqs \\
@@ -257,7 +255,7 @@ process BCLCONVERT {
 
 process DEMUX_QC {
     tag "$run_name"
-    container "${params.container_multiqc}"
+    container "${params.container_python}"
     publishDir { "${fastq_dir}" }, mode: 'copy', pattern: "*.csv"
 
     input:
